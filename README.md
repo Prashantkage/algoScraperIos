@@ -263,6 +263,10 @@ Clone repository
 ```bash
 git clone https://github.com/Prashantkage/algoScraperIos.git
 ```
+git clone https://github.com/Prashantkage/algoScraperIos.git
+cd algoScraperIos
+npm run setup
+npm start
 
 Open project
 
