@@ -2303,7 +2303,8 @@ function initResizableTable() {
             function updateWidth() {
                 if (currentWidth > 40) {
                     th.style.width = `${currentWidth}px`;
-                    th.style.minWidth = `${currentWidth}px`; // Hard locks structural container resizing boundaries
+                    // FIXED: Explicitly sync minWidth during a manual drag to clear legacy double-tap locks
+                    th.style.minWidth = `${currentWidth}px`;
                 }
                 animationFrameId = null;
             }
@@ -2340,6 +2341,7 @@ function initResizableTable() {
             dummySpan.style.visibility = 'hidden';
             dummySpan.style.position = 'absolute';
             dummySpan.style.whiteSpace = 'nowrap';
+
             // Extract accurate parent canvas layer font rules for rendering calculations
             dummySpan.style.font = window.getComputedStyle(th).font;
             document.body.appendChild(dummySpan);
@@ -2358,6 +2360,8 @@ function initResizableTable() {
             });
 
             document.body.removeChild(dummySpan);
+
+            // FIXED: Apply matching metrics simultaneously so manual drag steps can cleanly override them later
             th.style.width = `${maxWidth}px`;
             th.style.minWidth = `${maxWidth}px`;
         });
