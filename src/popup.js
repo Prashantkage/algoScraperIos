@@ -1619,9 +1619,10 @@ noResultsMessage.innerText = 'No results found'; // Set the message text
 table.parentNode.insertBefore(noResultsMessage, table.nextSibling); // Insert the message after the table
 
 // Add event listener to the search box
+// Add event listener to the search box
 searchBox.addEventListener('keyup', function () {
-  var searchText = this.value.toLowerCase();
-  var found = false; // Flag to check if any row is found
+  var searchText = this.value.toLowerCase().trim();
+  var found = false;
 
   // Iterate through each row in the table
   for (var i = 0; i < table.rows.length; i++) {
@@ -1630,18 +1631,19 @@ searchBox.addEventListener('keyup', function () {
     // If the row contains the search text, make it visible
     if (row.innerText.toLowerCase().indexOf(searchText) > -1) {
       row.style.display = '';
-      found = true; // Set the flag to true if a row is found
+      found = true;
     } else {
-      // Otherwise, hide the row
       row.style.display = 'none';
     }
   }
 
-  // Check if any row was found
-  if (!found) {
-    noResultsMessage.style.display = ''; // Show the no results message
+  // FIXED: Explicitly hide the message if the input box is empty, regardless of row count
+  if (searchText === "") {
+    noResultsMessage.style.display = 'none';
+  } else if (!found) {
+    noResultsMessage.style.display = ''; // Show when a search fails to find matches
   } else {
-    noResultsMessage.style.display = 'none'; // Hide the no results message
+    noResultsMessage.style.display = 'none'; // Hide when matching data is found
   }
 });
 
@@ -2235,6 +2237,12 @@ function checkForSingleQuote(statement) {
 
 
 function createAndAppendTable(dtControls) {
+
+    // FIXED: Clear any lingering "No results found" alerts when fresh data or XPaths load
+        if (typeof noResultsMessage !== 'undefined') {
+            noResultsMessage.style.display = 'none';
+        }
+
     var pageName = document.getElementById('pagename_searchbox').value;
     var table = document.getElementById('myTable');
 
