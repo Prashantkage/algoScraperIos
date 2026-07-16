@@ -123,11 +123,15 @@ const secretKey = "algoshackv5-123";
 function decryptData(cipherText) {
     try {
         const bytes = CryptoJS.AES.decrypt(cipherText, secretKey);
+        // Enforcing strict UTF-8 conversion drops malformed block fragments
         const decrypted = bytes.toString(CryptoJS.enc.Utf8);
 
-        console.log("Encrypted:", cipherText);
-        console.log("Decrypted:", decrypted);
+        // If the parsing fails to return readable text, it's an invalid block sequence
+        if (!decrypted || decrypted.trim() === "") {
+            return null;
+        }
 
+        console.log("Decrypted successfully:", decrypted);
         return decrypted;
     } catch (err) {
         console.error("Decrypt Error:", err);
@@ -1461,9 +1465,11 @@ function downloadTableAsJSON(tableId) {
       var a = document.createElement('a');
       a.href = url;
 
-      var appName = document.getElementById('appname').value;
+      // Pulls the visible application text selection option instead of the structural value
+            var appSelect = document.getElementById('appname');
+            var appName = appSelect.options[appSelect.selectedIndex].text.trim();
 
-      a.download = appName + dateTime + ".json";
+            a.download = appName + "_" + dateTime + ".json";
 
       if (correct_controlName) {
           document.body.appendChild(a);
@@ -3138,37 +3144,35 @@ tokenInput.addEventListener("keydown", function (e) {
     e.preventDefault();
 
     const encryptedToken = tokenInput.value.trim();
+    const tokenStatus = document.getElementById("tokenStatus");
 
     tokenInput.readOnly = true;
 
     // Decrypt the pasted token
     const decryptedToken = decryptData(encryptedToken);
 
-    console.log("Result:", decryptedToken);
+    let isValidJson = false;
+    let parsedData = null;
 
-    // Save complete payload locally
-    localStorage.setItem(
-        "algoQAUser",
-        JSON.stringify(decryptedToken)
-    );
+    // Strict Evaluation: Prevent passed states on partial block corruption
+    if (decryptedToken) {
+        try {
+            parsedData = JSON.parse(decryptedToken);
+            // Verify structural object properties to guarantee total validity
+            if (parsedData && (parsedData.userID || parsedData.baseUrl)) {
+                isValidJson = true;
+            }
+        } catch (e) {
+            isValidJson = false;
+        }
+    }
 
-    localStorage.setItem(
-        "algoQAUser",
-        decryptedToken
-    );
+    console.log("Validation Result:", isValidJson);
 
-    console.log(
-        "Saved Data:",
-        localStorage.getItem("algoQAUser")
-    );
-
-    // Successful decryption
-    if (decryptedToken && decryptedToken.length > 0) {
+    // Cryptographically and structurally sound token validation check
+    if (isValidJson && parsedData) {
 
         tokenInput.style.display = "none";
-
-
-        tokenStatus.style.display = "inline-block";
         tokenStatus.style.display = "block";
         document.getElementById("changeTokenBtn").style.display = "inline-block";
         tokenStatus.innerHTML = "✅ Connected";
@@ -3176,31 +3180,49 @@ tokenInput.addEventListener("keydown", function (e) {
         tokenStatus.style.border = "1px solid #c3e6cb";
         tokenStatus.style.color = "#155724";
 
-        document.getElementById("Run").disabled = false;
-        document.getElementById("Run").style.backgroundColor = "#4285F4";
+        // Save complete validated payload locally as a single clean stringified object
+        localStorage.setItem("algoQAUser", JSON.stringify(parsedData));
+
+        console.log("Saved Data:", localStorage.getItem("algoQAUser"));
+
+        const runBtn = document.getElementById("Run");
+
+        // Session Check: If app is already active, lock Launch but restore scraper controls
+        if (driver) {
+            runBtn.disabled = true;
+            runBtn.style.backgroundColor = "#B6B6B4";
+
+            const featureButtons = ["Scrape", "scrapeUI", "reset", "algoQA"];
+            featureButtons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.style.backgroundColor = "#4285F4";
+                }
+            });
+        } else {
+            // Normal fallback state: Ready for launch app initialization
+            runBtn.disabled = false;
+            runBtn.style.backgroundColor = "#4285F4";
+        }
 
     } else {
-
+        // Clear and fail immediately if token is invalid or tampered with
         tokenInput.style.display = "none";
-        document.getElementById("changeTokenBtn").style.display = "inline-block";
-
-        tokenStatus.style.display = "inline-block";
         tokenStatus.style.display = "block";
         tokenStatus.innerHTML = "❌ Invalid Token";
         tokenStatus.style.backgroundColor = "#f8d7da";
         tokenStatus.style.border = "1px solid #f5c6cb";
         tokenStatus.style.color = "#721c24";
 
+        // Wait exactly 2 seconds, clean up error states, then restore the editable text input box
         setTimeout(() => {
-
             tokenStatus.style.display = "none";
-            tokenStatus.style.display = "block";
 
             tokenInput.style.display = "inline-block";
             tokenInput.value = "";
             tokenInput.readOnly = false;
             tokenInput.focus();
-
         }, 2000);
     }
 });
@@ -3770,36 +3792,42 @@ function enableImageDragging(img) {
 const changeTokenBtn = document.getElementById("changeTokenBtn");
 
 changeTokenBtn.addEventListener("click", () => {
-
     const tokenInput = document.getElementById("tokenInput");
 
-    // Remove saved token
-    localStorage.removeItem("algoQAToken"); // Replace with your actual key if different
+    // Remove saved token payload strings cleanly
+    localStorage.removeItem("algoQAUser");
 
-    // Clear token
+    // Clear and restore input properties
     tokenInput.value = "";
-
-    // Show textbox again
     tokenInput.style.visibility = "visible";
     tokenInput.style.display = "inline-block";
-
-    // Make sure it is editable
     tokenInput.disabled = false;
     tokenInput.readOnly = false;
     tokenInput.removeAttribute("disabled");
     tokenInput.removeAttribute("readonly");
 
-    // Hide connected label
+    // Hide connected labels and the change button itself
     document.getElementById("tokenStatus").style.display = "none";
-
-    // Hide Change button
     changeTokenBtn.style.display = "none";
 
-    // Disable Run button until token is validated again
-    document.getElementById("Run").disabled = true;
-    document.getElementById("Run").style.backgroundColor = "#B6B6B4";
+    // Define the component array requiring strict locking actions
+    const lockButtons = ["Run", "Scrape", "scrapeUI", "reset", "algoQA"];
+    lockButtons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.disabled = true;
+            btn.style.backgroundColor = "#B6B6B4";
+        }
+    });
 
-    // Put cursor in textbox
+    // Explicitly guarantee that download actions bypass this freeze block completely
+    const downloadBtn = document.getElementById("download");
+    if (downloadBtn && tableCreated) {
+        downloadBtn.disabled = false;
+        downloadBtn.style.backgroundColor = "#4285F4";
+    }
+
+    // Direct system focus properties back onto text input container
     tokenInput.focus();
 });
 

@@ -1,7 +1,107 @@
-html, body, .container-fluid {
+html, body {
   background-color: #D6D8DC;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Hard locks the window view frame, stopping whole-page scrolling */
+  display: flex;
+  flex-direction: column;
 }
 
+/* Ensure the upper split components don't over-stretch vertically */
+.flex-container {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  height: 540px; /* Constrains the top launcher and mobile preview panel height context */
+  flex-shrink: 0;
+}
+
+/* --- REPLACE this block in your index.css --- */
+div[style*="font-size: 11px;"] {
+  padding: 4px 15px !important;
+  flex-shrink: 0;
+  background-color: transparent !important;
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
+/* --- REPLACE IT WITH THIS ACCURATE SPACING LAYOUT --- */
+div[style*="font-size: 11px;"] {
+  padding: 0 !important;
+  margin-top: -5px !important;   /* Pulls the search row up to reduce space entirely */
+  margin-left: 15px !important;   /* Matches the crisp box border alignment on the left */
+  margin-right: 15px !important;  /* Matches alignment right side edge */
+  margin-bottom: 12px !important;
+  flex-shrink: 0;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+/* --- APPEND THESE NEW BOX SIZING RULES TO THE VERY BOTTOM OF YOUR INDEX.CSS --- */
+
+/* Relative wrapper container for input icon positioning */
+.table-search-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 280px !important; /* Increased width size layout requirement */
+}
+
+/* Hard override style metrics targeting the main table filter field */
+.table-search-wrapper input[type="text"]#searchbox {
+    width: 100% !important;
+    padding: 4px 10px 4px 28px !important; /* Creates clear layout margin left for the icon symbol */
+    margin: 0 !important;
+    height: 26px !important;
+    font-size: 11px;
+    border: 1px solid #c5c9d0;
+    border-radius: 4px;
+    background-color: #ffffff;
+    box-sizing: border-box;
+}
+
+/* Absolute tracking styles for vector magnifying glass symbol */
+.table-search-icon-svg {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 13px;
+    height: 13px;
+    fill: #575B5E;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Keeps download action submit layout completely uniform in alignment height */
+#download {
+    margin: 0 !important;
+    height: 26px !important;
+    padding: 0 14px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+}
+
+/* Card Box View Container for the Spreadsheet Table Panel Layout */
+.bottom-div {
+    flex: 1;
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    background-color: #ffffff;
+    box-sizing: border-box;
+    display: block !important;
+
+    /* Spacing adjustments to form a clean card box look */
+    margin-top: -8px !important;     /* Pulls the table closer to the search utility bar */
+    margin-left: 15px !important;    /* Creates clean visual breathing room on the left */
+    margin-right: 15px !important;   /* Creates matching visual symmetry on the right */
+    margin-bottom: 5px !important;  /* Stops table edge from sticking against the window bottom */
+
+    /* Spreadsheet box structural frame styling */
+    border: 1px solid #c5c9d0 !important;
+    border-radius: 6px !important;   /* Rounds the container corners slightly for a modern card finish */
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); /* Gives the table container box a clean desktop elevate depth lift */
+}
 .text-input {
   font-size: 16px;
 }
@@ -194,27 +294,96 @@ th {
     min-width: 40px;
 }
 
+/* Clean Column Handle Positioning Context */
 th .resizer {
     position: absolute;
     top: 0;
     right: 0;
-    width: 6px;
+    width: 4px;
     height: 100%;
     cursor: col-resize;
     user-select: none;
-    z-index: 1000;
+    z-index: 10;
     background: transparent;
 }
 
 th .resizer:hover {
-    background-color: #4285F4;
+    background-color: #4285F4 !important; /* Highlights clear selection tracking width */
 }
 
 /* Force table columns and body cells to accurately obey width properties */
 #mainTable {
-    table-layout: fixed !important; /* Fixed table layout is required once cell max-width handles resizing */
+    table-layout: fixed !important; /* Enforces strict resizer dimensions */
     width: max-content !important;
+    border-collapse: collapse !important;
+    background-color: #ffffff;
+    box-sizing: border-box;
 }
+
+/* Clear native bootstrap border layout overrides */
+.table-bordered,
+.table-bordered > thead > tr > th,
+.table-bordered > tbody > tr > td {
+    border: 1px solid #d0d4dc !important; /* Soft spreadsheet gray lines */
+}
+
+/* Excel Style Column Header Cells */
+/* Excel Style Blue Column Header Cells with Bold Black Text */
+#mainTable th {
+    position: sticky;
+    top: 0;
+    background-color: #4285F4 !important; /* Primary action layout blue color configuration */
+    color: #000000 !important;            /* High-contrast bold black text */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 700 !important;          /* Hard bold text weighting override */
+    height: 28px;                         /* Structured compact row density profile */
+    padding: 6px 10px 6px 8px !important; /* Balanced cell padding metrics */
+    text-align: center;                   /* Centered header alignment layout */
+    vertical-align: middle;
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+    z-index: 20;                          /* Ensures headers stay stacked correctly above body content when scrolling */
+}
+
+/* Spreadsheet Body Data Cells */
+#mainTable td {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: #1f2937;
+    height: 22px;                         /* Standard dynamic density row tracking */
+    padding: 3px 8px !important;          /* Clean spreadsheet text gutters */
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 0;                         /* Enables correct ellipsis trimming inside fixed containers */
+    box-sizing: border-box;
+}
+
+/* Alternating Row Tinting (Spreadsheet readability) */
+#mainTable tbody tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+
+#mainTable tbody tr:hover {
+    background-color: #f0f4fe !important; /* Subtle blue cell selection feedback glow */
+}
+
+/* Active Text Cell Modifications Layout */
+#mainTable td[contenteditable="true"]:focus {
+    outline: 2px solid #4285F4 !important; /* Highlight cell container focus border blue */
+    background-color: #ffffff !important;
+    overflow: visible;
+    white-space: normal;
+    z-index: 5;
+}
+
+
 
 #mainTable th,
 #mainTable td {

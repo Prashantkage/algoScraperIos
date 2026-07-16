@@ -262,25 +262,20 @@
     </div>
 
 </div>
-<div style="font-size: 11px;">
-    <span style="font-size: 13px;margin-left: 39px;">Search:</span>
-    <input type="text" id="searchbox" name="searchbox" style="width: 148px;"placeholder="Search table data">
-    <!-- <input type="submit" value="Search" id="search" style="margin-left: 100px;"/>  -->
-    <input type="submit" value="Download" id="download" style="margin-left: 22px;"/>
-    <!-- <input type="submit" value="Clear" id="clear"/>  -->
-    <!-- <input type="submit" value="Delete" id="delete"/>  -->
-    <!-- <span type="submit" id="csv_download_msg" style="margin-left: 22px; display: none;">Csv File Downloaded</span>  -->
+<!-- REPLACE your old table search row block with this layout structure -->
+<div style="font-size: 11px; display: flex; align-items: center; gap: 10px;">
+    <div class="table-search-wrapper">
+        <!-- Inline magnifying glass vector icon -->
+        <svg class="table-search-icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 2 9.5 2S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+        </svg>
+        <input type="text" id="searchbox" name="searchbox" placeholder="Search table data">
+    </div>
+    <input type="submit" value="Download" id="download"/>
 </div>
 <div class="bottom-div" id="table-container" style="height: 300px; ">
-    <table
-            class="table table-bordered"
-            id="mainTable"
-            style="
-border-color:#bdb8b8a1;
-table-layout: auto !important;
-width:max-content;
-min-width:100%;
-">
+    <!-- REPLACE it with this clean baseline element string initialization -->
+    <table class="table table-bordered" id="mainTable">
         <thead >
         <tr class="bg-info" style="position: sticky;font-size: 11px;">
             <th id="cn pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">Control Name<div class="resizer"></div></th>
