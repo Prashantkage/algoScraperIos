@@ -1,6 +1,6 @@
 # AlgoScraper iOS
 
-AlgoScraper iOS is an Electron-based application used to inspect iOS applications and generate XPath locators. The application automatically manages the Appium server and supports both real iOS devices and simulators.
+AlgoScraper iOS is an Electron-based desktop application used to inspect iOS applications and generate XPath locators. The application automatically manages the Appium server and supports both real iOS devices and simulators.
 
 ---
 
@@ -18,11 +18,21 @@ AlgoScraper iOS is an Electron-based application used to inspect iOS application
 
 ---
 
-# Prerequisites
+# System Requirements
 
-Before running the application, install the following software.
+- macOS
+- Node.js 18 or later
+- npm
+- Xcode
+- CocoaPods
+- Homebrew
+- iPhone (or) iOS Simulator
 
-## 1. Install Homebrew (if not already installed)
+---
+
+# Software Installation
+
+## 1. Install Homebrew
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -55,13 +65,13 @@ npm -v
 
 Install Xcode from the Mac App Store.
 
-After installation:
+Configure Xcode:
 
 ```bash
 sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 ```
 
-Accept the license:
+Accept License:
 
 ```bash
 sudo xcodebuild -license accept
@@ -119,34 +129,36 @@ ios-deploy --version
 
 # Clone the Repository
 
-Clone the project from GitHub.
+> **Note:** This is a **private GitHub repository**. Your GitHub account must have access before you can clone it.
+
+Clone the repository:
 
 ```bash
-git clone https://github.com/Prashantkage/algoScraperautoappium.git
+git clone https://github.com/Prashantkage/algoScraperIos.git
 ```
 
-Go inside the project.
+Go inside the project:
 
 ```bash
-cd algoScraperautoappium
+cd algoScraperIos
 ```
 
 ---
 
 # Install Project Dependencies
 
-Run the setup command.
+Install all required dependencies by running:
 
 ```bash
 npm run setup
 ```
 
-This command automatically installs:
+The setup script automatically installs:
 
 - Root project dependencies
 - Appium runtime dependencies
 
-If required, you can also install them manually.
+If required, dependencies can also be installed manually.
 
 ### Root Project
 
@@ -172,13 +184,13 @@ npm start
 
 ---
 
-# Build the macOS Application
+# Build macOS Application
 
 ```bash
 npm run make
 ```
 
-Generated application will be available under:
+Generated files will be available in:
 
 ```
 out/
@@ -196,26 +208,25 @@ npm run package-win
 
 # Connect an iPhone
 
-Connect the iPhone using a USB cable.
-
-Trust the Mac when prompted.
-
-Verify device detection.
+1. Connect the iPhone using a USB cable.
+2. Unlock the device.
+3. Tap **Trust This Computer** when prompted.
+4. Verify the device connection.
 
 ```bash
 idevice_id -l
 ```
 
-A connected device UDID should be displayed.
+The connected device UDID should be displayed.
 
 ---
 
-# Run the Scraper
+# Running AlgoScraper
 
 1. Launch AlgoScraper.
-2. Enter the authentication token.
+2. Enter your authentication token.
 3. Wait until the status changes to **Connected**.
-4. Choose Simulator or Real Device.
+4. Select **Real Device** or **Simulator**.
 5. Select the application.
 6. Start inspection.
 7. Click any UI element to generate XPath.
@@ -223,21 +234,21 @@ A connected device UDID should be displayed.
 
 ---
 
-# Update the Project
+# Updating the Project
 
-If the repository receives updates:
+To get the latest code:
 
 ```bash
 git pull origin main
 ```
 
-Install any newly added dependencies.
+Install any newly added dependencies:
 
 ```bash
 npm run setup
 ```
 
-Start the application.
+Start the application:
 
 ```bash
 npm start
@@ -245,21 +256,21 @@ npm start
 
 ---
 
-# Git Commands
+# Useful Git Commands
 
-Clone Repository
-
-```bash
-git clone https://github.com/Prashantkage/algoScraperautoappium.git
-```
-
-Move into project
+Clone repository
 
 ```bash
-cd algoScraperautoappium
+git clone https://github.com/Prashantkage/algoScraperIos.git
 ```
 
-Pull latest changes
+Open project
+
+```bash
+cd algoScraperIos
+```
+
+Pull latest code
 
 ```bash
 git pull origin main
@@ -271,7 +282,7 @@ Install dependencies
 npm run setup
 ```
 
-Start application
+Run application
 
 ```bash
 npm start
@@ -324,7 +335,7 @@ sudo gem install cocoapods
 
 ## Device not detected
 
-Verify:
+Run:
 
 ```bash
 idevice_id -l
@@ -346,14 +357,14 @@ sudo xcodebuild -license accept
 
 ## Clean Installation
 
-Delete dependencies.
+Delete installed dependencies:
 
 ```bash
 rm -rf node_modules
 rm -rf appium-runtime/node_modules
 ```
 
-Install again.
+Install again:
 
 ```bash
 npm run setup
@@ -364,7 +375,7 @@ npm run setup
 # Project Structure
 
 ```
-algoScraperautoappium
+algoScraperIos
 │
 ├── appium-runtime/
 ├── src/
@@ -381,5 +392,5 @@ algoScraperautoappium
 
 # Support
 
-If you encounter any issues while setting up or running the application, 
-contact the AlgoShack development team with the error logs and screenshots for assistance.
+For any issues during setup or execution, 
+contact the AlgoShack development team and share the error logs along with screenshots for faster troubleshooting.
