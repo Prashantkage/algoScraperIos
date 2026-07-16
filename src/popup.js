@@ -1329,31 +1329,6 @@ try{
         }
         dtControls = [];
       }
-      function initResizableTable() {
-          const resizers = document.querySelectorAll('.resizer');
-          let startX, startWidth, currentResizer;
-
-          resizers.forEach(resizer => {
-              resizer.addEventListener('mousedown', (e) => {
-                  currentResizer = resizer;
-                  startX = e.clientX;
-                  startWidth = currentResizer.parentElement.offsetWidth;
-
-                  document.addEventListener('mousemove', handleMouseMove);
-                  document.addEventListener('mouseup', handleMouseUp);
-              });
-          });
-
-          function handleMouseMove(e) {
-              const dx = e.clientX - startX;
-              currentResizer.parentElement.style.width = `${startWidth + dx}px`;
-          }
-
-          function handleMouseUp() {
-              document.removeEventListener('mousemove', handleMouseMove);
-              document.removeEventListener('mouseup', handleMouseUp);
-          }
-      }
       document.getElementById('div_status_bar').style.display = 'none';
       showElementHover = false;
       hoverRequestId++;
@@ -2254,42 +2229,126 @@ function checkForSingleQuote(statement) {
 
 
 function createAndAppendTable(dtControls) {
-          var pageName = document.getElementById('pagename_searchbox').value;
-          var table = document.getElementById('myTable');
-          for (var i = 0; i < dtControls.length; i++) {
+    var pageName = document.getElementById('pagename_searchbox').value;
+    var table = document.getElementById('myTable');
 
-              console.log("TABLE FP =", dtControls[i].Fingerprint);
-              var tableTopRow = table.insertRow(0);
-              td_id = i;
-              var row = `<tr draggable="true">
-                  <td class="cn pt-3-half" id="cn_${td_id}" contenteditable="true" style ="max-width:90px;overflow: hidden;white-space: nowrap;spellcheck:false;font-size: 11px;font-weight: 600;border-color: black; text-align: center;">${dtControls[i].ControlName}</td>
-                  <td class="ct pt-3-half" id="ct_${td_id}" contenteditable="true" style ="max-width:90px;overflow: hidden;white-space: nowrap;spellcheck:false;font-size: 11px;font-weight: 600;border-color: black; text-align: center;">${dtControls[i].ControlType}</td>
-                  <td class="xpath pt-3-half" id="xpath_${td_id}" contenteditable="true" style ="max-width:160px;overflow: hidden;white-space: nowrap;spellcheck:false;font-size: 11px;font-weight: 600;border-color: black; text-align: center;">${dtControls[i].ControlId}</td>
-                  <td class="page pt-3-half" id="page_${td_id}" contenteditable="true" style ="max-width:40px;overflow: hidden;white-space: nowrap;spellcheck:false;font-size: 11px;font-weight: 600;border-color: black; text-align: center;">${pageName}</td>
+    for (var i = 0; i < dtControls.length; i++) {
+        console.log("TABLE FP =", dtControls[i].Fingerprint);
+        var tableTopRow = table.insertRow(0);
+        td_id = i;
+        var row = `<tr draggable="true">
+            <td class="cn pt-3-half" id="cn_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${dtControls[i].ControlName}</td>
+            <td class="ct pt-3-half" id="ct_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${dtControls[i].ControlType}</td>
+            <td class="xpath pt-3-half" id="xpath_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${dtControls[i].ControlId}</td>
+            <td class="page pt-3-half" id="page_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${pageName}</td>
 
-                  <td class="identificationType pt-3-half" id="identificationType_${td_id}" contenteditable="true" style ="max-width:90px;overflow: hidden;white-space: nowrap;spellcheck:false;font-size: 11px;font-weight: 600;border-color: black; text-align: center;"></td>
+            <td class="identificationType pt-3-half" id="identificationType_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;"></td>
 
-                  <td class="controlValue pt-3-half" id="controlValue_${td_id}" contenteditable="true" style ="max-width:90px;overflow: hidden;white-space: nowrap;spellcheck:false;font-size: 11px;font-weight: 600;border-color: black; text-align: center;"></td>
+            <td class="controlValue pt-3-half" id="controlValue_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;"></td>
 
-                  <td class="featureName pt-3-half" id="featureName_${td_id}" contenteditable="true" style ="max-width:90px;overflow: hidden;white-space: nowrap;spellcheck:false;font-size: 11px;font-weight: 600;border-color: black; text-align: center;">${pageName}</td>
+            <td class="featureName pt-3-half" id="featureName_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${pageName}</td>
 
-                  <td class="nodeName pt-3-half" id="nodeName_${td_id}" contenteditable="true" style ="max-width:90px;overflow: hidden;white-space: nowrap;spellcheck:false;font-size: 11px;font-weight: 600;border-color: black; text-align: center;">${pageName}</td>
+            <td class="nodeName pt-3-half" id="nodeName_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${pageName}</td>
 
-                  <td class="fingerprint pt-3-half" id="fingerprint_${td_id}" contenteditable="true" style ="spellcheck:false;font-size: 11px;font-weight: 600;border-color: black; text-align: left; display:none;">${(dtControls[i].Fingerprint || "").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
-                  <td class="appUrl pt-3-half"
-                      id="appUrl_${td_id}"
-                      contenteditable="true"
-                      style="display:none;">
-                  </td>
-                  <td class="delete-cell" style = "border-color:black"><img src="icon/icons8-delete_red.svg" id="del_${td_id}" alt="delete" class="deleteBtn" style = "margin-left: auto;margin-right: 1px;max-width:17px;overflow: hidden;cursor: pointer;-webkit-user-drag: none;"></td>
-              </tr>`;
-              tableTopRow.innerHTML += row;
-          }
-          tableCreated = true;
-          document.getElementById('download').disabled = false;
-          document.getElementById('download').style.backgroundColor = '#4285F4';
-          document.getElementById('table-container').style.display = "block";
-      }
+            <td class="fingerprint pt-3-half" id="fingerprint_${td_id}" contenteditable="true" style="spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: left; display:none;">${(dtControls[i].Fingerprint || "").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+            <td class="appUrl pt-3-half"
+                id="appUrl_${td_id}"
+                contenteditable="true"
+                style="display:none;">
+            </td>
+            <td class="delete-cell" style="border-color:black"><img src="icon/icons8-delete_red.svg" id="del_${td_id}" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; overflow: hidden; cursor: pointer; -webkit-user-drag: none;"></td>
+        </tr>`;
+        tableTopRow.innerHTML += row;
+    }
+
+    tableCreated = true;
+    document.getElementById('download').disabled = false;
+    document.getElementById('download').style.backgroundColor = '#4285F4';
+    document.getElementById('table-container').style.display = "block";
+
+    // Initialize resizable columns event hooks
+    initResizableTable();
+}
+
+function initResizableTable() {
+    const resizers = document.querySelectorAll('.resizer');
+
+    resizers.forEach(resizer => {
+        const th = resizer.parentElement;
+
+        // 1. Fluid frame-throttled dragging mechanism
+        resizer.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const startX = e.clientX;
+            const startWidth = th.offsetWidth;
+            let currentWidth = startWidth;
+            let animationFrameId = null;
+
+            function updateWidth() {
+                if (currentWidth > 40) {
+                    th.style.width = `${currentWidth}px`;
+                    th.style.minWidth = `${currentWidth}px`; // Hard locks structural container resizing boundaries
+                }
+                animationFrameId = null;
+            }
+
+            function handleMouseMove(e) {
+                currentWidth = startWidth + (e.clientX - startX);
+                if (!animationFrameId) {
+                    animationFrameId = requestAnimationFrame(updateWidth);
+                }
+            }
+
+            function handleMouseUp() {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+            }
+
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+        });
+
+        // 2. Double-Click Auto-Fit Calculations Engine
+        resizer.addEventListener('dblclick', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const table = document.getElementById('mainTable');
+            const colIndex = th.cellIndex;
+            let maxWidth = 60; // Absolute structural safety lower metric limit baseline
+
+            const dummySpan = document.createElement('span');
+            dummySpan.style.visibility = 'hidden';
+            dummySpan.style.position = 'absolute';
+            dummySpan.style.whiteSpace = 'nowrap';
+            // Extract accurate parent canvas layer font rules for rendering calculations
+            dummySpan.style.font = window.getComputedStyle(th).font;
+            document.body.appendChild(dummySpan);
+
+            // Compute length metric configurations relative to both header row cells and data cell bodies
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cell = row.cells[colIndex];
+                if (cell) {
+                    dummySpan.innerText = cell.innerText;
+                    const cellWidth = dummySpan.offsetWidth + 20; // content dimensions + structural cell boundary padding
+                    if (cellWidth > maxWidth) {
+                        maxWidth = cellWidth;
+                    }
+                }
+            });
+
+            document.body.removeChild(dummySpan);
+            th.style.width = `${maxWidth}px`;
+            th.style.minWidth = `${maxWidth}px`;
+        });
+    });
+}
 
 function clearOverlay(){
 
@@ -3851,5 +3910,3 @@ function isXPathUnique(xpath) {
         return false;
     }
 }
-
-

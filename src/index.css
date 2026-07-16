@@ -184,20 +184,52 @@ input[type=submit]:hover {
   z-index: 9998;
 }
 
-/* Add this to your existing CSS */
-th{
-    position:relative;
+th {
+    position: relative;
+    padding: 8px;
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 40px;
 }
 
-th .resizer{
-    position:absolute;
-    top:0;
-    right:-3px;
-    width:8px;
-    height:100%;
-    cursor:col-resize;
-    user-select:none;
-    z-index:1000;
+th .resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    user-select: none;
+    z-index: 1000;
+    background: transparent;
+}
+
+th .resizer:hover {
+    background-color: #4285F4;
+}
+
+/* Force table columns and body cells to accurately obey width properties */
+#mainTable {
+    table-layout: fixed !important; /* Fixed table layout is required once cell max-width handles resizing */
+    width: max-content !important;
+}
+
+#mainTable th,
+#mainTable td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+/* ADD THIS NEW BLOCK AT THE BOTTOM OF YOUR CSS FILE: Force child elements to respect th column width modifications */
+#mainTable td {
+    max-width: 0; /* Webkit trick: allows text-overflow ellipsis logic to work within auto-layout tables */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 #image-container_ss {
@@ -405,8 +437,16 @@ th .resizer{
     align-items: center;
 }
 
-.table{
-    table-layout: fixed;
-    width: max-content;
-    min-width: 100%;
+.table {
+    table-layout: auto !important; /* Allows columns to resize dynamically */
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.draggable-row {
+    cursor: grab;
+}
+
+.draggable-row:active {
+    cursor: grabbing;
 }
