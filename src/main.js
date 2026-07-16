@@ -213,6 +213,24 @@ function createLoadingWindow() {
     }
   });
 
+  // Convert the local GIF to inline Base64 to bypass Chromium security restrictions on data: URLs
+  let loaderSrc = "";
+  try {
+    const fs = require('fs');
+    // Checks root execution path first, then common subdirectories
+    let iconPath = path.join(__dirname, 'icon', 'load-8510_256.gif');
+    if (!fs.existsSync(iconPath)) {
+      iconPath = path.join(__dirname, 'src', 'icon', 'load-8510_256.gif');
+    }
+
+    if (fs.existsSync(iconPath)) {
+      const base64Data = fs.readFileSync(iconPath, 'base64');
+      loaderSrc = `data:image/gif;base64,${base64Data}`;
+    }
+  } catch (err) {
+    console.error("Error reading loader GIF asset:", err);
+  }
+
   loadingWindow.loadURL(
     "data:text/html;charset=utf-8," +
     encodeURIComponent(`
@@ -255,7 +273,7 @@ body{
     #2d2d30 100%
   );
 
-  border:1px solid rgba(255,255,255,.55);
+  border:1px solid rgba(255,255,255,.15);
 
   border-radius:18px;
 
@@ -333,35 +351,16 @@ body{
 
   align-items:center;
 
-}
-
-.loader{
-
-  width:58px;
-  height:58px;
-
-  border-radius:50%;
-
-  border:5px solid rgba(255,255,255,.18);
-
-  border-top:5px solid #3aa9ff;
-
-  animation:spin .9s linear infinite;
-
-  margin-bottom:18px;
+  padding-top:40px;
 
 }
 
-@keyframes spin{
-
-  from{
-    transform:rotate(0deg);
-  }
-
-  to{
-    transform:rotate(360deg);
-  }
-
+.loader-image {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 18px;
+  object-fit: contain;
+  -webkit-user-drag: none;
 }
 
 h1{
@@ -402,7 +401,8 @@ p{
 
   <div class="content">
 
-    <div class="loader"></div>
+    <!-- Replaced old CSS spinner container with the fluid native GIF element link context -->
+    <img src="${loaderSrc}" class="loader-image" alt="Loading Engine Context..." />
 
     <h1>Please wait</h1>
 
