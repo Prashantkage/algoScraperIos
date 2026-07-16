@@ -5,6 +5,7 @@
   "description": "This algoScraper is used to scrape the XPath for Android App and IOS App",
   "main": "./src/main.js",
   "scripts": {
+    "setup": "npm install && cd appium-runtime && npm install",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
