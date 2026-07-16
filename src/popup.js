@@ -1832,8 +1832,28 @@ async function onShowElementHover(e) {
 
     const xpath = xpathCell.innerText.trim();
 
-    if (!xpath || xpath.startsWith("COORDINATE(")) {
+    if (!xpath) {
         clearOverlay();
+        return;
+    }
+
+    if (xpath.startsWith("COORDINATE(")) {
+
+        const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
+
+        if (match) {
+
+            const x = parseInt(match[1], 10);
+            const y = parseInt(match[2], 10);
+
+            drawShowElementMarker({
+                x: x - 8,
+                y: y - 8,
+                width: 16,
+                height: 16
+            });
+        }
+
         return;
     }
 
@@ -2649,65 +2669,35 @@ function testOverlay(){
 
 async function findIOSLocator(clickX, clickY){
 
-        const pageName =
-        document.getElementById("pagename_searchbox")
-        .value
-        .trim();
+    const pageName =
+    document.getElementById("pagename_searchbox")
+    .value
+    .trim();
 
-        if (pageName === "") {
+    if (pageName === "") {
+        document.getElementById("pagename_searchbox").style.borderColor = "red";
+        alert("Please enter Page Name.");
+        return;
+    }
 
-            document.getElementById("pagename_searchbox").style.borderColor = "red";
-
-            alert("Please enter Page Name.");
-
-            return;
-
-        }
-
-        const nodes =
-            window.xmlDoc.getElementsByTagName("*");
-
+    const nodes = window.xmlDoc.getElementsByTagName("*");
     let matchedNode = null;
     let smallestArea = Number.MAX_VALUE;
 
     for(let i = 0; i < nodes.length; i++){
-
         const node = nodes[i];
-
         const x = parseFloat(node.getAttribute("x"));
         const y = parseFloat(node.getAttribute("y"));
         const width = parseFloat(node.getAttribute("width"));
         const height = parseFloat(node.getAttribute("height"));
 
-        if(
-            isNaN(x) ||
-            isNaN(y) ||
-            isNaN(width) ||
-            isNaN(height)
-        ){
+        if(isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)){
             continue;
         }
 
-        if(
-            clickX >= x &&
-            clickX <= (x + width) &&
-            clickY >= y &&
-            clickY <= (y + height)
-        ){
-            console.log(
-                node.nodeName,
-                x,
-                y,
-                width,
-                height
-            );
-
-            console.log(
-                "CLICK INSIDE:",
-                node.nodeName,
-                node.getAttribute("name"),
-                node.getAttribute("label")
-            );
+        if(clickX >= x && clickX <= (x + width) && clickY >= y && clickY <= (y + height)){
+            console.log(node.nodeName, x, y, width, height);
+            console.log("CLICK INSIDE:", node.nodeName, node.getAttribute("name"), node.getAttribute("label"));
 
             if (
                 node.nodeName === "XCUIElementTypeApplication" ||
@@ -2721,154 +2711,68 @@ async function findIOSLocator(clickX, clickY){
                 continue;
             }
 
+            const allowedTypes = [
+                "XCUIElementTypeButton",
+                "XCUIElementTypeStaticText",
+                "XCUIElementTypeTextField",
+                "XCUIElementTypeSecureTextField",
+                "XCUIElementTypeSearchField",
+                "XCUIElementTypeImage",
+                "XCUIElementTypeTextView"
+            ];
 
-            const hasName =
-                node.getAttribute("name");
-
-            const hasLabel =
-                node.getAttribute("label");
-
-            const hasValue =
-                node.getAttribute("value");
-
-        const allowedTypes = [
-            "XCUIElementTypeButton",
-            "XCUIElementTypeStaticText",
-            "XCUIElementTypeTextField",
-            "XCUIElementTypeSecureTextField",
-            "XCUIElementTypeSearchField",
-            "XCUIElementTypeImage",
-            "XCUIElementTypeTextView",
-            "XCUIElementTypeOther"
-        ];
-
-          if (
-              allowedTypes.includes(node.nodeName) &&
-              (
-                  node.getAttribute("name") ||
-                  node.getAttribute("label") ||
-                  node.getAttribute("value")
-              )
-          ) {
-
-              const area = width * height;
-
-
-
-              if (area < smallestArea) {
-
-                  smallestArea = area;
-                  matchedNode = node;
-              }
-          }
+            if (
+                allowedTypes.includes(node.nodeName) &&
+                (
+                    node.getAttribute("name") ||
+                    node.getAttribute("label") ||
+                    node.getAttribute("value")
+                )
+            ) {
+                const area = width * height;
+                if (area < smallestArea) {
+                    smallestArea = area;
+                    matchedNode = node;
+                }
+            }
         }
     }
 
-    console.log(
-        "FINAL MATCH:",
-        matchedNode?.nodeName,
-        matchedNode?.getAttribute("name"),
-        matchedNode?.getAttribute("label")
-    );
-     if(!matchedNode){
+    console.log("FINAL MATCH:", matchedNode?.nodeName, matchedNode?.getAttribute("name"), matchedNode?.getAttribute("label"));
 
-            createAndAppendTable([
-            {
-                ControlName:
-                    `Coordinate_${Math.round(clickX)}_${Math.round(clickY)}`,
-
-                ControlType:
-                    "Coordinate",
-
-                ControlId:
-                    `COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`
-            }
-            ]);
-
-            return;
+    if(!matchedNode){
+        createAndAppendTable([
+        {
+            ControlName: `Coordinate_${Math.round(clickX)}_${Math.round(clickY)}`,
+            ControlType: "Coordinate",
+            ControlId: `COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`
         }
+        ]);
+        return;
+    }
 
-    console.log(
-        "MATCHED:",
-        matchedNode.nodeName,
-        matchedNode.getAttribute("name"),
-        matchedNode.getAttribute("label")
-    );
+    console.log("MATCHED:", matchedNode.nodeName, matchedNode.getAttribute("name"), matchedNode.getAttribute("label"));
 
-   let controlName =
-       matchedNode.getAttribute("name") ||
-       matchedNode.getAttribute("value") ||
-       matchedNode.getAttribute("label") ||
-       matchedNode.nodeName;
+    let controlName =
+        matchedNode.getAttribute("name") ||
+        matchedNode.getAttribute("value") ||
+        matchedNode.getAttribute("label") ||
+        matchedNode.nodeName;
 
-let xpath = "";
-let controlId = "";
+    controlName = controlName.trim();
+    console.log(new XMLSerializer().serializeToString(matchedNode));
 
-if (
-    matchedNode.getAttribute("name") &&
-    matchedNode.getAttribute("name").trim() !== ""
-) {
+    // Generates a fully unique global collection index sequence
+    let xpath = generateUniqueXPath(matchedNode);
 
-    const rawName =
-        matchedNode.getAttribute("name").trim();
-
-    controlId =
-        "//" +
-        matchedNode.nodeName +
-        '[@name="' +
-        rawName +
-        '"]';
-
-    xpath = controlId;
-}
-else if (
-    matchedNode.getAttribute("value") &&
-    matchedNode.getAttribute("value").trim() !== ""
-) {
-
-    controlId =
-        "//" +
-        matchedNode.nodeName +
-        '[@value="' +
-        matchedNode.getAttribute("value").trim() +
-        '"]';
-
-    xpath = controlId;
-}
-else if (
-    matchedNode.getAttribute("label") &&
-    matchedNode.getAttribute("label").trim() !== ""
-) {
-
-    controlId =
-        "//" +
-        matchedNode.nodeName +
-        '[@label="' +
-        matchedNode.getAttribute("label").trim() +
-        '"]';
-
-    xpath = controlId;
-}
-else {
-
-    controlId =
-        "//" + matchedNode.nodeName;
-
-    xpath = controlId;
-}
-
-controlName = controlName.trim();
-
-console.log(new XMLSerializer().serializeToString(matchedNode));
-
-createAndAppendTable([
-{
-    ControlName: controlName,
-    ControlType: matchedNode.nodeName.replace("XCUIElementType", ""),
-    ControlId: xpath,
-    Fingerprint: new XMLSerializer().serializeToString(matchedNode)
-}
-]);
+    createAndAppendTable([
+    {
+        ControlName: controlName,
+        ControlType: matchedNode.nodeName.replace("XCUIElementType", ""),
+        ControlId: xpath,
+        Fingerprint: new XMLSerializer().serializeToString(matchedNode)
+    }
+    ]);
 }
 
 //for coordinates
@@ -3103,12 +3007,9 @@ document.getElementById("scrapeUI").addEventListener("click", async () => {
     dtControls = [];
     controlNameLists = [];
 
-    const controlIdList = [];
-
     const xmlNodes = window.xmlDoc.getElementsByTagName("*");
 
     for (let i = 0; i < xmlNodes.length; i++) {
-
         const node = xmlNodes[i];
 
         const allowedTypes = [
@@ -3132,25 +3033,8 @@ document.getElementById("scrapeUI").addEventListener("click", async () => {
 
         controlName = controlName.trim();
 
-        let xpath = "";
-
-        if (node.getAttribute("name")) {
-            xpath = `//${node.nodeName}[@name="${node.getAttribute("name")}"]`;
-        } else if (node.getAttribute("label")) {
-            xpath = `//${node.nodeName}[@label="${node.getAttribute("label")}"]`;
-        } else if (node.getAttribute("value")) {
-            xpath = `//${node.nodeName}[@value="${node.getAttribute("value")}"]`;
-        } else {
-            xpath = `//${node.nodeName}`;
-        }
-
-        if (controlIdList.includes(xpath)) {
-            let count = controlIdList.filter(x => x === xpath).length + 1;
-            controlIdList.push(xpath);
-            xpath = `(${xpath})[${count}]`;
-        } else {
-            controlIdList.push(xpath);
-        }
+        // Safe global index calculation safely hooks into document snapshots
+        let xpath = generateUniqueXPath(node);
 
         dtControls.push({
             ControlName: controlName,
@@ -3166,14 +3050,11 @@ document.getElementById("scrapeUI").addEventListener("click", async () => {
     .trim();
 
     if(pageName === ""){
-
         document.getElementById("pagename_searchbox").style.borderColor = "red";
-
         alert("Please enter Page Name.");
-
         return;
-
     }
+
     createAndAppendTable(dtControls);
     dtControls = [];
 });
@@ -3862,4 +3743,113 @@ changeTokenBtn.addEventListener("click", () => {
     // Put cursor in textbox
     tokenInput.focus();
 });
+
+
+function generateUniqueXPath(node) {
+    if (!node || node.nodeType !== 1) return "";
+
+    const stopNodes = ["AppiumAUT", "XCUIElementTypeApplication", "hierarchy", "XCUIElementTypeWindow"];
+    if (stopNodes.includes(node.nodeName)) {
+        return `//${node.nodeName}`;
+    }
+
+    // --- STRATEGY 1: Global Unique Attribute Match ---
+    // Prioritize clean, reliable attributes across Android and iOS
+    const attributes = ["name", "resource-id", "content-desc", "text", "value", "label"];
+    for (let attr of attributes) {
+        let val = node.getAttribute(attr);
+        if (val && val.trim() !== "") {
+            val = val.trim().replace(/"/g, '\\"'); // Escape quotes safely
+            let baseXpath = `//${node.nodeName}[@${attr}="${val}"]`;
+
+            if (isXPathUnique(baseXpath)) {
+                return baseXpath;
+            }
+        }
+    }
+
+    // --- STRATEGY 2: Find the Closest Unique Ancestor ---
+    // Instead of using global indices like (//Tag)[35], find a unique parent and build a relative path
+    let ancestor = node.parentNode;
+    let ancestorPath = "";
+
+    while (ancestor && ancestor.nodeType === 1 && !stopNodes.includes(ancestor.nodeName)) {
+        for (let attr of attributes) {
+            let val = ancestor.getAttribute(attr);
+            if (val && val.trim() !== "") {
+                val = val.trim().replace(/"/g, '\\"');
+                let testAncestorXpath = `//${ancestor.nodeName}[@${attr}="${val}"]`;
+
+                if (isXPathUnique(testAncestorXpath)) {
+                    ancestorPath = testAncestorXpath;
+                    break;
+                }
+            }
+        }
+        if (ancestorPath) break;
+        ancestor = ancestor.parentNode;
+    }
+
+    // If we found a unique container parent, pinpoint our element inside it
+    if (ancestorPath) {
+        let relativeXpath = `${ancestorPath}//${node.nodeName}`;
+
+        // Check if it's unique inside that container
+        if (isXPathUnique(relativeXpath)) {
+            return relativeXpath;
+        }
+
+        // If duplicates exist inside the unique container, index just within this scope
+        let results = window.xmlDoc.evaluate(relativeXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        for (let i = 0; i < results.snapshotLength; i++) {
+            if (results.snapshotItem(i) === node) {
+                return `(${relativeXpath})[${i + 1}]`;
+            }
+        }
+    }
+
+    // --- STRATEGY 3: Local Index Relative to Immediate Parent ---
+    // If no unique text or container is found, fall back to structural tag placement: Parent/Child[Index]
+    let parent = node.parentNode;
+    if (parent && parent.nodeType === 1 && !stopNodes.includes(parent.nodeName)) {
+        let siblings = parent.childNodes;
+        let sameTagIndex = 0;
+        let matchIndex = 1;
+
+        for (let i = 0; i < siblings.length; i++) {
+            if (siblings[i].nodeType === 1 && siblings[i].nodeName === node.nodeName) {
+                sameTagIndex++;
+                if (siblings[i] === node) {
+                    matchIndex = sameTagIndex;
+                }
+            }
+        }
+
+        // Recursively build path for the parent structure
+        let parentXpath = generateUniqueXPath(parent);
+        return `${parentXpath}/${node.nodeName}[${matchIndex}]`;
+    }
+
+    // --- STRATEGY 4: Absolute Global Fallback ---
+    let fallbackXpath = `//${node.nodeName}`;
+    let globalResults = window.xmlDoc.evaluate(fallbackXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (let i = 0; i < globalResults.snapshotLength; i++) {
+        if (globalResults.snapshotItem(i) === node) {
+            return `(${fallbackXpath})[${i + 1}]`;
+        }
+    }
+
+    return fallbackXpath;
+}
+
+// Helper utility to check absolute uniqueness of a generated path string
+function isXPathUnique(xpath) {
+    try {
+        let results = window.xmlDoc.evaluate(xpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        return results.snapshotLength === 1;
+    } catch (e) {
+        return false;
+    }
+}
+
 

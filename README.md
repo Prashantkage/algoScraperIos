@@ -49,3 +49,12 @@ npm run make
 
 # Build Windows Package
 npm run package-win
+
+
+
+# Delete the build/out directories in your project
+rm -rf out/ algoScraper-builds/
+
+# Deep clean Node/Appium compilation caches within your workspace
+find . -name "CompilationCache.noindex" -type d -exec rm -rf {} +
+find . -name ".cache" -type d -exec rm -rf {} +;  

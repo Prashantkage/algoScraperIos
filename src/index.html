@@ -29,8 +29,8 @@
                 <option value="IOS">IOS</option>
             </select>
 
-<!--            <label for="appname" style="margin-bottom: 0px;">App Name</label>-->
-<!--            <input type="text" id="appname" name="appname" placeholder="Your App name.." value="Calender">-->
+            <!--            <label for="appname" style="margin-bottom: 0px;">App Name</label>-->
+            <!--            <input type="text" id="appname" name="appname" placeholder="Your App name.." value="Calender">-->
 
             <label for="appname">App Name</label>
 
@@ -177,10 +177,10 @@
                         <span class="toolTip">Reset Zoom (100%)</span>
                     </div>
 
-<!--                    <div class="toolWrapper">-->
-<!--                        <button id="rotateBtn" class="toolBtn">↻</button>-->
-<!--                        <span class="toolTip">Rotate</span>-->
-<!--                    </div> -->
+                    <!--                    <div class="toolWrapper">-->
+                    <!--                        <button id="rotateBtn" class="toolBtn">↻</button>-->
+                    <!--                        <span class="toolTip">Rotate</span>-->
+                    <!--                    </div> -->
 
                     <div class="toolWrapper">
                         <button id="refreshBtn" class="toolBtn">↻</button>
@@ -272,7 +272,15 @@
     <!-- <span type="submit" id="csv_download_msg" style="margin-left: 22px; display: none;">Csv File Downloaded</span>  -->
 </div>
 <div class="bottom-div" id="table-container" style="height: 300px; ">
-    <table class="table table-bordered" style="border-color: #bdb8b8a1;overflow-y: auto;">
+    <table
+            class="table table-bordered"
+            id="mainTable"
+            style="
+border-color:#bdb8b8a1;
+table-layout:fixed;
+width:max-content;
+min-width:100%;
+">
         <thead >
         <tr class="bg-info" style="position: sticky;font-size: 11px;">
             <th id="cn pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">Control Name</th>
@@ -292,7 +300,7 @@
                 style="display:none;">
                 APP URL
             </th>
-<!--            <th id="page pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">View Xpath</th>-->
+            <!--            <th id="page pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">View Xpath</th>-->
             <th id="page pt-3-half" style="border-inline-color:black;width: 9px; text-align: center;">Delete</th>
             <th id="add_empty_row" style="width:0px"><img src="icon/plus.png"
                                                           style="width:16px ; -webkit-user-drag: none;" title="Add row" /></th>

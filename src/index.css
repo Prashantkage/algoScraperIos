@@ -32,7 +32,7 @@ html, body, .container-fluid {
 }
 
 .left {
-  left: 0; 
+  left: 0;
 }
 
 .right {
@@ -124,6 +124,7 @@ input[type=submit]:hover {
 .bottom-div {
     max-height: 300px;
     overflow-y: auto;
+    overflow-x: auto;
     display: none;
 }
 .table th{
@@ -184,18 +185,19 @@ input[type=submit]:hover {
 }
 
 /* Add this to your existing CSS */
-th {
-  position: relative;
+th{
+    position:relative;
 }
 
-th .resizer {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  cursor: ew-resize;
-  user-select: none;
+th .resizer{
+    position:absolute;
+    top:0;
+    right:-3px;
+    width:8px;
+    height:100%;
+    cursor:col-resize;
+    user-select:none;
+    z-index:1000;
 }
 
 #image-container_ss {
@@ -401,4 +403,10 @@ th .resizer {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.table{
+    table-layout: fixed;
+    width: max-content;
+    min-width: 100%;
 }
