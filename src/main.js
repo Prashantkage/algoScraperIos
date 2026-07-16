@@ -51,7 +51,6 @@ async function startAppium() {
             return;
         }
 
-        // Auto-resolves path perfectly across environments
         const baseRuntimePath = app.isPackaged
             ? path.join(process.resourcesPath, "appium-runtime")
             : path.join(__dirname, "..", "appium-runtime");
@@ -65,28 +64,30 @@ async function startAppium() {
             "main.js"
         );
 
-        console.log("Starting bundled Appium:");
-        console.log(appiumMain);
+        console.log("Starting bundled Appium:", appiumMain);
 
-        // child_process.fork automatically uses the built-in Node runner context
+        // Explicitly inherit system environment variables and force APPIUM_HOME
+        // to point right into your unpacked runtime workspace folder.
+        const appiumEnv = Object.assign({}, process.env, {
+            APPIUM_HOME: baseRuntimePath
+        });
+
         appiumProcess = fork(
             appiumMain,
             [],
             {
                 cwd: baseRuntimePath,
                 detached: false,
-                stdio: ["ignore", "pipe", "pipe", "ipc"] // keeping IPC channel alive safely
+                env: appiumEnv, // <-- Passes down the runtime route context
+                stdio: ["ignore", "pipe", "pipe", "ipc"]
             }
         );
 
         let started = false;
 
         appiumProcess.on("spawn", () => {
-
             started = true;
-
             resolve();
-
         });
 
         appiumProcess.stdout.on("data", (data) => {
@@ -98,27 +99,15 @@ async function startAppium() {
         });
 
         appiumProcess.on("error", (err) => {
-
             reject(err);
-
         });
 
         appiumProcess.on("exit", (code) => {
-
             if (!started) {
-
-                reject(
-                    new Error(
-                        `Appium exited immediately with code ${code}`
-                    )
-                );
-
+                reject(new Error(`Appium exited immediately with code ${code}`));
             }
-
         });
-
     });
-
 }
 
 async function waitForAppium(timeout = 60000) {

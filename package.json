@@ -5,7 +5,7 @@
   "description": "This algoScraper is used to scrape the XPath for Android App and IOS App",
   "main": "./src/main.js",
   "scripts": {
-    "setup": "npm install && cd appium-runtime && npm install",
+    "setup": "npx npm install && cd appium-runtime && npx npm install",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
@@ -34,7 +34,7 @@
   "dependencies": {
     "adbkit": "^2.0.17",
     "appium": "^2.0.1",
-    "appium-xcuitest-driver": "^9.9.6",
+    "appium-xcuitest-driver": "^9.10.5",
     "crypto-js": "^4.2.0",
     "electron-squirrel-startup": "^1.0.0",
     "screenshot-desktop": "^1.15.0",

@@ -1,6 +1,7 @@
-# AlgoScraper iOS
+Markdown
+# AlgoScraper
 
-AlgoScraper iOS is an Electron-based desktop application used to inspect iOS applications and generate XPath locators. The application automatically manages the Appium server and supports both real iOS devices and simulators.
+AlgoScraper is an Electron-based desktop application used to inspect iOS and Android applications and generate XPath locators. The application automatically manages the Appium server and supports both real devices and simulators/emulators.
 
 ---
 
@@ -9,7 +10,7 @@ AlgoScraper iOS is an Electron-based desktop application used to inspect iOS app
 - Automatic Appium startup.
 - Uses an existing Appium server if already running.
 - Automatically starts the bundled Appium if no Appium instance is found.
-- XPath inspection for iOS applications.
+- XPath inspection for iOS and Android applications.
 - Accurate child element detection.
 - Hover-based element highlighting.
 - Zoom, pan and drag support.
@@ -21,12 +22,13 @@ AlgoScraper iOS is an Electron-based desktop application used to inspect iOS app
 # System Requirements
 
 - macOS
-- Node.js 18 or later
-- npm
+- Node.js 18 or later (Node v22+ recommended)
+- npm v10+
 - Xcode
 - CocoaPods
 - Homebrew
 - iPhone (or) iOS Simulator
+- Android Device (or) Emulator
 
 ---
 
@@ -35,350 +37,223 @@ AlgoScraper iOS is an Electron-based desktop application used to inspect iOS app
 ## 1. Install Homebrew
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
+/bin/bash -c "$(curl -fsSL [https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh](https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh))"
 Verify:
 
-```bash
+Bash
 brew --version
-```
-
----
-
-## 2. Install Node.js
-
-```bash
+2. Install Node.js
+Bash
 brew install node
-```
-
 Verify:
 
-```bash
+Bash
 node -v
 npm -v
-```
-
----
-
-## 3. Install Xcode
-
+3. Install Xcode
 Install Xcode from the Mac App Store.
 
 Configure Xcode:
 
-```bash
+Bash
 sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-```
-
 Accept License:
 
-```bash
+Bash
 sudo xcodebuild -license accept
-```
-
 Verify:
 
-```bash
+Bash
 xcodebuild -version
-```
-
----
-
-## 4. Install CocoaPods
-
-```bash
+4. Install CocoaPods
+Bash
 sudo gem install cocoapods
-```
-
 Verify:
 
-```bash
+Bash
 pod --version
-```
-
----
-
-## 5. Install libimobiledevice
-
-```bash
+5. Install libimobiledevice
+Bash
 brew install libimobiledevice
-```
-
 Verify:
 
-```bash
+Bash
 idevice_id -l
-```
-
----
-
-## 6. Install ios-deploy
-
-```bash
+6. Install ios-deploy
+Bash
 npm install -g ios-deploy
-```
-
 Verify:
 
-```bash
+Bash
 ios-deploy --version
-```
-
----
-
-# Clone the Repository
-
-> **Note:** This is a **private GitHub repository**. Your GitHub account must have access before you can clone it.
+Clone the Repository
+Note: This is a private GitHub repository . Your GitHub account must have access before you can clone it.
 
 Clone the repository:
 
-```bash
-git clone https://github.com/Prashantkage/algoScraperIos.git
-```
-
+Bash
+git clone [https://github.com/Prashantkage/algoScraperIos.git](https://github.com/Prashantkage/algoScraperIos.git)
 Go inside the project:
 
-```bash
+Bash
 cd algoScraperIos
-```
-
----
-
-# Install Project Dependencies
-
+Install Project Dependencies
 Install all required dependencies by running:
 
-```bash
+Bash
 npm run setup
-```
-
 The setup script automatically installs:
 
-- Root project dependencies
-- Appium runtime dependencies
+Root project dependencies
+
+Appium runtime dependencies
 
 If required, dependencies can also be installed manually.
 
-### Root Project
-
-```bash
+Root Project
+Bash
 npm install
-```
-
-### Appium Runtime
-
-```bash
+Appium Runtime
+Bash
 cd appium-runtime
 npm install
 cd ..
-```
-
----
-
-# Start the Application
-
-```bash
+Start the Application
+Bash
 npm start
-```
-
----
-
-# Build macOS Application
-
-```bash
+Build macOS Application
+Bash
 npm run make
-```
-
 Generated files will be available in:
 
-```
 out/
-```
-
----
-
-# Build Windows Package
-
-```bash
+Build Windows Package
+Bash
 npm run package-win
-```
+Connect an iPhone
+Connect the iPhone using a USB cable.
 
----
+Unlock the device.
 
-# Connect an iPhone
+Tap Trust This Computer when prompted.
 
-1. Connect the iPhone using a USB cable.
-2. Unlock the device.
-3. Tap **Trust This Computer** when prompted.
-4. Verify the device connection.
+Verify the device connection.
 
-```bash
+Bash
 idevice_id -l
-```
-
 The connected device UDID should be displayed.
 
----
+Running AlgoScraper
+Launch AlgoScraper.
 
-# Running AlgoScraper
+Enter your authentication token.
 
-1. Launch AlgoScraper.
-2. Enter your authentication token.
-3. Wait until the status changes to **Connected**.
-4. Select **Real Device** or **Simulator**.
-5. Select the application.
-6. Start inspection.
-7. Click any UI element to generate XPath.
-8. Export the generated locators if required.
+Wait until the status changes to Connected .
 
----
+Select Real Device or Simulator .
 
-# Updating the Project
+Select the application.
 
+Start inspection.
+
+Click any UI element to generate XPath.
+
+Export the generated locators if required.
+
+Updating the Project
 To get the latest code:
 
-```bash
+Bash
 git pull origin main
-```
-
 Install any newly added dependencies:
 
-```bash
+Bash
 npm run setup
-```
-
 Start the application:
 
-```bash
+Bash
 npm start
-```
-
----
-
-# Useful Git Commands
-
+Useful Git Commands
 Clone repository
 
-```bash
-git clone https://github.com/Prashantkage/algoScraperIos.git
-```
-git clone https://github.com/Prashantkage/algoScraperIos.git
+Bash
+git clone [https://github.com/Prashantkage/algoScraperIos.git](https://github.com/Prashantkage/algoScraperIos.git)
 cd algoScraperIos
 npm run setup
 npm start
-
-Open project
-
-```bash
-cd algoScraperIos
-```
-
 Pull latest code
 
-```bash
+Bash
 git pull origin main
-```
-
-Install dependencies
-
-```bash
-npm run setup
-```
-
 Run application
 
-```bash
+Bash
 npm start
-```
-
 Build application
 
-```bash
+Bash
 npm run make
-```
-
-Create Windows package
-
-```bash
-npm run package-win
-```
-
----
-
-# Troubleshooting
-
-## npm command not found
-
+Troubleshooting
+npm command not found
 Install Node.js.
 
 Verify:
 
-```bash
+Bash
 node -v
 npm -v
-```
-
----
-
-## Xcode not found
-
-```bash
+Xcode not found
+Bash
 sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-```
-
----
-
-## CocoaPods not found
-
-```bash
+CocoaPods not found
+Bash
 sudo gem install cocoapods
-```
-
----
-
-## Device not detected
-
+Device not detected
 Run:
 
-```bash
+Bash
 idevice_id -l
-```
+Reconnect the device and tap Trust This Computer .
 
-Reconnect the device and tap **Trust This Computer**.
-
----
-
-## Permission Issues
-
+Permission Issues
 Run:
 
-```bash
+Bash
 sudo xcodebuild -license accept
-```
+npm ERR! cb.apply is not a function
+This occurs when a legacy node package forces npm to use an outdated local v3 cache. Wipe out the corrupted local paths and reinstall:
 
----
+Bash
+rm -rf node_modules package-lock.json appium-runtime/node_modules appium-runtime/package-lock.json
+npm run setup
+Missing Driver Error (ENOENT on XCUITest initialization)
+Appium cannot resolve the targeted testing extension module. Manually install it inside the runtime workspace:
 
-## Clean Installation
+Bash
+cd appium-runtime
+npm install appium-xcuitest-driver
+cd ..
+ENOSPC: no space left on device (Build Failures)
+The compiler exhausted the disk space while copying compilation caches. Run a deep clean to free up space before building:
 
+Bash
+rm -rf out/ algoScraper-builds/
+find . -name "CompilationCache.noindex" -type d -exec rm -rf {} +
+find . -name ".cache" -type d -exec rm -rf {} +
+Screen Blank After Clicking Reset then Refresh
+If you click "Reset", the active view is completely cleared from the app. To refresh the page after a reset, you must select your app configuration and click Launch Application once more to reconstruct the viewport.
+
+Clean Installation
 Delete installed dependencies:
 
-```bash
+Bash
 rm -rf node_modules
 rm -rf appium-runtime/node_modules
-```
-
 Install again:
 
-```bash
+Bash
 npm run setup
-```
-
----
-
-# Project Structure
-
-```
+Project Structure
 algoScraperIos
 │
 ├── appium-runtime/
@@ -390,11 +265,5 @@ algoScraperIos
 ├── webpack.rules.js
 ├── README.md
 └── .gitignore
-```
-
----
-
-# Support
-
-For any issues during setup or execution, 
-contact the AlgoShack development team and share the error logs along with screenshots for faster troubleshooting.
+Support
+For any issues during setup or execution, contact the AlgoShack development team and share the error logs along with screenshots for faster troubleshooting.

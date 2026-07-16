@@ -426,7 +426,8 @@ async function launchApp(initialData) {
       appPackage: initialData[2],
       appActivity: initialData[3],
       newCommandTimeout: 3000,
-      automationName: initialData[6]
+      automationName: initialData[6],
+      noReset: true
     }
   };
   var darwin_IOS_desiredCaps = {
@@ -443,38 +444,56 @@ async function launchApp(initialData) {
       newCommandTimeout: 500000
     }
   };
-  //Initiating the Driver
+
+  // Initiating the Driver
   try {
     if (initialData[0] === 'Android') {
       driver = await new wd.Builder().usingServer(initialData[4]).withCapabilities(darwin_Androide_desiredCaps).forBrowser("").build();
+
+      console.log("Android Driver Session Established. Activating application package...");
+      // Explicitly pull the targeted app to the foreground
+      await driver.executeScript("mobile: activateApp", { appId: initialData[2] });
     }
     else if (initialData[0] === 'IOS') {
       driver = await new wd.Builder().usingServer(initialData[4]).withCapabilities(darwin_IOS_desiredCaps).forBrowser("").build();
+
+      console.log("iOS Driver Session Established. Activating application bundle...");
+      // Explicitly pull the targeted app to the foreground
+      await driver.executeScript("mobile: activateApp", { bundleId: initialData[6] });
     }
   } catch (error) {
+     console.error("Failed to initialize driver session:", error);
+     // Re-enable run buttons if initialization crashes out completely
+     document.getElementById('AppRunningPopup').style.display = 'none';
+     document.getElementById('overlay').style.display = 'none';
+     alert("Launch error: " + error.message);
+     return;
   }
-document.getElementById('Run').disabled = true;
-document.getElementById('Run').style.backgroundColor = '#B6B6B4';
 
-document.getElementById('Scrape').disabled = false;
-document.getElementById('Scrape').style.backgroundColor = '#4285F4';
+  // Update UI State safely since driver session is validated
+  document.getElementById('Run').disabled = true;
+  document.getElementById('Run').style.backgroundColor = '#B6B6B4';
 
-document.getElementById('download').disabled = false;
-document.getElementById('download').style.backgroundColor = '#4285F4';
+  document.getElementById('Scrape').disabled = false;
+  document.getElementById('Scrape').style.backgroundColor = '#4285F4';
 
-document.getElementById('reset').disabled = false;
-document.getElementById('reset').style.backgroundColor = '#4285F4';
+  document.getElementById('download').disabled = false;
+  document.getElementById('download').style.backgroundColor = '#4285F4';
 
-document.getElementById('scrapeUI').disabled = false;
-document.getElementById('scrapeUI').style.backgroundColor = '#4285F4';
+  document.getElementById('reset').disabled = false;
+  document.getElementById('reset').style.backgroundColor = '#4285F4';
 
-document.getElementById('algoQA').disabled = false;
-document.getElementById('algoQA').style.backgroundColor = '#4285F4';
+  document.getElementById('scrapeUI').disabled = false;
+  document.getElementById('scrapeUI').style.backgroundColor = '#4285F4';
 
-document.getElementById('AppRunningPopup').style.display = 'none';
-document.getElementById('overlay').style.display = 'none';
+  document.getElementById('algoQA').disabled = false;
+  document.getElementById('algoQA').style.backgroundColor = '#4285F4';
 
-await loadFirstScreen();
+  document.getElementById('AppRunningPopup').style.display = 'none';
+  document.getElementById('overlay').style.display = 'none';
+
+  // Proceed to screen extraction steps
+  await loadFirstScreen();
 }
 
 
@@ -3468,7 +3487,7 @@ document.getElementById("refreshBtn").addEventListener("click", async () => {
     const globalOverlay = document.getElementById("overlay");
     const appRunningPopup = document.getElementById("AppRunningPopup");
 
-    // 1. Keep the global blocker windows turned off here as well
+    // 1. Keep the global blocker windows turned off
     if (globalOverlay) globalOverlay.style.display = "none";
     if (appRunningPopup) appRunningPopup.style.display = "none";
 
@@ -3487,10 +3506,8 @@ document.getElementById("refreshBtn").addEventListener("click", async () => {
 
     if (localLoader) localLoader.style.display = "block";
 
-    const screenshot = document.getElementById("screenshot");
-
     try {
-        // Take latest screenshot
+        // Take latest screenshot via Appium driver
         const image = await driver.takeScreenshot();
 
         require("fs").writeFileSync(
@@ -3499,18 +3516,103 @@ document.getElementById("refreshBtn").addEventListener("click", async () => {
             "base64"
         );
 
-        if (screenshot) {
-            screenshot.src = `${folderPath}/image0.png?${Date.now()}`;
-            await new Promise(resolve => {
-                screenshot.onload = resolve;
-                screenshot.onerror = resolve;
-            });
+        // Hide the dummy device text since we are loading an active image screen
+        const dummy = document.getElementById("dummyDevice");
+        if (dummy) {
+            dummy.style.display = "none";
         }
 
-        // Refresh XML
+        let screenshot = document.getElementById("screenshot");
+
+        // If the element was deleted by the Reset button, recreate it entirely
+        if (!screenshot) {
+            screenshot = document.createElement("img");
+            screenshot.id = "screenshot";
+
+            // Pre-apply layout constraints so background shifts don't bleed through on initialization
+            screenshot.style.width = BASE_WIDTH + "px";
+            screenshot.style.height = BASE_HEIGHT + "px";
+            screenshot.style.display = "block";
+            screenshot.style.margin = "0 auto";
+
+            // Re-attach all required drawing, mouse, and click interactions
+            enableImageDragging(screenshot);
+
+            screenshot.onmousemove = function (e) {
+                previewElement(e);
+            };
+
+            screenshot.onmouseleave = function () {
+                showElementHover = false;
+                lastXPath = "";
+                clearTimeout(hoverTimer);
+                clearOverlay();
+            };
+
+            screenshot.onclick = async function (e) {
+                if (hasDragged) return;
+
+                if (!tapMode) {
+                    const rect = screenshot.getBoundingClientRect();
+                    const appNode = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
+                    const appWidth = parseFloat(appNode.getAttribute("width"));
+                    const appHeight = parseFloat(appNode.getAttribute("height"));
+                    const scaleX = appWidth / rect.width;
+                    const scaleY = appHeight / rect.height;
+                    const x = Math.round((e.clientX - rect.left) * scaleX);
+                    const y = Math.round((e.clientY - rect.top) * scaleY);
+
+                    await performTouch(x, y);
+                    return;
+                }
+
+                const rect = screenshot.getBoundingClientRect();
+                const appNode = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
+                const appWidth = parseFloat(appNode.getAttribute("width"));
+                const appHeight = parseFloat(appNode.getAttribute("height"));
+                const scaleX = appWidth / rect.width;
+                const scaleY = appHeight / rect.height;
+                const clickX = (e.clientX - rect.left) * scaleX;
+                const clickY = (e.clientY - rect.top) * scaleY;
+
+                findIOSLocator(clickX, clickY);
+            };
+
+            // Put it back inside the placeholder container area
+            container.appendChild(screenshot);
+            imgTagFlag = true;
+        }
+
+        // Force cache eviction and set the updated image file path source
+        screenshot.src = "";
+        screenshot.src = `${folderPath}/image0.png?t=${Date.now()}`;
+
+        await new Promise(resolve => {
+            screenshot.onload = resolve;
+            screenshot.onerror = resolve;
+        });
+
+        // Sync and pull down fresh element coordinates matching the image update
+        await driver.sleep(800);
         const pageSource = await driver.getPageSource();
         const parser = new DOMParser();
         window.xmlDoc = parser.parseFromString(pageSource, "text/xml");
+
+        // Explicitly force buttons to re-enable when page loads successfully
+        document.getElementById('scrapeUI').disabled = false;
+        document.getElementById('scrapeUI').style.backgroundColor = '#4285F4';
+
+        document.getElementById('reset').disabled = false;
+        document.getElementById('reset').style.backgroundColor = '#4285F4';
+
+        document.getElementById('algoQA').disabled = false;
+        document.getElementById('algoQA').style.backgroundColor = '#4285F4';
+
+        document.getElementById('download').disabled = false;
+        document.getElementById('download').style.backgroundColor = '#4285F4';
+
+        // Also ensure table control state remains true so downloads work seamlessly
+        tableCreated = true;
 
         clearOverlay();
 
@@ -3523,13 +3625,19 @@ document.getElementById("refreshBtn").addEventListener("click", async () => {
             targetLoader.style.display = "none";
         }
 
-        if (!screenshot) return;
+        const finalScreenshot = document.getElementById("screenshot");
+        if (!finalScreenshot) return;
 
         zoomLevel = 1;
-        screenshot.style.transition = "all 0.3s ease";
-        screenshot.style.width = BASE_WIDTH + "px";
-        screenshot.style.height = BASE_HEIGHT + "px";
-        screenshot.style.transform = `rotate(${rotation}deg)`;
+        finalScreenshot.style.transition = "all 0.3s ease";
+        finalScreenshot.style.width = BASE_WIDTH + "px";
+        finalScreenshot.style.height = BASE_HEIGHT + "px";
+        finalScreenshot.style.maxWidth = "none";
+        finalScreenshot.style.maxHeight = "none";
+        finalScreenshot.style.objectFit = "unset";
+        finalScreenshot.style.display = "block";
+        finalScreenshot.style.margin = "0 auto";
+        finalScreenshot.style.transform = `scale(1) rotate(${rotation}deg)`;
 
         document.querySelector("#zoomInBtn + .toolTip").textContent = "Zoom In (100%)";
         document.querySelector("#zoomOutBtn + .toolTip").textContent = "Zoom Out (100%)";

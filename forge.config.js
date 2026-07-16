@@ -1,13 +1,12 @@
 module.exports = {
   packagerConfig: {
-        // CHANGE HERE: Replaced 'asar: true' with an object specifying what to unpack
-        asar: {
-            unpackDir: 'appium-runtime'
-        },
-
-        extraResource: [
-            "./appium-runtime"
-        ]
+      // Keep asar enabled but cleanly unpack your main automation directories
+      asar: {
+          unpackDir: '{appium-runtime,node_modules/appium-xcuitest-driver}'
+      },
+      extraResource: [
+          "./appium-runtime"
+      ]
     },
   rebuildConfig: {},
   makers: [
