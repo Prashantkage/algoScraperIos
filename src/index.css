@@ -1,0 +1,404 @@
+html, body, .container-fluid {
+  background-color: #D6D8DC;
+}
+
+.text-input {
+  font-size: 16px;
+}
+
+.hash-output {
+  color: #575B5E;
+  font-size: 16px;
+  letter-spacing: 2px;
+  white-space: pre-wrap;
+}
+
+.hash-heading {
+  color: #575B5E;
+  font-weight: normal;
+}
+
+
+
+.split {
+  height: 100%;
+  width: 50%;
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  overflow-x: hidden;
+  padding-top: 20px;
+  margin:5px;
+}
+
+.left {
+  left: 0; 
+}
+
+.right {
+  right: 0;
+}
+
+.centered {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  margin: 2px;
+}
+
+.centered img {
+  width: 150px;
+  border-radius: 50%;
+}
+
+
+
+body {font-family: Arial, Helvetica, sans-serif;}
+* {box-sizing: border-box;}
+
+input[type=text], select, textarea {
+  width: 97%;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  margin-top: 3px;
+  margin-bottom: 6px;
+  resize: vertical;
+}
+
+input[type=submit] {
+  background-color: #4285F4;
+  color: white;
+  padding: 5px 10px;
+  border: none;
+  border-radius: px;
+  cursor: pointer;
+}
+
+input[type=submit]:hover {
+  background-color: #45a049;
+}
+
+.container {
+  border-radius: 5px;
+  background-color: #f2f2f2;
+  padding: 8px;
+  width: 100%;
+  height: auto;
+  font-size: 10px;
+}
+
+
+#tokenInput::placeholder {
+    color: #4285F4;
+    opacity: 1;
+}
+
+@keyframes blinkPlaceholder {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+.flex-container {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.split-div1 {
+  flex: 2;
+  padding: 15px;
+}
+.split-div2 {
+  flex: 1;
+  padding: 15px;
+}
+.split-div3 {
+  flex: 1;
+  padding: 15px;
+}
+.bottom-div {
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+}
+.table th{
+  position: sticky;
+  top: 0;
+  background-color: rgb(46, 99, 242);
+  color: #ffffff;
+}
+.popup {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px;
+  background-color: #dcdcdc;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  width: 300px;
+  border-radius: 9px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-content: space-between;
+  justify-content: center;
+  align-items: stretch;
+  text-align: center;
+}
+.loading {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px;
+  /* background-color: #dcdcdc;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); */
+  z-index: 9999;
+  width: 300px;
+  border-radius: 9px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-content: space-between;
+  justify-content: center;
+  align-items: stretch;
+  text-align: center;
+}
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+}
+
+/* Add this to your existing CSS */
+th {
+  position: relative;
+}
+
+th .resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: ew-resize;
+  user-select: none;
+}
+
+#image-container_ss {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+#image-container_ss img {
+    display: block;
+    margin: auto;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+#Scrape:hover:not(:disabled),
+#reset:hover:not(:disabled),
+#download:hover:not(:disabled),
+#scrapeUI:hover:not(:disabled),
+#algoQA:hover:not(:disabled),
+#Run:hover:not(:disabled) {
+    background-color: #45a049 !important;
+}
+
+#imageToolbar{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:5px;
+}
+
+.toolBtn{
+    width:40px;
+    height:40px;
+    border:none;
+    border-radius:50%;
+    background:#fff;
+    cursor:pointer;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    box-shadow:0 4px 12px rgba(0,0,0,.18);
+
+    font-size:24px;      /* Increase icon size */
+    font-weight:700;
+    color:#3b3b3b;
+
+    transition:.2s;
+}
+
+.toolBtn:hover{
+    background:#4285F4;
+    color:#fff;
+    transform:scale(1.08);
+}
+
+.toolWrapper{
+    position:relative;
+    display:flex;
+    justify-content:center;
+}
+
+.toolTip{
+    position:absolute;
+    right:55px;
+    top:50%;
+    transform:translateY(-50%);
+
+    padding:6px 12px;
+    border-radius:8px;
+
+    background:#fff;
+    color:#333;
+    border:1px solid #dcdcdc;
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+
+    font-size:12px;
+    font-weight:500;
+    white-space:nowrap;
+
+    opacity:0;
+    visibility:hidden;
+    transition:.2s;
+    pointer-events:none;
+}
+
+.toolWrapper:hover .toolTip{
+    opacity:1;
+    visibility:visible;
+    z-index:99999;
+}
+
+#overlayContainer{
+
+    position:absolute;
+
+    left:0;
+
+    top:0;
+
+    width:100%;
+
+    height:100%;
+
+    pointer-events:none;
+
+    z-index:999;
+
+}
+
+#imageToolbarmain{
+    position:absolute;
+    top:27%;
+    right:15px;
+    transform:translateY(-50%);
+    z-index:5000;
+}
+
+/* Container holds the precise dimensions of the placeholder device screen bounding context area */
+#dummyDevice {
+  position: relative;
+  width: 250px;
+  height: 480px;
+  margin: 0 auto;
+  display: block;
+}
+
+/* The Blurred Informational Overlay Layer Box styling rules */
+.phone-welcome-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  background: rgba(255, 255, 255, 0.45); /* Frost opacity styling */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  text-align: center;
+  box-sizing: border-box;
+  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+}
+
+/* Code-based SVG Info Icon Layout formatting context definitions */
+.phone-welcome-overlay .info-svg {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 14px;
+  fill: #4285F4; /* Primary action layout blue color configuration */
+}
+
+/* Informational message layout paragraph rule overrides */
+.phone-welcome-overlay p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c3e50;
+  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Ensure the parent image container acts as the baseline positioning origin */
+#image-container {
+    position: relative !important;
+}
+
+/* Local loader positioning wrapper boundaries */
+#localTouchLoader {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+}
+
+/* Frosted glass overlay masking template wrapper centered exactly on the screenshot width metrics */
+.local-blur-overlay {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 250px;  /* Matches your BASE_WIDTH profile */
+    height: 480px; /* Matches your BASE_HEIGHT profile */
+
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    border-radius: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

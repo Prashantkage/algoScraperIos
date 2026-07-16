@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+
+    <title>algoScraper_ios_staging_(v1.01)</title>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./index.css">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+
+</head>
+
+<body>
+<div class="overlay" id="overlay"></div>
+<div id="sttus_bar_div" style="text-align: center;height: 22px;display: none;">
+</div>
+<div id="div_status_bar" style="text-align: center;height: 22px;display: none;">
+    <span><img src="icon/load-8510_256.gif" style="height: 36px;"/></span>
+</div>
+<div class="flex-container">
+    <div class="split-div1">
+        <div class="container" id="container_ID">
+
+            <label for="pname" style="margin-bottom: 0px;">Platform Name</label>
+            <select id="platformname" name="platformname">
+                <option value="Android">Android</option>
+                <option value="IOS">IOS</option>
+            </select>
+
+<!--            <label for="appname" style="margin-bottom: 0px;">App Name</label>-->
+<!--            <input type="text" id="appname" name="appname" placeholder="Your App name.." value="Calender">-->
+
+            <label for="appname">App Name</label>
+
+            <select id="appname">
+                <option value="">Loading Apps...</option>
+            </select>
+
+
+            <!-- <span id="alert" style="display: none; color: red;">field is required</span> -->
+            <label for="devicename" style="margin-bottom: 0px;">Device Name</label>
+            <select type="text" id="devicename" name="devicename" placeholder="Your device name.." >
+
+            </select>
+
+            <label for="udid" style="margin-bottom: 0px;">UD ID</label>
+            <input type="text" id="udid" name="udid" placeholder="Your device UD ID.." >
+
+            <label for="appiumurl" style="margin-bottom: 0px;">Appium URL</label>
+            <input type="text" id="appiumurl" name="appiumurl" placeholder="Your appium URL http://.." value="http://127.0.0.1:4723">
+
+            <div id="pfVersion" style="display: none;">
+                <label for="platformversion" style="margin-bottom: 0px;">Platform version</label>
+                <input type="text" id="platformversion" name="platformversion" placeholder="Your platform version.." value="17.2">
+            </div>
+
+            <div id="automatione_name" style="display: block;">
+                <label for="automationName" style="margin-bottom: 0px;">Automation Name</label>
+                <input type="text" id="automationName" name="automationName" placeholder="Your automation name.." value="UiAutomator2">
+            </div>
+
+            <div id="bndlID" style="display: none;">
+                <label for="bundleID" style="margin-bottom: 0px;">Bundle ID</label>
+                <input type="text" id="bundleID" name="bundleID" placeholder="Your bundle ID.." value="com.apple.mobilecal">
+            </div>
+
+            <div id="appPkg" style="display: block;">
+                <label for="apppackage" style="margin-bottom: 0px;">App Package</label>
+                <input type="text" id="apppackage" name="apppackage" placeholder="Your app package.." value="com.ril.mobilecal">
+            </div>
+
+            <div id="appActvty" style="display: block;">
+                <label for="appactivity" style="margin-bottom: 0px;">App Activity</label>
+                <input type="text" id="appactivity" name="appactivity" placeholder="Your App activity.." value="com.apple.mobilecal">
+            </div>
+
+            <!-- First Row -->
+            <input type="submit"
+                   value="Launch Application"
+                   id="Run"
+                   style="width:120px;">
+
+            <span style="font-size:12px; margin-left:15px; font-weight:700;">
+    Screen Name:
+</span>
+
+            <input type="text"
+                   id="pagename_searchbox"
+                   name="pagename_searchbox"
+                   style="width:140px; display:inline-block; margin-left:5px;">
+
+            <input type="submit"
+                   value="Load Page"
+                   id="Scrape"
+                   style="width:110px; margin-left:15px; display:none">
+
+            <!-- Second Row -->
+            <div style="margin-top:10px;">
+                <input type="submit"
+                       value="Scrape UI"
+                       id="scrapeUI"
+                       style="width:100px;">
+
+                <input type="submit"
+                       value="Reset"
+                       id="reset"
+                       style="width:100px; margin-left:15px;">
+
+                <input type="submit"
+                       value="algoQA"
+                       id="algoQA"
+                       style="width:100px; margin-left:15px;">
+
+                <input type="submit"
+                       value="Change"
+                       id="changeTokenBtn"
+                       style="width:100px; margin-left:15px; display:none;  ">
+
+                <div id="tokenContainer" style="display:inline-block; margin-left:15px;">
+
+                    <input
+                            type="text"
+                            id="tokenInput"
+                            placeholder="Paste your Token"
+                            style="
+            width:200px;
+            color:#4285F4;
+            font-weight:500;
+            font-size:10px;
+        ">
+
+                    <div
+                            id="tokenStatus"
+                            style="
+            display:none;
+            width:200px;
+            padding:7px 12px;
+            border-radius:8px;
+            font-weight:600;
+            font-size:15px;
+            box-sizing:border-box;
+            border:1px solid #b7dfc1;
+            background-color:#dff3e3;
+            color:#1b5e20;
+        ">
+                        ✅ Connected
+                    </div>
+
+                </div>
+            </div>
+            <!-- <input type="submit" value="Close" id="close"/>         -->
+        </div>
+    </div>
+
+    <div class="split-div2">
+        <div class="container" style="height:512px; position:relative;">
+
+            <!-- Screenshot Toolbar -->
+            <div id="imageToolbarmain">
+
+                <div id="imageToolbar">
+
+                    <div class="toolWrapper">
+                        <button id="zoomInBtn" class="toolBtn">+</button>
+                        <span class="toolTip">Zoom In (100%)</span>
+                    </div>
+
+                    <div class="toolWrapper">
+                        <button id="zoomOutBtn" class="toolBtn">−</button>
+                        <span class="toolTip">Zoom Out (100%)</span>
+                    </div>
+
+                    <div class="toolWrapper">
+                        <button id="resetZoomBtn" class="toolBtn">⛶</button>
+                        <span class="toolTip">Reset Zoom (100%)</span>
+                    </div>
+
+<!--                    <div class="toolWrapper">-->
+<!--                        <button id="rotateBtn" class="toolBtn">↻</button>-->
+<!--                        <span class="toolTip">Rotate</span>-->
+<!--                    </div> -->
+
+                    <div class="toolWrapper">
+                        <button id="refreshBtn" class="toolBtn">↻</button>
+                        <span class="toolTip">Refresh Page</span>
+                    </div>
+
+                    <div class="toolWrapper">
+                        <button id="touchBtn" class="toolBtn">✋</button>
+                        <span class="toolTip">Touch Mode</span>
+                    </div>
+
+                    <div class="toolWrapper">
+                        <button id="tapBtn" class="toolBtn">⌖</button>
+                        <span class="toolTip">Tap Element</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Screenshot -->
+            <!-- Screenshot Container -->
+            <div id="image-container"
+                 style="
+                 position:relative;
+        height:100%;
+        width:480px;
+        display:block;
+        overflow:auto;
+        text-align:center;">
+
+                <div id="overlayContainer"></div>
+
+                <!-- Blurred Info Card Container with Code SVG Icon (Replaces old dummy image element layout) -->
+                <div id="dummyDevice">
+                    <div class="phone-welcome-overlay">
+                        <!-- Inline Code SVG Info Icon -->
+                        <svg class="info-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                        </svg>
+                        <p>Your page will load here once you select an app and click on "Launch Application".</p>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <p id="info"></p>
+
+        </div>
+    </div>
+    <div class="split-div3" id="split-div3" style="display: none;">
+        <div class="container" style="height: 512px; display: flex; justify-content: center; align-items: center;">
+            <button
+                    id="closePreview"
+                    style="
+        position:absolute;
+        top:15px;
+        right:15px;
+        background:none;
+        border:none;
+        font-size:24px;
+        cursor:pointer;
+        color:#888;
+    ">
+                ✕
+            </button>
+            <div id="image-container_ss" style="height: 407px; display: flex; justify-content: center; align-items: center;">
+                <div id="div_status_bar_ss" style="text-align: center; height: 22px; display: none;">
+            <span style="height: 407px;">
+              <img src="icon/load-8510_256.gif" alt="Element Image could not found" style="display: flex; justify-content: center; align-items: center; width: 40px; height: 40px;"/>
+            </span>
+                </div>
+            </div>
+            <h6 id="brokenText" style="height: 30px; padding: 5px; border-radius: 5px; justify-content: center; align-items: center; display: none; background-color: rgb(255, 0, 0); color: #fff;">Image could not be found for this Element</h6>
+            <p id="info"></p>
+        </div>
+
+    </div>
+
+</div>
+<div style="font-size: 11px;">
+    <span style="font-size: 13px;margin-left: 39px;">Search:</span>
+    <input type="text" id="searchbox" name="searchbox" style="width: 148px;"placeholder="Search table data">
+    <!-- <input type="submit" value="Search" id="search" style="margin-left: 100px;"/>  -->
+    <input type="submit" value="Download" id="download" style="margin-left: 22px;"/>
+    <!-- <input type="submit" value="Clear" id="clear"/>  -->
+    <!-- <input type="submit" value="Delete" id="delete"/>  -->
+    <!-- <span type="submit" id="csv_download_msg" style="margin-left: 22px; display: none;">Csv File Downloaded</span>  -->
+</div>
+<div class="bottom-div" id="table-container" style="height: 300px; ">
+    <table class="table table-bordered" style="border-color: #bdb8b8a1;overflow-y: auto;">
+        <thead >
+        <tr class="bg-info" style="position: sticky;font-size: 11px;">
+            <th id="cn pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">Control Name</th>
+            <th id="ct pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">Control Type</th>
+            <th id="xpath pt-3-half" style="border-inline-color:black; text-align: center">Control ID <h7 id="matchCount" style="margin-left: 12px;color: #e7db09;font-style: italic;"></h7></th>
+            <th id="page pt-3-half" style="border-inline-color:black; text-align: center;width: 200px;">Page Name</th>
+
+            <th id="identificationType pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">IDENTIFICATION TYPE</th>
+            <th id="controlValue pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">CONTROL VALUE</th>
+            <th id="featureName pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">FEATURE NAME</th>
+            <th id="nodeName pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">NODE NAME</th>
+            <td class="fingerprint"
+                style="display:none;">
+                ${dtControls[i].Fingerprint || ""}
+            </td>
+            <th id="appUrl"
+                style="display:none;">
+                APP URL
+            </th>
+<!--            <th id="page pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">View Xpath</th>-->
+            <th id="page pt-3-half" style="border-inline-color:black;width: 9px; text-align: center;">Delete</th>
+            <th id="add_empty_row" style="width:0px"><img src="icon/plus.png"
+                                                          style="width:16px ; -webkit-user-drag: none;" title="Add row" /></th>
+        </tr>
+        </thead>
+        <tbody id="myTable">
+        </tbody>
+    </table>
+</div>
+<div class="popup" id="confirmationPopup" style="display: none;">
+    <p style="font-weight: bold;margin-top: 4px;">Do you really want to reset?</p>
+    <p style="font-size: small;color: #828080;">You will not be able to recover the data!</p>
+    <div class="myname" style="margin-left: 6px;">
+        <button class="btn btn-primary yes-button" id="back_btn" style="font-size: 13px;font-weight: 500;">Back</button>
+        <button class="btn btn-primary no-button" id="okay_btn"
+                style="margin-left: 13px;font-size: 13px;font-weight: 500;">Okay</button>
+    </div>
+</div>
+<div class="popup" id="launchErrorPopup" style="display: none;">
+    <p style="font-weight: bold;margin-top: 4px;">Not able to launch Application</p>
+    <p style="font-size: small;color: #828080;">Please provide correct capabilities inside fields or Check your Appium connection</p>
+    <div class="myname" style="margin-left: 6px;">
+        <button class="btn btn-primary no-button" id="okay_button"
+                style="margin-left: 13px;font-size: 13px;font-weight: 500;">Okay</button>
+    </div>
+</div>
+<div class="popup" id="SamePageNameError" style="display: none;">
+    <p style="font-weight: bold;margin-top: 4px;">Page Name already used, please try scraping with different page name</p>
+    <div class="myname" style="margin-left: 6px;">
+        <button class="btn btn-primary no-button" id="okay"
+                style="margin-left: 13px;font-size: 13px;font-weight: 500;">Okay</button>
+    </div>
+</div>
+<div class="popup" id="ScreenNameError" style="display: none;">
+    <p style="font-weight: bold;margin-top: 4px;">Screen Name can accept Alphabets, alphanumeric, space between words, word starting with alphabets/Number/Underscore</p>
+    <div class="myname" style="margin-left: 6px;">
+        <button class="btn btn-primary no-button" id="ok_button"
+                style="margin-left: 13px;font-size: 13px;font-weight: 500;">Okay</button>
+    </div>
+</div>
+<div class="popup" id="Error" style="display: none;">
+    <p style="font-weight: bold;margin-top: 4px;color: #cb5757;">Please Releoad The Scraper And Try Again!!</p>
+    <div class="myname" style="margin-left: 6px;">
+        <button class="btn btn-primary no-button" id="ok_btn"
+                style="margin-left: 13px;font-size: 13px;font-weight: 500;">Okay</button>
+    </div>
+</div>
+<div class="loading" id="AppRunningPopup" style="display: none;">
+    <span><img src="icon/load-8510_256.gif" style="height: 101px;"/></span>
+</div>
+<script src="./popup.js">type = "text/javascript"</script>
+</body>
+
+</html>

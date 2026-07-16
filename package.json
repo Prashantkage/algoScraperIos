@@ -1,0 +1,51 @@
+{
+  "name": "algoscraper",
+  "productName": "algoScraper",
+  "version": "1.0.0",
+  "description": "This algoScraper is used to scrape the XPath for Android App and IOS App",
+  "main": "./src/main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "lint": "echo \"No linting configured\"",
+    "package-win": "electron-packager . algoScraper --overwrite --asar=true --platform=win32 --arch=ia32 --prune=false --out=algoScraper-builds --version-string.CompanyName=AlgoShack --version-string.FileDescription=This algoScraper is used to scrape the XPath for Android App and IOS App --version-string.ProductName=\"algoScraper\""
+  },
+  "keywords": [],
+  "author": "YJayaKishore <jayakishore.y@algoshack.com>",
+  "license": "AlgoShack",
+  "devDependencies": {
+    "@electron-forge/cli": "^7.1.0",
+    "@electron-forge/maker-deb": "^7.1.0",
+    "@electron-forge/maker-rpm": "^7.1.0",
+    "@electron-forge/maker-squirrel": "^7.1.0",
+    "@electron-forge/maker-zip": "^7.1.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.1.0",
+    "@electron-forge/plugin-webpack": "^0.0.2",
+    "@vercel/webpack-asset-relocator-loader": "^1.7.3",
+    "css-loader": "^6.11.0",
+    "electron": "^43.1.0",
+    "electron-packager": "^17.1.2",
+    "node-loader": "^2.0.0",
+    "style-loader": "^3.3.4"
+  },
+  "dependencies": {
+    "adbkit": "^2.0.17",
+    "appium": "^2.0.1",
+    "appium-xcuitest-driver": "^9.9.6",
+    "crypto-js": "^4.2.0",
+    "electron-squirrel-startup": "^1.0.0",
+    "screenshot-desktop": "^1.15.0",
+    "selenium-webdriver": "^4.46.0"
+  },
+  "allowScripts": {
+    "uglifyjs-webpack-plugin@0.4.6": true,
+    "electron-winstaller@5.4.0": true,
+    "es5-ext@0.10.64": true,
+    "fsevents@2.3.3": true,
+    "fsevents@1.2.13": true,
+    "appium@2.19.0": true
+  },
+  "type": "commonjs"
+}
