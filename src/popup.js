@@ -1694,17 +1694,16 @@
         }
     });
 
-    const tableEl =
-        document.getElementById(
-            "myTable"
-        );
+    const tableEl = document.getElementById("myTable");
 
-    tableEl.addEventListener(
-        "click",
-        onTableClick
-    );
-
+    tableEl.addEventListener("click", onTableClick);
     tableEl.addEventListener("mouseover", onShowElementHover);
+    tableEl.addEventListener("mouseout", (e) => {
+        // Clear overlay when cursor moves out of an XPath cell
+        if (!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest(".xpath")) {
+            onShowElementLeave(e);
+        }
+    });
     tableEl.addEventListener("mouseleave", onShowElementLeave);
 
 
@@ -1850,20 +1849,23 @@
 
 
     async function onShowElementHover(e) {
-
-        // Only work when mouse is over the XPath (Control ID) column
         const xpathCell = e.target.closest(".xpath");
 
         if (!xpathCell) {
+            showElementHover = false;
+            lastXPath = "";
+            clearTimeout(hoverTimer);
             clearOverlay();
             return;
         }
 
-        // Check if cell contains a dropdown or plain text
         const selectEl = xpathCell.querySelector("select");
         const xpath = selectEl ? selectEl.value.trim() : xpathCell.innerText.trim();
 
         if (!xpath) {
+            showElementHover = false;
+            lastXPath = "";
+            clearTimeout(hoverTimer);
             clearOverlay();
             return;
         }
@@ -1886,12 +1888,10 @@
         if (xpath === lastXPath) return;
 
         lastXPath = xpath;
-
         clearTimeout(hoverTimer);
 
         hoverTimer = setTimeout(async () => {
             showElementHover = true;
-
             try {
                 const element = await driver.findElement(By.xpath(xpath));
                 const rect = await element.getRect();
@@ -1899,24 +1899,15 @@
             } catch {
                 clearOverlay();
             }
-
-        }, 80);     // 50-100ms works well
+        }, 80);
     }
 
-
-    function onShowElementLeave() {
-
+    function onShowElementLeave(e) {
         showElementHover = false;
-
         lastXPath = "";
-
         clearTimeout(hoverTimer);
-
         clearOverlay();
-
     }
-
-
 
     document.getElementById("platformname").addEventListener('change', async () => {
       prestart();
@@ -2268,9 +2259,6 @@ function createAndAppendTable(dtControls) {
     var pageName = document.getElementById('pagename_searchbox').value;
     var tbody = document.getElementById('myTable');
 
-    // Get all placeholder empty rows
-    let emptyRows = Array.from(tbody.querySelectorAll('tr.empty-excel-row'));
-
     for (var i = 0; i < dtControls.length; i++) {
         let xpaths = Array.isArray(dtControls[i].ControlId)
             ? dtControls[i].ControlId
@@ -2280,16 +2268,15 @@ function createAndAppendTable(dtControls) {
             `<option value="${xp.replace(/"/g, '&quot;')}" onmousemove="onOptionHover('${xp.replace(/'/g, "\\'")}')">${xp}</option>`
         ).join('');
 
-        let controlIdCellHtml = `<select class="xpath-dropdown" onchange="onDropdownChange(this)" style="width: 100%; border: none; background: transparent; font-size: 11px; font-weight: 600;">${selectOptionsHtml}</select>`;
+        let controlIdCellHtml = `<select class="xpath-dropdown" onchange="onDropdownChange(this)" onmouseleave="onShowElementLeave(event)" style="width: 100%; border: none; background: transparent; font-size: 11px; font-weight: 600;">${selectOptionsHtml}</select>`;
 
-        let tr;
+        // Always insert new row at the very top (index 0)
+        let tr = tbody.insertRow(0);
 
-        // Populate top available empty placeholder row if available, otherwise insert a new row
+        // If an empty placeholder row exists, remove one from the bottom to consume the empty space
+        let emptyRows = tbody.querySelectorAll('tr.empty-excel-row');
         if (emptyRows.length > 0) {
-            tr = emptyRows.shift();
-            tr.classList.remove('empty-excel-row');
-        } else {
-            tr = tbody.insertRow(0);
+            emptyRows[emptyRows.length - 1].remove();
         }
 
         td_id = i;

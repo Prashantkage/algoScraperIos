@@ -368,17 +368,19 @@ th .resizer:hover {
 /* Centered Excel-Style Dropdown Styling with Bottom Breathing Room */
 #mainTable td.xpath {
     padding: 4px 6px !important;
+    margin-bottom: 2px;
     vertical-align: middle !important;
 }
 
+/* Centered Excel-Style Dropdown Styling with Top and Bottom Margin */
 .xpath-dropdown {
     width: 100% !important;
-    height: 24px !important; /* Uniform height context */
-    margin: 2px 0 !important; /* Spacing top and bottom */
+    height: 22px !important;            /* Fixed compact height */
+    margin: 2px 0 !important;           /* Creates breathing room top & bottom */
     border: 1px solid #d0d4dc !important;
     border-radius: 4px !important;
     background-color: #ffffff !important;
-    padding: 2px 22px 2px 8px !important;
+    padding: 2px 20px 2px 6px !important;
     font-size: 11px !important;
     font-weight: 600 !important;
     color: #1f2937 !important;
@@ -387,13 +389,13 @@ th .resizer:hover {
     box-sizing: border-box !important;
     vertical-align: middle !important;
 
-    /* Clean custom dropdown arrow icon */
+    /* Clean custom dropdown arrow */
     -webkit-appearance: none !important;
     -moz-appearance: none !important;
     appearance: none !important;
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path fill="%23555555" d="M0 0l5 6 5-6z"/></svg>') !important;
     background-repeat: no-repeat !important;
-    background-position: right 8px center !important;
+    background-position: right 6px center !important;
     background-size: 8px 5px !important;
 }
 
