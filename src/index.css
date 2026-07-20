@@ -824,3 +824,101 @@ th .resizer {
 th .resizer:hover {
     background-color: #ffffff !important;
 }
+
+/* Container Wrapper for Floating Tooltips */
+.custom-tooltip-wrapper {
+    position: relative !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    overflow: visible !important; /* Allows tooltip to pop outside th boundaries */
+}
+
+/* Floating Custom Tooltip Card Box */
+.custom-tooltip {
+    position: absolute !important;
+    top: calc(100% + 6px) !important; /* Positions neatly below button or header */
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+    background: #ffffff !important;
+    color: #333333 !important;
+    border: 1px solid #dcdcdc !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.2s ease, visibility 0.2s ease !important;
+    pointer-events: none !important;
+    z-index: 999999 !important;
+}
+
+/* Show Tooltip smoothly on Hover */
+.custom-tooltip-wrapper:hover .custom-tooltip {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Compact Circular Add Row Button Styling */
+.circular-add-btn {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    border-radius: 50%;
+    border: none;
+    background-color: #4285F4;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.circular-add-btn:hover {
+    background-color: #3367D6 !important;
+    transform: scale(1.05);
+}
+
+/* Align the 'Add Column' tooltip to the right inside the table frame */
+#add_empty_column .custom-tooltip {
+    left: auto !important;
+    right: 8px !important;
+    transform: none !important;
+}
+
+/* Fix Sticky Context for Table Column Headers */
+#mainTable th.custom-tooltip-wrapper {
+    display: table-cell !important; /* Overrides inline-flex to restore HTML table structural flow */
+    position: relative !important;
+}
+
+/* Sticky Right Pinning for Add Column Header */
+#mainTable th#add_empty_column {
+    position: sticky !important;
+    right: 0 !important;
+    top: 0 !important;
+    z-index: 50 !important; /* Ensures it stays stacked cleanly above other headers */
+    background-color: #4285F4 !important;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.15) !important; /* Visual separator line */
+    text-align: center !important;
+}
+
+/* Tooltip adjustment inside sticky header */
+#add_empty_column .custom-tooltip {
+    left: auto !important;
+    right: 4px !important;
+    top: calc(100% + 6px) !important;
+    transform: none !important;
+}
+

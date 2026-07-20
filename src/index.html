@@ -272,11 +272,17 @@
         <input type="text" id="searchbox" name="searchbox" placeholder="Search table data">
     </div>
     <input type="submit" value="Download" id="download"/>
+
+    <!-- Circular Add Row Button with Custom Tooltip -->
+    <div class="custom-tooltip-wrapper">
+        <button id="add_row_btn" class="circular-add-btn">+</button>
+        <span class="custom-tooltip">Add Row</span>
+    </div>
+
 </div>
 <div class="bottom-div" id="table-container" style="height: 300px; ">
     <!-- REPLACE it with this clean baseline element string initialization -->
     <table class="table table-bordered" id="mainTable">
-        <!-- Replace the <thead> inside #mainTable with this: -->
         <!-- Replace the <thead> inside #mainTable with this: -->
         <thead>
         <tr class="bg-info" style="position: sticky; font-size: 11px;">
@@ -292,7 +298,11 @@
             <td class="fingerprint" style="display:none;">${dtControls[i].Fingerprint || ""}</td>
             <th id="appUrl" style="display:none;">APP URL</th>
             <th id="page pt-3-half" style="border-inline-color:black; width: 50px; text-align: center;">Delete <div class="resizer"></div></th>
-            <th id="add_empty_row" style="width: 35px; text-align: center;"><img src="icon/plus.png" style="width:16px; -webkit-user-drag: none;" title="Add row" /></th>
+            <!-- Table Header Plus Icon pinned sticky on the right -->
+            <th id="add_empty_column" class="custom-tooltip-wrapper" style="width: 35px; min-width: 35px; text-align: center;">
+                <img src="icon/plus.png" style="width:16px; cursor:pointer; -webkit-user-drag: none;" />
+                <span class="custom-tooltip">Add Column</span>
+            </th>
         </tr>
         </thead>
         <tbody id="myTable">
