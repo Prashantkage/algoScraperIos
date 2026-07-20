@@ -365,6 +365,48 @@ th .resizer:hover {
     box-sizing: border-box;
 }
 
+/* Centered Excel-Style Dropdown Styling with Bottom Breathing Room */
+#mainTable td.xpath {
+    padding: 4px 6px !important;
+    vertical-align: middle !important;
+}
+
+.xpath-dropdown {
+    width: 100% !important;
+    height: 24px !important; /* Uniform height context */
+    margin: 2px 0 !important; /* Spacing top and bottom */
+    border: 1px solid #d0d4dc !important;
+    border-radius: 4px !important;
+    background-color: #ffffff !important;
+    padding: 2px 22px 2px 8px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #1f2937 !important;
+    cursor: pointer !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+    vertical-align: middle !important;
+
+    /* Clean custom dropdown arrow icon */
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path fill="%23555555" d="M0 0l5 6 5-6z"/></svg>') !important;
+    background-repeat: no-repeat !important;
+    background-position: right 8px center !important;
+    background-size: 8px 5px !important;
+}
+
+.xpath-dropdown:hover {
+    border-color: #4285F4 !important;
+    background-color: #f8fafc !important;
+}
+
+.xpath-dropdown:focus {
+    border-color: #4285F4 !important;
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2) !important;
+}
+
 /* Alternating Row Tinting (Spreadsheet readability) */
 #mainTable tbody tr:nth-child(even) {
     background-color: #f9fafb;
@@ -618,4 +660,39 @@ th .resizer:hover {
 
 .draggable-row:active {
     cursor: grabbing;
+}
+
+/* Clean Excel-style Dropdown Styling inside Table Cells */
+.xpath-dropdown {
+    width: 100% !important;
+    height: 100% !important;
+    border: 1px solid #d0d4dc !important;
+    border-radius: 4px !important;
+    background-color: #ffffff !important;
+    padding: 2px 20px 2px 6px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #1f2937 !important;
+    cursor: pointer !important;
+    outline: none !important;
+
+    /* Clean custom dropdown arrow */
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path fill="%20555555" d="M0 0l5 6 5-6z"/></svg>') !important;
+    background-repeat: no-repeat !important;
+    background-position: right 6px center !important;
+    background-size: 8px 5px !important;
+    box-sizing: border-box !important;
+}
+
+.xpath-dropdown:hover {
+    border-color: #4285F4 !important;
+    background-color: #f8fafc !important;
+}
+
+.xpath-dropdown:focus {
+    border-color: #4285F4 !important;
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2) !important;
 }

@@ -1393,92 +1393,88 @@ document.getElementById("download").addEventListener('click', async () => {
 
 function downloadTableAsJSON(tableId) {
 
-      var correct_controlName = true;
-      document.getElementById('sttus_bar_div').style.display = 'none';
+    var correct_controlName = true;
+    document.getElementById('sttus_bar_div').style.display = 'none';
 
-      const now = new Date();
-      const dateTime = now.toISOString().split('T')[0] + 'T' + now.toTimeString().split(' ')[0];
+    const now = new Date();
+    const dateTime = now.toISOString().split('T')[0] + 'T' + now.toTimeString().split(' ')[0];
 
-      var rows = document.querySelectorAll(`#${tableId} tr`);
-      var uniqueRows = [];
+    var rows = document.querySelectorAll(`#${tableId} tr`);
+    var uniqueRows = [];
 
-      var dashboardControls = [];
+    var dashboardControls = [];
 
-      rows.forEach((row) => {
+    rows.forEach((row) => {
 
-          var columns = row.querySelectorAll('td, th');
+        var columns = row.querySelectorAll('td, th');
 
-          if (columns.length < 10) return;
+        if (columns.length < 10) return;
 
-          var rowText =
-              columns[0].innerText +
-              columns[1].innerText +
-              columns[2].innerText +
-              columns[3].innerText;
+        // Extract selected XPath from dropdown or fall back to plain text
+        var xpathSelect = columns[2].querySelector('select');
+        var xpathValue = xpathSelect ? xpathSelect.value.trim() : columns[0].innerText.trim() ? columns[2].innerText.trim() : "";
 
-          if (!uniqueRows.includes(rowText)) {
+        var rowText =
+            columns[0].innerText +
+            columns[1].innerText +
+            xpathValue +
+            columns[3].innerText;
 
-              uniqueRows.push(rowText);
+        if (!uniqueRows.includes(rowText)) {
 
-              dashboardControls.push({
+            uniqueRows.push(rowText);
 
-                  "CONTROL NAME": columns[0].innerText.trim(),
-                  "CONTROL TYPE": columns[1].innerText.trim(),
-                  "XPATH": columns[2].innerText.trim(),
-                  "PAGE NAME": columns[3].innerText.trim(),
-                  "IDENTIFICATION TYPE": columns[4].innerText.trim(),
-                  "CONTROL VALUE": columns[5].innerText.trim(),
-                  "FEATURE NAME": columns[6].innerText.trim(),
-                  "NODE NAME": columns[7].innerText.trim(),
+            dashboardControls.push({
 
-                  // Change this if your fingerprint is actual JSON
-//                  "FINGERPRINT": columns[8].innerText
-//                      ? columns[8].innerText
-//                          .replace(/&lt;/g, "<")
-//                          .replace(/&gt;/g, ">")
-//                      : "",
+                "CONTROL NAME": columns[0].innerText.trim(),
+                "CONTROL TYPE": columns[1].innerText.trim(),
+                "XPATH": xpathValue,
+                "PAGE NAME": columns[3].innerText.trim(),
+                "IDENTIFICATION TYPE": columns[4].innerText.trim(),
+                "CONTROL VALUE": columns[5].innerText.trim(),
+                "FEATURE NAME": columns[6].innerText.trim(),
+                "NODE NAME": columns[7].innerText.trim(),
 
-                      "FINGERPRINT": "",
+                "FINGERPRINT": "",
 
-                  "APP URL": columns[9].innerText.trim()
+                "APP URL": columns[9].innerText.trim()
 
-              });
+            });
 
-          }
+        }
 
-      });
+    });
 
-      var jsonContent = {
-          "isRecordscenario": false,
-          "dashboardControls": dashboardControls
-      };
+    var jsonContent = {
+        "isRecordscenario": false,
+        "dashboardControls": dashboardControls
+    };
 
-      var blob = new Blob(
-          [JSON.stringify(jsonContent, null, 2)],
-          {
-              type: "application/json;charset=utf-8;"
-          }
-      );
+    var blob = new Blob(
+        [JSON.stringify(jsonContent, null, 2)],
+        {
+            type: "application/json;charset=utf-8;"
+        }
+    );
 
-      var url = URL.createObjectURL(blob);
+    var url = URL.createObjectURL(blob);
 
-      var a = document.createElement('a');
-      a.href = url;
+    var a = document.createElement('a');
+    a.href = url;
 
-      // Pulls the visible application text selection option instead of the structural value
-            var appSelect = document.getElementById('appname');
-            var appName = appSelect.options[appSelect.selectedIndex].text.trim();
+    var appSelect = document.getElementById('appname');
+    var appName = appSelect.options[appSelect.selectedIndex].text.trim();
 
-            a.download = appName + "_" + dateTime + ".json";
+    a.download = appName + "_" + dateTime + ".json";
 
-      if (correct_controlName) {
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-      }
+    if (correct_controlName) {
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
 
-      URL.revokeObjectURL(url);
-  }
+    URL.revokeObjectURL(url);
+}
 
 
 // actions to perform on clicking reset button
@@ -1808,12 +1804,13 @@ async function onShowElementHover(e) {
     const xpathCell = e.target.closest(".xpath");
 
     if (!xpathCell) {
-
         clearOverlay();
         return;
     }
 
-    const xpath = xpathCell.innerText.trim();
+    // Check if cell contains a dropdown or plain text
+    const selectEl = xpathCell.querySelector("select");
+    const xpath = selectEl ? selectEl.value.trim() : xpathCell.innerText.trim();
 
     if (!xpath) {
         clearOverlay();
@@ -1821,14 +1818,10 @@ async function onShowElementHover(e) {
     }
 
     if (xpath.startsWith("COORDINATE(")) {
-
         const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
-
         if (match) {
-
             const x = parseInt(match[1], 10);
             const y = parseInt(match[2], 10);
-
             drawShowElementMarker({
                 x: x - 8,
                 y: y - 8,
@@ -1836,7 +1829,6 @@ async function onShowElementHover(e) {
                 height: 16
             });
         }
-
         return;
     }
 
@@ -1847,21 +1839,14 @@ async function onShowElementHover(e) {
     clearTimeout(hoverTimer);
 
     hoverTimer = setTimeout(async () => {
-
         showElementHover = true;
 
         try {
-
             const element = await driver.findElement(By.xpath(xpath));
-
             const rect = await element.getRect();
-
             drawShowElementMarker(rect);
-
         } catch {
-
             clearOverlay();
-
         }
 
     }, 80);     // 50-100ms works well
@@ -2237,39 +2222,40 @@ function checkForSingleQuote(statement) {
 
 
 function createAndAppendTable(dtControls) {
-
-    // FIXED: Clear any lingering "No results found" alerts when fresh data or XPaths load
-        if (typeof noResultsMessage !== 'undefined') {
-            noResultsMessage.style.display = 'none';
-        }
+    if (typeof noResultsMessage !== 'undefined') {
+        noResultsMessage.style.display = 'none';
+    }
 
     var pageName = document.getElementById('pagename_searchbox').value;
     var table = document.getElementById('myTable');
 
     for (var i = 0; i < dtControls.length; i++) {
-        console.log("TABLE FP =", dtControls[i].Fingerprint);
         var tableTopRow = table.insertRow(0);
         td_id = i;
+
+        // Process candidate XPaths array or single string
+        let xpaths = Array.isArray(dtControls[i].ControlId)
+            ? dtControls[i].ControlId
+            : [dtControls[i].ControlId];
+
+        // Construct native HTML select with hover hooks directly on options
+        let selectOptionsHtml = xpaths.map(xp =>
+            `<option value="${xp.replace(/"/g, '&quot;')}" onmousemove="onOptionHover('${xp.replace(/'/g, "\\'")}')">${xp}</option>`
+        ).join('');
+
+        let controlIdCellHtml = `<select class="xpath-dropdown" onchange="onDropdownChange(this)" style="width: 100%; border: none; background: transparent; font-size: 11px; font-weight: 600;">${selectOptionsHtml}</select>`;
+
         var row = `<tr draggable="true">
             <td class="cn pt-3-half" id="cn_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${dtControls[i].ControlName}</td>
             <td class="ct pt-3-half" id="ct_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${dtControls[i].ControlType}</td>
-            <td class="xpath pt-3-half" id="xpath_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${dtControls[i].ControlId}</td>
+            <td class="xpath pt-3-half" id="xpath_${td_id}" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-color: black; text-align: center;">${controlIdCellHtml}</td>
             <td class="page pt-3-half" id="page_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${pageName}</td>
-
             <td class="identificationType pt-3-half" id="identificationType_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;"></td>
-
             <td class="controlValue pt-3-half" id="controlValue_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;"></td>
-
             <td class="featureName pt-3-half" id="featureName_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${pageName}</td>
-
             <td class="nodeName pt-3-half" id="nodeName_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${pageName}</td>
-
             <td class="fingerprint pt-3-half" id="fingerprint_${td_id}" contenteditable="true" style="spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: left; display:none;">${(dtControls[i].Fingerprint || "").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
-            <td class="appUrl pt-3-half"
-                id="appUrl_${td_id}"
-                contenteditable="true"
-                style="display:none;">
-            </td>
+            <td class="appUrl pt-3-half" id="appUrl_${td_id}" contenteditable="true" style="display:none;"></td>
             <td class="delete-cell" style="border-color:black"><img src="icon/icons8-delete_red.svg" id="del_${td_id}" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; overflow: hidden; cursor: pointer; -webkit-user-drag: none;"></td>
         </tr>`;
         tableTopRow.innerHTML += row;
@@ -2280,8 +2266,24 @@ function createAndAppendTable(dtControls) {
     document.getElementById('download').style.backgroundColor = '#4285F4';
     document.getElementById('table-container').style.display = "block";
 
-    // Initialize resizable columns event hooks
     initResizableTable();
+}
+
+// Handler for when user selects a different option in the dropdown
+async function onDropdownChange(selectElement) {
+    lastXPath = ""; // Reset cached xpath
+    clearOverlay();
+
+    const xpath = selectElement.value.trim();
+    if (!xpath) return;
+
+    try {
+        const element = await driver.findElement(By.xpath(xpath));
+        const rect = await element.getRect();
+        drawShowElementMarker(rect);
+    } catch {
+        clearOverlay();
+    }
 }
 
 function initResizableTable() {
@@ -2290,7 +2292,13 @@ function initResizableTable() {
     resizers.forEach(resizer => {
         const th = resizer.parentElement;
 
-        // 1. Fluid frame-throttled dragging mechanism
+        // Prevent attaching duplicate listeners if initResizableTable is called multiple times
+        if (resizer.dataset.resizableInit === "true") {
+            return;
+        }
+        resizer.dataset.resizableInit = "true";
+
+        // 1. Manual Mouse Dragging Mechanism
         resizer.addEventListener('mousedown', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -2303,7 +2311,6 @@ function initResizableTable() {
             function updateWidth() {
                 if (currentWidth > 40) {
                     th.style.width = `${currentWidth}px`;
-                    // FIXED: Explicitly sync minWidth during a manual drag to clear legacy double-tap locks
                     th.style.minWidth = `${currentWidth}px`;
                 }
                 animationFrameId = null;
@@ -2333,26 +2340,46 @@ function initResizableTable() {
             e.preventDefault();
             e.stopPropagation();
 
+            // Clear manual drag locks first so auto-calculation evaluates freely
+            th.style.width = '';
+            th.style.minWidth = '';
+
             const table = document.getElementById('mainTable');
             const colIndex = th.cellIndex;
-            let maxWidth = 60; // Absolute structural safety lower metric limit baseline
+            let maxWidth = 60; // Baseline safety limit
 
             const dummySpan = document.createElement('span');
             dummySpan.style.visibility = 'hidden';
             dummySpan.style.position = 'absolute';
             dummySpan.style.whiteSpace = 'nowrap';
-
-            // Extract accurate parent canvas layer font rules for rendering calculations
             dummySpan.style.font = window.getComputedStyle(th).font;
             document.body.appendChild(dummySpan);
 
-            // Compute length metric configurations relative to both header row cells and data cell bodies
-            const rows = table.querySelectorAll('tr');
+            // Measure header text
+            dummySpan.innerText = th.innerText.replace(/\s+/g, ' ').trim();
+            maxWidth = Math.max(maxWidth, dummySpan.offsetWidth + 35);
+
+            // Measure row content
+            const rows = table.querySelectorAll('tbody tr');
             rows.forEach(row => {
                 const cell = row.cells[colIndex];
                 if (cell) {
-                    dummySpan.innerText = cell.innerText;
-                    const cellWidth = dummySpan.offsetWidth + 20; // content dimensions + structural cell boundary padding
+                    let textToMeasure = "";
+
+                    // Check if cell contains a dropdown
+                    const selectEl = cell.querySelector('select');
+                    if (selectEl) {
+                        Array.from(selectEl.options).forEach(opt => {
+                            if (opt.text.length > textToMeasure.length) {
+                                textToMeasure = opt.text;
+                            }
+                        });
+                    } else {
+                        textToMeasure = cell.innerText;
+                    }
+
+                    dummySpan.innerText = textToMeasure;
+                    const cellWidth = dummySpan.offsetWidth + 40; // Padding & dropdown arrow buffer allowance
                     if (cellWidth > maxWidth) {
                         maxWidth = cellWidth;
                     }
@@ -2361,7 +2388,7 @@ function initResizableTable() {
 
             document.body.removeChild(dummySpan);
 
-            // FIXED: Apply matching metrics simultaneously so manual drag steps can cleanly override them later
+            // Apply new calculated dimensions simultaneously
             th.style.width = `${maxWidth}px`;
             th.style.minWidth = `${maxWidth}px`;
         });
@@ -2741,115 +2768,6 @@ function testOverlay(){
 
     overlay.appendChild(box);
 
-}
-
-
-async function findIOSLocator(clickX, clickY){
-
-    const pageName =
-    document.getElementById("pagename_searchbox")
-    .value
-    .trim();
-
-    if (pageName === "") {
-        document.getElementById("pagename_searchbox").style.borderColor = "red";
-        alert("Please enter Page Name.");
-        return;
-    }
-
-    const nodes = window.xmlDoc.getElementsByTagName("*");
-    let matchedNode = null;
-    let smallestArea = Number.MAX_VALUE;
-
-    for(let i = 0; i < nodes.length; i++){
-        const node = nodes[i];
-        const x = parseFloat(node.getAttribute("x"));
-        const y = parseFloat(node.getAttribute("y"));
-        const width = parseFloat(node.getAttribute("width"));
-        const height = parseFloat(node.getAttribute("height"));
-
-        if(isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)){
-            continue;
-        }
-
-        if(clickX >= x && clickX <= (x + width) && clickY >= y && clickY <= (y + height)){
-            console.log(node.nodeName, x, y, width, height);
-            console.log("CLICK INSIDE:", node.nodeName, node.getAttribute("name"), node.getAttribute("label"));
-
-            if (
-                node.nodeName === "XCUIElementTypeApplication" ||
-                node.nodeName === "XCUIElementTypeWindow" ||
-                (
-                    node.nodeName === "XCUIElementTypeOther" &&
-                    !node.getAttribute("name") &&
-                    !node.getAttribute("label")
-                )
-            ){
-                continue;
-            }
-
-            const allowedTypes = [
-                "XCUIElementTypeButton",
-                "XCUIElementTypeStaticText",
-                "XCUIElementTypeTextField",
-                "XCUIElementTypeSecureTextField",
-                "XCUIElementTypeSearchField",
-                "XCUIElementTypeImage",
-                "XCUIElementTypeTextView"
-            ];
-
-            if (
-                allowedTypes.includes(node.nodeName) &&
-                (
-                    node.getAttribute("name") ||
-                    node.getAttribute("label") ||
-                    node.getAttribute("value")
-                )
-            ) {
-                const area = width * height;
-                if (area < smallestArea) {
-                    smallestArea = area;
-                    matchedNode = node;
-                }
-            }
-        }
-    }
-
-    console.log("FINAL MATCH:", matchedNode?.nodeName, matchedNode?.getAttribute("name"), matchedNode?.getAttribute("label"));
-
-    if(!matchedNode){
-        createAndAppendTable([
-        {
-            ControlName: `Coordinate_${Math.round(clickX)}_${Math.round(clickY)}`,
-            ControlType: "Coordinate",
-            ControlId: `COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`
-        }
-        ]);
-        return;
-    }
-
-    console.log("MATCHED:", matchedNode.nodeName, matchedNode.getAttribute("name"), matchedNode.getAttribute("label"));
-
-    let controlName =
-        matchedNode.getAttribute("name") ||
-        matchedNode.getAttribute("value") ||
-        matchedNode.getAttribute("label") ||
-        matchedNode.nodeName;
-
-    controlName = controlName.trim();
-    console.log(new XMLSerializer().serializeToString(matchedNode));
-
-    // Generates a fully unique global collection index sequence
-    let xpath = generateUniqueXPath(matchedNode);
-
-    createAndAppendTable([
-    {
-        ControlName: controlName,
-        ControlType: matchedNode.nodeName.replace("XCUIElementType", ""),
-        ControlId: xpath,
-        Fingerprint: new XMLSerializer().serializeToString(matchedNode)
-    }
-    ]);
 }
 
 //for coordinates
@@ -3285,10 +3203,14 @@ async function sendTableDataToAPI(tableId) {
 
         if (columns.length < 9) return;
 
+        // Extract selected XPath from dropdown or fall back to plain text
+        var xpathSelect = columns[2]?.querySelector('select');
+        var xpathValue = xpathSelect ? xpathSelect.value.trim() : (columns[2]?.innerText.trim() || "");
+
         var rowText =
             columns[0]?.innerText +
             columns[1]?.innerText +
-            columns[2]?.innerText +
+            xpathValue +
             columns[3]?.innerText +
             columns[6]?.innerText +
             columns[7]?.innerText +
@@ -3307,7 +3229,7 @@ async function sendTableDataToAPI(tableId) {
                     columns[1]?.innerText.trim(),
 
                 XPATH:
-                    columns[2]?.innerText.trim(),
+                    xpathValue,
 
                 "FEATURE NAME":
                     columns[6]?.innerText.trim(),
@@ -3319,8 +3241,7 @@ async function sendTableDataToAPI(tableId) {
                     columns[3]?.innerText.trim(),
 
                 FINGERPRINT:
-                      ""
-//                    columns[8]?.innerHTML.trim()
+                    ""
 
             });
         }
@@ -3948,5 +3869,239 @@ function isXPathUnique(xpath) {
         return results.snapshotLength === 1;
     } catch (e) {
         return false;
+    }
+}
+
+function getAllPossibleXPaths(node) {
+    if (!node || node.nodeType !== 1) return [];
+
+    let candidates = [];
+
+    // Outer application wrappers and generic containers to bypass for relative paths
+    const stopNodes = [
+        "AppiumAUT",
+        "XCUIElementTypeApplication",
+        "hierarchy",
+        "XCUIElementTypeWindow",
+        "XCUIElementTypeOther",
+        "XCUIElementTypeScrollView"
+    ];
+
+    const attributes = ["name", "resource-id", "content-desc", "text", "value", "label"];
+
+    // -------------------------------------------------------------
+    // 1. DIRECT CHILD XPATHS (The target element)
+    // -------------------------------------------------------------
+    for (let attr of attributes) {
+        let val = node.getAttribute(attr);
+        if (val && val.trim() !== "") {
+            val = val.trim().replace(/"/g, '\\"');
+            let xpath = `//${node.nodeName}[@${attr}="${val}"]`;
+            if (!candidates.includes(xpath)) {
+                candidates.push(xpath);
+            }
+        }
+    }
+
+    // -------------------------------------------------------------
+    // 2. IMMEDIATE COMPONENT PARENT (e.g. XCUIElementTypeCell)
+    // -------------------------------------------------------------
+    let parent = node.parentNode;
+
+    // Ascend DOM tree until reaching the nearest meaningful container
+    while (parent && parent.nodeType === 1 && stopNodes.includes(parent.nodeName)) {
+        parent = parent.parentNode;
+    }
+
+    if (parent && parent.nodeType === 1) {
+
+        // A. Direct Parent Attributes
+        for (let attr of attributes) {
+            let pVal = parent.getAttribute(attr);
+            if (pVal && pVal.trim() !== "") {
+                pVal = pVal.trim().replace(/"/g, '\\"');
+                let parentXpath = `//${parent.nodeName}[@${attr}="${pVal}"]`;
+
+                if (!candidates.includes(parentXpath)) {
+                    candidates.push(parentXpath);
+                }
+
+                // Parent -> Descendant Child (using // instead of /)
+                let parentChildRel = `${parentXpath}//${node.nodeName}`;
+                if (!candidates.includes(parentChildRel)) {
+                    candidates.push(parentChildRel);
+                }
+            }
+        }
+
+        // B. Calculate Accurate Parent Global Index
+        let globalParents = window.xmlDoc.evaluate(`//${parent.nodeName}`, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        let parentGlobalIndex = 1;
+        for (let k = 0; k < globalParents.snapshotLength; k++) {
+            if (globalParents.snapshotItem(k) === parent) {
+                parentGlobalIndex = k + 1;
+                break;
+            }
+        }
+
+        // C. Calculate Child Index Among Identical Sibling Tags Inside Parent
+        let siblings = parent.getElementsByTagName(node.nodeName);
+        let matchIndex = 1;
+        for (let i = 0; i < siblings.length; i++) {
+            if (siblings[i] === node) {
+                matchIndex = i + 1;
+                break;
+            }
+        }
+
+        // Parent Global Index -> Descendant Child Index
+        let parentChildXPath = `(//${parent.nodeName})[${parentGlobalIndex}]//${node.nodeName}[${matchIndex}]`;
+        if (!candidates.includes(parentChildXPath)) {
+            candidates.push(parentChildXPath);
+        }
+    }
+
+    // -------------------------------------------------------------
+    // 3. FALLBACK INDEXED CHILD
+    // -------------------------------------------------------------
+    if (candidates.length === 0) {
+        let fallbackXpath = `//${node.nodeName}`;
+        let globalResults = window.xmlDoc.evaluate(fallbackXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        for (let i = 0; i < globalResults.snapshotLength; i++) {
+            if (globalResults.snapshotItem(i) === node) {
+                candidates.push(`(${fallbackXpath})[${i + 1}]`);
+            }
+        }
+    }
+
+    return candidates.length > 0 ? candidates : [`//${node.nodeName}`];
+}
+
+
+async function findIOSLocator(clickX, clickY) {
+
+    const pageName = document.getElementById("pagename_searchbox").value.trim();
+
+    if (pageName === "") {
+        document.getElementById("pagename_searchbox").style.borderColor = "red";
+        alert("Please enter Page Name.");
+        return;
+    }
+
+    const nodes = window.xmlDoc.getElementsByTagName("*");
+    let matchedNode = null;
+    let smallestArea = Number.MAX_VALUE;
+
+    const allowedTypes = [
+        "XCUIElementTypeButton",
+        "XCUIElementTypeStaticText",
+        "XCUIElementTypeTextField",
+        "XCUIElementTypeSecureTextField",
+        "XCUIElementTypeSearchField",
+        "XCUIElementTypeImage",
+        "XCUIElementTypeTextView"
+    ];
+
+    for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        const x = parseFloat(node.getAttribute("x"));
+        const y = parseFloat(node.getAttribute("y"));
+        const width = parseFloat(node.getAttribute("width"));
+        const height = parseFloat(node.getAttribute("height"));
+
+        if (isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) {
+            continue;
+        }
+
+        if (clickX >= x && clickX <= (x + width) && clickY >= y && clickY <= (y + height)) {
+            if (
+                node.nodeName === "XCUIElementTypeApplication" ||
+                node.nodeName === "XCUIElementTypeWindow"
+            ) {
+                continue;
+            }
+
+            const area = width * height;
+
+            // Prioritize leaf element tags (e.g. StaticText over Cell)
+            if (allowedTypes.includes(node.nodeName)) {
+                if (area < smallestArea) {
+                    smallestArea = area;
+                    matchedNode = node;
+                }
+            } else if (!matchedNode) {
+                // Secondary fallback if no leaf node matches directly
+                smallestArea = area;
+                matchedNode = node;
+            }
+        }
+    }
+
+    if (!matchedNode) {
+        createAndAppendTable([
+            {
+                ControlName: `Coordinate_${Math.round(clickX)}_${Math.round(clickY)}`,
+                ControlType: "Coordinate",
+                ControlId: [`COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`]
+            }
+        ]);
+        return;
+    }
+
+    let controlName =
+        matchedNode.getAttribute("name") ||
+        matchedNode.getAttribute("value") ||
+        matchedNode.getAttribute("label") ||
+        matchedNode.nodeName;
+
+    controlName = controlName.trim();
+
+    // Fetch candidate XPaths (Direct Child first, followed by Parent Cell options)
+    let allXPaths = getAllPossibleXPaths(matchedNode);
+
+    createAndAppendTable([
+        {
+            ControlName: controlName,
+            ControlType: matchedNode.nodeName.replace("XCUIElementType", ""),
+            ControlId: allXPaths,
+            Fingerprint: new XMLSerializer().serializeToString(matchedNode)
+        }
+    ]);
+}
+
+
+// Dedicated handler for option hover events
+async function onOptionHover(xpath) {
+    if (!xpath || xpath === lastXPath) return;
+
+    lastXPath = xpath;
+    clearTimeout(hoverTimer);
+
+    hoverTimer = setTimeout(async () => {
+        showElementHover = true;
+        try {
+            const element = await driver.findElement(By.xpath(xpath));
+            const rect = await element.getRect();
+            drawShowElementMarker(rect);
+        } catch (err) {
+            clearOverlay();
+        }
+    }, 60);
+}
+
+// Handler for when user selects a different option in the dropdown
+async function onDropdownChange(selectElement) {
+    lastXPath = "";
+    clearOverlay();
+
+    const xpath = selectElement.value.trim();
+    if (!xpath) return;
+
+    try {
+        const element = await driver.findElement(By.xpath(xpath));
+        const rect = await element.getRect();
+        drawShowElementMarker(rect);
+    } catch {
+        clearOverlay();
     }
 }
