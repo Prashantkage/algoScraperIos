@@ -3028,13 +3028,13 @@ document.getElementById("scrapeUI").addEventListener("click", async () => {
 
         controlName = controlName.trim();
 
-        // Safe global index calculation safely hooks into document snapshots
-        let xpath = generateUniqueXPath(node);
+        // Generates candidate XPaths without picking up outer toolbars/mic wrappers
+        let allXPaths = getAllPossibleXPaths(node);
 
         dtControls.push({
             ControlName: controlName,
-            ControlType: node.nodeName,
-            ControlId: xpath,
+            ControlType: node.nodeName.replace("XCUIElementType", ""),
+            ControlId: allXPaths, // Pass array of candidate XPaths into table dropdown generator
             Fingerprint: new XMLSerializer().serializeToString(node)
         });
     }
@@ -3877,20 +3877,18 @@ function getAllPossibleXPaths(node) {
 
     let candidates = [];
 
-    // Outer application wrappers and generic containers to bypass for relative paths
-    const stopNodes = [
+    // Outer root wrappers that should NEVER be used as relative parents
+    const absoluteStopNodes = [
         "AppiumAUT",
         "XCUIElementTypeApplication",
         "hierarchy",
-        "XCUIElementTypeWindow",
-        "XCUIElementTypeOther",
-        "XCUIElementTypeScrollView"
+        "XCUIElementTypeWindow"
     ];
 
     const attributes = ["name", "resource-id", "content-desc", "text", "value", "label"];
 
     // -------------------------------------------------------------
-    // 1. DIRECT CHILD XPATHS (The target element)
+    // 1. DIRECT LEAF XPATHS (Target Element Attributes)
     // -------------------------------------------------------------
     for (let attr of attributes) {
         let val = node.getAttribute(attr);
@@ -3904,18 +3902,18 @@ function getAllPossibleXPaths(node) {
     }
 
     // -------------------------------------------------------------
-    // 2. IMMEDIATE COMPONENT PARENT (e.g. XCUIElementTypeCell)
+    // 2. RELATIVE TO IMMEDIATE PARENT CONTAINER
     // -------------------------------------------------------------
     let parent = node.parentNode;
 
-    // Ascend DOM tree until reaching the nearest meaningful container
-    while (parent && parent.nodeType === 1 && stopNodes.includes(parent.nodeName)) {
+    // Ascend only if parent is a non-structural or root container
+    while (parent && parent.nodeType === 1 && absoluteStopNodes.includes(parent.nodeName)) {
         parent = parent.parentNode;
     }
 
-    if (parent && parent.nodeType === 1) {
+    if (parent && parent.nodeType === 1 && !absoluteStopNodes.includes(parent.nodeName)) {
 
-        // A. Direct Parent Attributes
+        // A. Parent Direct Attribute (Only if parent has valid label/name and is a cell/group)
         for (let attr of attributes) {
             let pVal = parent.getAttribute(attr);
             if (pVal && pVal.trim() !== "") {
@@ -3926,7 +3924,6 @@ function getAllPossibleXPaths(node) {
                     candidates.push(parentXpath);
                 }
 
-                // Parent -> Descendant Child (using // instead of /)
                 let parentChildRel = `${parentXpath}//${node.nodeName}`;
                 if (!candidates.includes(parentChildRel)) {
                     candidates.push(parentChildRel);
@@ -3934,7 +3931,7 @@ function getAllPossibleXPaths(node) {
             }
         }
 
-        // B. Calculate Accurate Parent Global Index
+        // B. Calculate Exact Local Index Relative to Parent
         let globalParents = window.xmlDoc.evaluate(`//${parent.nodeName}`, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
         let parentGlobalIndex = 1;
         for (let k = 0; k < globalParents.snapshotLength; k++) {
@@ -3944,7 +3941,6 @@ function getAllPossibleXPaths(node) {
             }
         }
 
-        // C. Calculate Child Index Among Identical Sibling Tags Inside Parent
         let siblings = parent.getElementsByTagName(node.nodeName);
         let matchIndex = 1;
         for (let i = 0; i < siblings.length; i++) {
@@ -3954,7 +3950,6 @@ function getAllPossibleXPaths(node) {
             }
         }
 
-        // Parent Global Index -> Descendant Child Index
         let parentChildXPath = `(//${parent.nodeName})[${parentGlobalIndex}]//${node.nodeName}[${matchIndex}]`;
         if (!candidates.includes(parentChildXPath)) {
             candidates.push(parentChildXPath);
@@ -3962,14 +3957,34 @@ function getAllPossibleXPaths(node) {
     }
 
     // -------------------------------------------------------------
-    // 3. FALLBACK INDEXED CHILD
+    // 3. FALLBACK GLOBAL INDEXED XPATH
     // -------------------------------------------------------------
-    if (candidates.length === 0) {
-        let fallbackXpath = `//${node.nodeName}`;
-        let globalResults = window.xmlDoc.evaluate(fallbackXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-        for (let i = 0; i < globalResults.snapshotLength; i++) {
-            if (globalResults.snapshotItem(i) === node) {
-                candidates.push(`(${fallbackXpath})[${i + 1}]`);
+    let fallbackXpath = `//${node.nodeName}`;
+    let globalResults = window.xmlDoc.evaluate(fallbackXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (let i = 0; i < globalResults.snapshotLength; i++) {
+        if (globalResults.snapshotItem(i) === node) {
+            let indexedXpath = `(${fallbackXpath})[${i + 1}]`;
+            if (!candidates.includes(indexedXpath)) {
+                candidates.push(indexedXpath);
+            }
+        }
+    }
+
+    // -------------------------------------------------------------
+    // 4. AUTOMATIC COORDINATE FALLBACK FOR "Other" NODES
+    // -------------------------------------------------------------
+    if (node.nodeName === "XCUIElementTypeOther" || node.nodeName === "Other") {
+        let x = parseFloat(node.getAttribute("x"));
+        let y = parseFloat(node.getAttribute("y"));
+        let width = parseFloat(node.getAttribute("width"));
+        let height = parseFloat(node.getAttribute("height"));
+
+        if (!isNaN(x) && !isNaN(y) && !isNaN(width) && !isNaN(height) && width > 0 && height > 0) {
+            let centerX = Math.round(x + (width / 2));
+            let centerY = Math.round(y + (height / 2));
+            let coordXPath = `COORDINATE(${centerX},${centerY})`;
+            if (!candidates.includes(coordXPath)) {
+                candidates.push(coordXPath);
             }
         }
     }
@@ -3999,7 +4014,9 @@ async function findIOSLocator(clickX, clickY) {
         "XCUIElementTypeSecureTextField",
         "XCUIElementTypeSearchField",
         "XCUIElementTypeImage",
-        "XCUIElementTypeTextView"
+        "XCUIElementTypeTextView",
+        "XCUIElementTypeHeader",
+        "XCUIElementTypeCell"
     ];
 
     for (let i = 0; i < nodes.length; i++) {
@@ -4013,6 +4030,9 @@ async function findIOSLocator(clickX, clickY) {
             continue;
         }
 
+        // Filter out full screen or invalid 0-size elements
+        if (width <= 0 || height <= 0) continue;
+
         if (clickX >= x && clickX <= (x + width) && clickY >= y && clickY <= (y + height)) {
             if (
                 node.nodeName === "XCUIElementTypeApplication" ||
@@ -4023,20 +4043,20 @@ async function findIOSLocator(clickX, clickY) {
 
             const area = width * height;
 
-            // Prioritize leaf element tags (e.g. StaticText over Cell)
+            // Prioritize leaf element tags (e.g. Header/StaticText/Cell over full screen background)
             if (allowedTypes.includes(node.nodeName)) {
                 if (area < smallestArea) {
                     smallestArea = area;
                     matchedNode = node;
                 }
             } else if (!matchedNode) {
-                // Secondary fallback if no leaf node matches directly
                 smallestArea = area;
                 matchedNode = node;
             }
         }
     }
 
+    // Fallback if no matching DOM node found
     if (!matchedNode) {
         createAndAppendTable([
             {
@@ -4056,8 +4076,19 @@ async function findIOSLocator(clickX, clickY) {
 
     controlName = controlName.trim();
 
-    // Fetch candidate XPaths (Direct Child first, followed by Parent Cell options)
+    // Fetch candidate XPaths
     let allXPaths = getAllPossibleXPaths(matchedNode);
+
+    // IF ELEMENT IS "XCUIElementTypeOther" OR "Other": Append precise tap coordinates as a option
+    if (
+        matchedNode.nodeName === "XCUIElementTypeOther" ||
+        matchedNode.nodeName === "Other"
+    ) {
+        const coordString = `COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`;
+        if (!allXPaths.includes(coordString)) {
+            allXPaths.push(coordString);
+        }
+    }
 
     createAndAppendTable([
         {

@@ -404,7 +404,7 @@ p{
     <!-- Replaced old CSS spinner container with the fluid native GIF element link context -->
     <img src="${loaderSrc}" class="loader-image" alt="Loading Engine Context..." />
 
-    <h1>Please wait</h1>
+    <h1>Preparing AlgoScraper</h1>
 
     <p>
       Checking prerequisites<span id="dots"></span>
