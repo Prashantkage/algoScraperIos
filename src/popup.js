@@ -1384,11 +1384,40 @@
     });
 
 
-    document.getElementById("download").addEventListener('click', async () => {
-      if (tableCreated) {
-        downloadTableAsJSON('myTable');
-      }
-    });
+    let pendingExportAction = null;
+
+        // Helper to check if table actually contains user data
+        function hasValidTableData(tableId) {
+            var rows = document.querySelectorAll(`#${tableId} tr`);
+            var validCount = 0;
+            rows.forEach(row => {
+                if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
+                var columns = row.querySelectorAll('td');
+                if (columns.length === 0) return;
+                var controlName = columns[1] ? columns[1].innerText.trim() : "";
+                var xpathCell = columns[3];
+                var xpathVal = xpathCell ? (xpathCell.querySelector('select') ? xpathCell.querySelector('select').value.trim() : xpathCell.innerText.trim()) : "";
+                if (controlName || xpathVal) {
+                    validCount++;
+                }
+            });
+            return validCount > 0;
+        }
+
+        // 1. Download Interceptor with Empty Table Check
+        document.getElementById("download").addEventListener('click', async () => {
+          if (!tableCreated || !hasValidTableData('myTable')) {
+              alert("No scraped data found to download.");
+              return;
+          }
+
+          if (hiddenColumns && hiddenColumns.length > 0) {
+              pendingExportAction = "download";
+              showHiddenColumnsWarning();
+          } else {
+              downloadTableAsJSON('myTable');
+          }
+        });
 
 
     function downloadTableAsJSON(tableId) {
@@ -1397,44 +1426,54 @@
         const now = new Date();
         const dateTime = now.toISOString().split('T')[0] + 'T' + now.toTimeString().split(' ')[0];
 
+        var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
+        var visibleHeaders = allHeaders.filter(th => window.getComputedStyle(th).display !== 'none');
         var rows = document.querySelectorAll(`#${tableId} tr`);
         var dashboardControls = [];
-        var customHeaders = Array.from(document.querySelectorAll('#mainTable thead tr .custom-editable-header'));
 
         rows.forEach((row) => {
             if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
 
-            var columns = row.querySelectorAll('td');
-            if (columns.length < 10) return;
+            var allCells = Array.from(row.querySelectorAll('td'));
+            var visibleCells = allCells.filter(cell => window.getComputedStyle(cell).display !== 'none');
+            if (visibleCells.length === 0) return;
 
-            var controlName = columns[1].innerText.trim();
-            var xpathSelect = columns[3].querySelector('select');
-            var xpathValue = xpathSelect ? xpathSelect.value.trim() : columns[3].innerText.trim();
-
-            if (!controlName && !xpathValue) return;
-
-            // Direct key-value mapping
             var rowObj = {
-                "CONTROL NAME": controlName,
-                "CONTROL TYPE": columns[2].innerText.trim(),
-                "XPATH": xpathValue,
-                "PAGE NAME": columns[4].innerText.trim(),
-                "IDENTIFICATION TYPE": columns[5].innerText.trim(),
-                "CONTROL VALUE": columns[6].innerText.trim(),
-                "FEATURE NAME": columns[7].innerText.trim(),
-                "NODE NAME": columns[8].innerText.trim(),
-                "FINGERPRINT": "", // Hardcoded empty string
-                "APP URL": columns[10]?.innerText.trim() || ""
+                "CONTROL NAME": "",
+                "CONTROL TYPE": "",
+                "XPATH": "",
+                "PAGE NAME": "",
+                "IDENTIFICATION TYPE": "",
+                "CONTROL VALUE": "",
+                "FEATURE NAME": "",
+                "NODE NAME": "",
+                "FINGERPRINT": "",
+                "APP URL": ""
             };
 
-            // Add any extra custom user-added columns
-            customHeaders.forEach((th, idx) => {
-                var colName = th.querySelector('span')?.innerText.trim() || th.innerText.trim();
-                colName = colName.replace('Delete Column', '').trim();
-                var colCellIndex = 12 + idx; // Custom cells start after Delete column
-                rowObj[colName] = columns[colCellIndex] ? columns[colCellIndex].innerText.trim() : "";
+            visibleHeaders.forEach((th, idx) => {
+                var cell = visibleCells[idx];
+                if (!cell) return;
+
+                var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                var selectEl = cell.querySelector('select');
+                var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
+
+                if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
+                else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
+                else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
+                else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
+                else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
+                else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
+                else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
+                else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
+                else if (th.classList.contains('custom-editable-header')) {
+                    var colName = th.querySelector('span')?.innerText.trim() || thText;
+                    rowObj[colName] = val;
+                }
             });
 
+            if (!rowObj["CONTROL NAME"] && !rowObj["XPATH"]) return;
             dashboardControls.push(rowObj);
         });
 
@@ -1708,10 +1747,13 @@
                 `;
 
                 for (let i = 0; i < customColsCount; i++) {
-                    rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">&nbsp;</td>`;
-                }
+                                rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">&nbsp;</td>`;
+                            }
 
-                row.innerHTML = rowHtml;
+                            // Append matching cell under sticky '+' header
+                            rowHtml += `<td class="add-col-cell">&nbsp;</td>`;
+
+                            tableTopRow.innerHTML = rowHtml;
                 tbody.appendChild(row);
                 updateRowNumbers();
             }
@@ -2179,21 +2221,27 @@
             // Insert new column BEFORE the sticky Add Column '+' TH
             headerRow.insertBefore(newTh, addColBtn);
 
-            // Add matching cell to all existing body rows
-            var allBodyRows = document.querySelectorAll('#myTable tr');
-            allBodyRows.forEach(row => {
-                var newTd = document.createElement('td');
-                newTd.contentEditable = "true";
-                newTd.style.overflow = "hidden";
-                newTd.style.whiteSpace = "nowrap";
-                newTd.style.textOverflow = "ellipsis";
-                newTd.style.fontSize = "11px";
-                newTd.style.fontWeight = "600";
-                newTd.style.borderColor = "black";
-                newTd.style.textAlign = "center";
-                newTd.innerHTML = "&nbsp;";
-                row.appendChild(newTd);
-            });
+            // Add matching cell to all existing body rows BEFORE the sticky '+' cell
+                        var allBodyRows = document.querySelectorAll('#myTable tr');
+                        allBodyRows.forEach(row => {
+                            var newTd = document.createElement('td');
+                            newTd.contentEditable = "true";
+                            newTd.style.overflow = "hidden";
+                            newTd.style.whiteSpace = "nowrap";
+                            newTd.style.textOverflow = "ellipsis";
+                            newTd.style.fontSize = "11px";
+                            newTd.style.fontWeight = "600";
+                            newTd.style.borderColor = "black";
+                            newTd.style.textAlign = "center";
+                            newTd.innerHTML = "&nbsp;";
+
+                            var lastCell = row.querySelector('.add-col-cell') || row.lastElementChild;
+                            if (lastCell) {
+                                row.insertBefore(newTd, lastCell);
+                            } else {
+                                row.appendChild(newTd);
+                            }
+                        });
 
             initResizableTable();
         });
@@ -2253,9 +2301,9 @@ function createAndAppendTable(dtControls) {
     var pageName = document.getElementById('pagename_searchbox').value;
     var tbody = document.getElementById('myTable');
 
-    // Count user-added custom headers in the table
-    var headerRow = document.querySelector('#mainTable thead tr');
-    var customColsCount = headerRow ? headerRow.querySelectorAll('.custom-editable-header').length : 0;
+    // Fetch ONLY visible headers (ignores hidden columns completely)
+    var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
+    var visibleHeaders = allHeaders.filter(th => window.getComputedStyle(th).display !== 'none');
 
     for (var i = 0; i < dtControls.length; i++) {
         let xpaths = Array.isArray(dtControls[i].ControlId)
@@ -2268,35 +2316,63 @@ function createAndAppendTable(dtControls) {
 
         let controlIdCellHtml = `<select class="xpath-dropdown" onchange="onDropdownChange(this)" onmouseleave="onShowElementLeave(event)" style="width: 100%; border: none; background: transparent; font-size: 11px; font-weight: 600;">${selectOptionsHtml}</select>`;
 
-        // Always insert new row at the very top (index 0)
         let tr = tbody.insertRow(0);
 
-        // Remove one empty grid placeholder row from bottom if present
         let emptyRows = tbody.querySelectorAll('tr.empty-excel-row');
         if (emptyRows.length > 0) {
             emptyRows[emptyRows.length - 1].remove();
         }
 
         td_id = i;
-        var rowHtml = `
-            <td class="row-index"></td>
-            <td class="cn pt-3-half" id="cn_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${dtControls[i].ControlName}</td>
-            <td class="ct pt-3-half" id="ct_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${dtControls[i].ControlType}</td>
-            <td class="xpath pt-3-half" id="xpath_${td_id}" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-color: black; text-align: center;">${controlIdCellHtml}</td>
-            <td class="page pt-3-half" id="page_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${pageName}</td>
-            <td class="identificationType pt-3-half" id="identificationType_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;"></td>
-            <td class="controlValue pt-3-half" id="controlValue_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;"></td>
-            <td class="featureName pt-3-half" id="featureName_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${pageName}</td>
-            <td class="nodeName pt-3-half" id="nodeName_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${pageName}</td>
-            <td class="fingerprint pt-3-half" id="fingerprint_${td_id}" contenteditable="true" style="spellcheck:false; font-size: 11px; font-weight: 600; border-color: black; text-align: left; display:none;">${(dtControls[i].Fingerprint || "").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
-            <td class="appUrl pt-3-half" id="appUrl_${td_id}" contenteditable="true" style="display:none;"></td>
-            <td class="delete-cell" style="border-color:black"><img src="icon/icons8-delete_red.svg" id="del_${td_id}" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; overflow: hidden; cursor: pointer; -webkit-user-drag: none; display:inline-block;"></td>
-        `;
 
-        // Append cells matching any user-added custom columns
-        for (let k = 0; k < customColsCount; k++) {
-            rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">&nbsp;</td>`;
-        }
+        let rowDataMap = {
+            "#": "",
+            "CONTROL NAME": dtControls[i].ControlName || "",
+            "CONTROL TYPE": dtControls[i].ControlType || "",
+            "CONTROL ID": controlIdCellHtml,
+            "PAGE NAME": pageName,
+            "IDENTIFICATION TYPE": "",
+            "CONTROL VALUE": "",
+            "FEATURE NAME": pageName,
+            "NODE NAME": pageName,
+            "DELETE": `<img src="icon/icons8-delete_red.svg" id="del_${td_id}" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; overflow: hidden; cursor: pointer; -webkit-user-drag: none; display:inline-block;">`,
+            "FINGERPRINT": (dtControls[i].Fingerprint || "").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+            "APP URL": ""
+        };
+
+        var rowHtml = "";
+
+        visibleHeaders.forEach((th) => {
+            var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+
+            if (th.classList.contains('excel-header-corner')) {
+                rowHtml += `<td class="row-index"></td>`;
+            } else if (th.id === 'add_empty_column') {
+                rowHtml += `<td class="add-col-cell">&nbsp;</td>`;
+            } else if (th.classList.contains('custom-editable-header')) {
+                rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">&nbsp;</td>`;
+            } else if (thText.includes('CONTROL NAME')) {
+                rowHtml += `<td class="cn pt-3-half" id="cn_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["CONTROL NAME"]}</td>`;
+            } else if (thText.includes('CONTROL TYPE')) {
+                rowHtml += `<td class="ct pt-3-half" id="ct_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["CONTROL TYPE"]}</td>`;
+            } else if (thText.includes('CONTROL ID')) {
+                rowHtml += `<td class="xpath pt-3-half" id="xpath_${td_id}" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-color: black; text-align: center;">${rowDataMap["CONTROL ID"]}</td>`;
+            } else if (thText.includes('PAGE NAME')) {
+                rowHtml += `<td class="page pt-3-half" id="page_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["PAGE NAME"]}</td>`;
+            } else if (thText.includes('IDENTIFICATION TYPE')) {
+                rowHtml += `<td class="identificationType pt-3-half" id="identificationType_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["IDENTIFICATION TYPE"]}</td>`;
+            } else if (thText.includes('CONTROL VALUE')) {
+                rowHtml += `<td class="controlValue pt-3-half" id="controlValue_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["CONTROL VALUE"]}</td>`;
+            } else if (thText.includes('FEATURE NAME')) {
+                rowHtml += `<td class="featureName pt-3-half" id="featureName_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["FEATURE NAME"]}</td>`;
+            } else if (thText.includes('NODE NAME')) {
+                rowHtml += `<td class="nodeName pt-3-half" id="nodeName_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["NODE NAME"]}</td>`;
+            } else if (thText.includes('DELETE')) {
+                rowHtml += `<td class="delete-cell" style="border-color:black">${rowDataMap["DELETE"]}</td>`;
+            } else {
+                rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">&nbsp;</td>`;
+            }
+        });
 
         tr.innerHTML = rowHtml;
     }
@@ -3197,30 +3273,26 @@ function createAndAppendTable(dtControls) {
         }
     });
 
-    document.getElementById("algoQA")
-    .addEventListener("click", async () => {
+    // 2. algoQA Interceptor with Empty Table Check
+        document.getElementById("algoQA").addEventListener("click", async () => {
+            const userData = JSON.parse(localStorage.getItem("algoQAUser"));
+            if (!userData) {
+                alert("Token data not found");
+                return;
+            }
 
-        console.log(
-            "LocalStorage Raw:",
-            localStorage.getItem("algoQAUser")
-        );
+            if (!tableCreated || !hasValidTableData('myTable')) {
+                alert("No scraped data found to send.");
+                return;
+            }
 
-        const userData = JSON.parse(
-            localStorage.getItem("algoQAUser")
-        );
-
-        if (!userData) {
-            alert("Token data not found");
-            return;
-        }
-
-        console.log("UserData:", userData);
-        console.log("BaseUrl:", userData.baseUrl);
-        console.log("UserID:", userData.userID);
-
-        await sendTableDataToAPI("myTable");
-
-    });
+            if (hiddenColumns && hiddenColumns.length > 0) {
+                pendingExportAction = "algoQA";
+                showHiddenColumnsWarning();
+            } else {
+                await sendTableDataToAPI("myTable");
+            }
+        });
 
     async function sendTableDataToAPI(tableId) {
         const userData = JSON.parse(localStorage.getItem("algoQAUser"));
@@ -3229,46 +3301,54 @@ function createAndAppendTable(dtControls) {
             return;
         }
 
+        var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
+        var visibleHeaders = allHeaders.filter(th => window.getComputedStyle(th).display !== 'none');
         var rows = document.querySelectorAll(`#${tableId} tr`);
         var tableData = [];
-
-        // Check if custom columns were added by the user
-        var customHeaders = Array.from(document.querySelectorAll('#mainTable thead tr .custom-editable-header'));
 
         rows.forEach((row) => {
             if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
 
-            var columns = row.querySelectorAll('td');
-            if (columns.length < 10) return;
+            var allCells = Array.from(row.querySelectorAll('td'));
+            var visibleCells = allCells.filter(cell => window.getComputedStyle(cell).display !== 'none');
+            if (visibleCells.length === 0) return;
 
-            var controlName = columns[1].innerText.trim();
-            var xpathSelect = columns[3].querySelector('select');
-            var xpathValue = xpathSelect ? xpathSelect.value.trim() : columns[3].innerText.trim();
-
-            if (!controlName && !xpathValue) return;
-
-            // Base payload row object
             var rowObj = {
-                "CONTROL NAME": controlName,
-                "CONTROL TYPE": columns[2].innerText.trim(),
-                "XPATH": xpathValue,
-                "PAGE NAME": columns[4].innerText.trim(),
-                "IDENTIFICATION TYPE": columns[5].innerText.trim(),
-                "CONTROL VALUE": columns[6].innerText.trim(),
-                "FEATURE NAME": columns[7].innerText.trim(),
-                "NODE NAME": columns[8].innerText.trim(),
-                "FINGERPRINT": "", // Empty string as requested
-                "APP URL": columns[10]?.innerText.trim() || ""
+                "CONTROL NAME": "",
+                "CONTROL TYPE": "",
+                "XPATH": "",
+                "PAGE NAME": "",
+                "IDENTIFICATION TYPE": "",
+                "CONTROL VALUE": "",
+                "FEATURE NAME": "",
+                "NODE NAME": "",
+                "FINGERPRINT": "",
+                "APP URL": ""
             };
 
-            // Add any extra custom columns created by the user
-            customHeaders.forEach((th, idx) => {
-                var colName = th.querySelector('span')?.innerText.trim() || th.innerText.trim();
-                colName = colName.replace('Delete Column', '').trim();
-                var colCellIndex = 12 + idx; // Custom columns start after Delete cell
-                rowObj[colName] = columns[colCellIndex] ? columns[colCellIndex].innerText.trim() : "";
+            visibleHeaders.forEach((th, idx) => {
+                var cell = visibleCells[idx];
+                if (!cell) return;
+
+                var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                var selectEl = cell.querySelector('select');
+                var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
+
+                if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
+                else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
+                else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
+                else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
+                else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
+                else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
+                else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
+                else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
+                else if (th.classList.contains('custom-editable-header')) {
+                    var colName = th.querySelector('span')?.innerText.trim() || thText;
+                    rowObj[colName] = val;
+                }
             });
 
+            if (!rowObj["CONTROL NAME"] && !rowObj["XPATH"]) return;
             tableData.push(rowObj);
         });
 
@@ -4112,44 +4192,50 @@ function createAndAppendTable(dtControls) {
 
 
     function renderDefaultExcelGrid(rowCount = 5) {
-        const tbody = document.getElementById('myTable');
-        tbody.innerHTML = '';
+                const tbody = document.getElementById('myTable');
+                tbody.innerHTML = '';
 
-        var customColsCount = getCustomColsCount();
+                var customColsCount = getCustomColsCount();
 
-        for (let i = 1; i <= rowCount; i++) {
-            const row = document.createElement('tr');
-            row.className = "empty-excel-row";
+                for (let i = 1; i <= rowCount; i++) {
+                    const row = document.createElement('tr');
+                    row.className = "empty-excel-row";
 
-            var rowHtml = `
-                <td class="row-index">${i}</td>
-                <td class="cn pt-3-half" contenteditable="true">&nbsp;</td>
-                <td class="ct pt-3-half" contenteditable="true">&nbsp;</td>
-                <td class="xpath pt-3-half">&nbsp;</td>
-                <td class="page pt-3-half" contenteditable="true">&nbsp;</td>
-                <td class="identificationType pt-3-half" contenteditable="true">&nbsp;</td>
-                <td class="controlValue pt-3-half" contenteditable="true">&nbsp;</td>
-                <td class="featureName pt-3-half" contenteditable="true">&nbsp;</td>
-                <td class="nodeName pt-3-half" contenteditable="true">&nbsp;</td>
-                <td class="fingerprint" style="display:none;"></td>
-                <td class="appUrl" style="display:none;"></td>
-                <td class="delete-cell" style="border-color:black"><img src="icon/icons8-delete_red.svg" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; display:none;"></td>
-            `;
+                    var rowHtml = `
+                        <td class="row-index">${i}</td>
+                        <td class="cn pt-3-half" contenteditable="true">&nbsp;</td>
+                        <td class="ct pt-3-half" contenteditable="true">&nbsp;</td>
+                        <td class="xpath pt-3-half">&nbsp;</td>
+                        <td class="page pt-3-half" contenteditable="true">&nbsp;</td>
+                        <td class="identificationType pt-3-half" contenteditable="true">&nbsp;</td>
+                        <td class="controlValue pt-3-half" contenteditable="true">&nbsp;</td>
+                        <td class="featureName pt-3-half" contenteditable="true">&nbsp;</td>
+                        <td class="nodeName pt-3-half" contenteditable="true">&nbsp;</td>
+                        <td class="fingerprint" style="display:none;"></td>
+                        <td class="appUrl" style="display:none;"></td>
+                        <td class="delete-cell" style="border-color:black"><img src="icon/icons8-delete_red.svg" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; display:none;"></td>
+                    `;
 
-            for (let k = 0; k < customColsCount; k++) {
-                rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">&nbsp;</td>`;
+                    for (let k = 0; k < customColsCount; k++) {
+                        rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">&nbsp;</td>`;
+                    }
+
+                    // Append matching cell under sticky '+' header
+                    rowHtml += `<td class="add-col-cell">&nbsp;</td>`;
+
+                    row.innerHTML = rowHtml;
+                    tbody.appendChild(row);
+                }
+
+                initResizableTable();
             }
 
-            row.innerHTML = rowHtml;
-            tbody.appendChild(row);
-        }
-    }
-
     // Call on window load so empty Excel rows appear immediately on launch
-    window.addEventListener("DOMContentLoaded", () => {
-        document.getElementById('table-container').style.display = "block";
-        renderDefaultExcelGrid(5);
-    });
+        window.addEventListener("DOMContentLoaded", () => {
+            document.getElementById('table-container').style.display = "block";
+            renderDefaultExcelGrid(5);
+            initResizableTable(); // <--- ADD THIS LINE HERE
+        });
 
     // Function to delete a custom column by index across headers and body rows
     function deleteCustomColumn(colIndex) {
@@ -4169,5 +4255,278 @@ function createAndAppendTable(dtControls) {
                 row.cells[colIndex].remove();
             }
         });
+    }
+
+
+// --- COLUMN HIDING / UNHIDING STATE MANAGEMENT ---
+let hiddenColumns = []; // Stores { index: number, name: string }
+
+function updateEyeButtonState() {
+    const eyeBtn = document.getElementById("unhide_col_btn");
+    const unhideMenu = document.getElementById("unhide_menu");
+
+    if (!eyeBtn || !unhideMenu) return;
+
+    if (hiddenColumns.length > 0) {
+        eyeBtn.disabled = false;
+        eyeBtn.classList.add("active");
+
+        // Populate dropdown list of hidden columns
+        unhideMenu.innerHTML = "";
+        hiddenColumns.forEach((col, arrIdx) => {
+            const item = document.createElement("div");
+            item.className = "unhide-item";
+            item.innerText = `👁 Unhide: ${col.name}`;
+            item.addEventListener("click", (e) => {
+                e.stopPropagation();
+                unhideColumn(arrIdx);
+            });
+            unhideMenu.appendChild(item);
+        });
+    } else {
+        eyeBtn.disabled = true;
+        eyeBtn.classList.remove("active");
+        unhideMenu.classList.remove("show");
+        unhideMenu.innerHTML = "";
+    }
+}
+
+function hideColumn(colIndex) {
+    const table = document.getElementById("mainTable");
+    if (!table) return;
+
+    const headerRow = table.querySelector("thead tr");
+    if (!headerRow || !headerRow.cells[colIndex]) return;
+
+    const th = headerRow.cells[colIndex];
+    let colName = th.querySelector("span")?.innerText.trim() || th.innerText.trim();
+    colName = colName.replace("Delete Column", "").replace("Add Column", "").trim();
+
+    // Assign clear labels in dropdown for icon/index columns
+    if (!colName || colName === "") {
+        if (th.classList.contains("excel-header-corner")) {
+            colName = "# (Index)";
+        } else if (th.id === "add_empty_column") {
+            colName = "+ (Add Column)";
+        } else {
+            colName = "Column " + (colIndex + 1);
+        }
+    }
+
+    // Force Hide Header cell using important flag
+    th.style.setProperty("display", "none", "important");
+
+    // Force Hide Body cells for this column index
+    const bodyRows = table.querySelectorAll("tbody tr");
+    bodyRows.forEach(row => {
+        if (row.cells[colIndex]) {
+            row.cells[colIndex].style.setProperty("display", "none", "important");
+        }
+    });
+
+    hiddenColumns.push({ index: colIndex, name: colName });
+    updateEyeButtonState();
+}
+
+function unhideColumn(arrayIndex) {
+    const colInfo = hiddenColumns[arrayIndex];
+    if (!colInfo) return;
+
+    const table = document.getElementById("mainTable");
+    if (!table) return;
+
+    const headerRow = table.querySelector("thead tr");
+    if (headerRow && headerRow.cells[colInfo.index]) {
+        headerRow.cells[colInfo.index].style.display = "";
+    }
+
+    const bodyRows = table.querySelectorAll("tbody tr");
+    bodyRows.forEach(row => {
+        if (row.cells[colInfo.index]) {
+            row.cells[colInfo.index].style.display = "";
+        }
+    });
+
+    hiddenColumns.splice(arrayIndex, 1);
+    updateEyeButtonState();
+}
+
+// --- RIGHT-CLICK CONTEXT MENU EVENT LISTENERS ---
+let selectedColIndexToHide = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+    const contextMenu = document.getElementById("colContextMenu");
+    const hideOption = document.getElementById("hideColOption");
+    const mainTable = document.getElementById("mainTable");
+    const eyeBtn = document.getElementById("unhide_col_btn");
+    const unhideMenu = document.getElementById("unhide_menu");
+
+    if (mainTable) {
+        // Right-Click Context Menu on ALL Headers (including #, Delete, and +)
+        mainTable.querySelector("thead").addEventListener("contextmenu", (e) => {
+            const th = e.target.closest("th");
+            if (!th) return;
+
+            e.preventDefault();
+            selectedColIndexToHide = th.cellIndex;
+
+            if (contextMenu) {
+                            // Prevent menu from overflowing past right window border
+                            const menuWidth = 140;
+                            const posX = (e.clientX + menuWidth > window.innerWidth)
+                                ? e.clientX - menuWidth
+                                : e.clientX;
+
+                            contextMenu.style.left = `${posX}px`;
+                            contextMenu.style.top = `${e.clientY}px`;
+                            contextMenu.style.display = "block";
+                        }
+        });
+    }
+
+    // Context Menu Hide Action Click
+    if (hideOption) {
+        hideOption.addEventListener("click", () => {
+            if (selectedColIndexToHide !== null) {
+                hideColumn(selectedColIndexToHide);
+                selectedColIndexToHide = null;
+            }
+            if (contextMenu) contextMenu.style.display = "none";
+        });
+    }
+
+    // Toggle Eye Dropdown on Click
+    if (eyeBtn && unhideMenu) {
+        eyeBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (hiddenColumns.length > 0) {
+                unhideMenu.classList.toggle("show");
+            }
+        });
+    }
+
+    // Dismiss Context Menu and Eye Menu on Outside Click
+    document.addEventListener("click", (e) => {
+        if (contextMenu) contextMenu.style.display = "none";
+        if (unhideMenu && !unhideMenu.contains(e.target) && e.target !== eyeBtn) {
+            unhideMenu.classList.remove("show");
+        }
+    });
+});
+
+// 3. Warning Prompt Helper
+    function showHiddenColumnsWarning() {
+        const popup = document.getElementById('confirmationPopup');
+        if (!popup) return;
+
+        popup.querySelector('p:nth-of-type(1)').textContent = "Warning: Columns are hidden!";
+        popup.querySelector('p:nth-of-type(2)').textContent = "Hidden columns will not be included in data.";
+
+        document.getElementById('overlay').style.display = 'block';
+        popup.style.display = 'block';
+    }
+
+    // 4. Clean Unified "Okay" Button Handler
+    const okayBtn = document.getElementById("okay_btn");
+    const newOkayBtn = okayBtn.cloneNode(true);
+    okayBtn.parentNode.replaceChild(newOkayBtn, okayBtn);
+
+    newOkayBtn.addEventListener('click', async () => {
+        document.getElementById('confirmationPopup').style.display = 'none';
+        document.getElementById('overlay').style.display = 'none';
+
+        // Reset popup text back to default reset message
+        setTimeout(() => {
+            const popup = document.getElementById('confirmationPopup');
+            if (popup) {
+                popup.querySelector('p:nth-of-type(1)').textContent = "Do you really want to reset?";
+                popup.querySelector('p:nth-of-type(2)').textContent = "You will not be able to recover the data!";
+            }
+        }, 200);
+
+        if (pendingExportAction === "download") {
+            pendingExportAction = null;
+            downloadTableAsJSON('myTable');
+        } else if (pendingExportAction === "algoQA") {
+            pendingExportAction = null;
+            await sendTableDataToAPI("myTable");
+        } else {
+            // Default Reset Action execution
+            executeResetAction();
+        }
+    });
+
+    const backBtn = document.getElementById("back_btn");
+    const newBackBtn = backBtn.cloneNode(true);
+    backBtn.parentNode.replaceChild(newBackBtn, backBtn);
+
+    newBackBtn.addEventListener('click', () => {
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('confirmationPopup').style.display = 'none';
+        pendingExportAction = null;
+
+        const popup = document.getElementById('confirmationPopup');
+        if (popup) {
+            popup.querySelector('p:nth-of-type(1)').textContent = "Do you really want to reset?";
+            popup.querySelector('p:nth-of-type(2)').textContent = "You will not be able to recover the data!";
+        }
+    });
+
+    // Encapsulated Reset Function
+    function executeResetAction() {
+        document.getElementById('sttus_bar_div').style.display = 'none';
+        document.getElementById('brokenText').style.display = 'none';
+        counter = 0;
+        initialData = [];
+        xpath_id = 0;
+        screenNameList = [];
+        showElement = false;
+
+        const imgElement = document.getElementById('screenshot');
+        if (imgElement) imgElement.remove();
+
+        const dummy = document.getElementById("dummyDevice");
+        if (dummy) dummy.style.display = "block";
+
+        imgTagFlag = false;
+        const ssElement = document.getElementById('ss');
+        if (ssElement) ssElement.remove();
+
+        ssflag = false;
+        document.getElementById("split-div3").style.display = "none";
+
+        const previewContainer = document.getElementById("image-container_ss");
+        if (previewContainer) previewContainer.innerHTML = "";
+
+        var table = document.getElementById('myTable');
+        var rowCount = table.rows.length;
+        for (var i = rowCount - 1; i >= 0; i--) {
+            table.deleteRow(i);
+        }
+
+        renderDefaultExcelGrid(5);
+        document.getElementById('table-container').style.display = "none";
+
+        var plateformName = document.getElementById('platformname');
+        var plateformOption = plateformName.options[plateformName.selectedIndex].text;
+        if (plateformOption === 'Android') {
+            deletePngFile(systemAppData);
+        } else if (plateformOption === 'IOS') {
+            deletePngFile(folderPath);
+        }
+
+        document.getElementById('pagename_searchbox').value = '';
+        document.getElementById('searchbox').value = '';
+
+        document.getElementById('download').disabled = true;
+        document.getElementById('download').style.backgroundColor = '#B6B6B4';
+        document.getElementById('reset').disabled = true;
+        document.getElementById('reset').style.backgroundColor = '#B6B6B4';
+        document.getElementById('scrapeUI').disabled = true;
+        document.getElementById('scrapeUI').style.backgroundColor = '#B6B6B4';
+        document.getElementById('algoQA').disabled = true;
+        document.getElementById('algoQA').style.backgroundColor = '#B6B6B4';
+        document.getElementById('Scrape').disabled = false;
+        document.getElementById('Scrape').style.backgroundColor = '#4285F4';
     }
 

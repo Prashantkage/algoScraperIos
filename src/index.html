@@ -279,13 +279,26 @@
         <span class="custom-tooltip">Add Row</span>
     </div>
 
+    <!-- REPLACE THIS EYE BUTTON WRAPPER IN index.html -->
+    <div class="unhide-dropdown-wrapper custom-tooltip-wrapper">
+        <button id="unhide_col_btn" class="circular-eye-btn" disabled>👁</button>
+        <span id="eye_tooltip" class="custom-tooltip">Unhide Column</span>
+        <div id="unhide_menu" class="unhide-menu"></div>
+    </div>
+
 </div>
+
+<!-- NEW: Column Header Context Menu (Add before closing </body>) -->
+<div id="colContextMenu" class="custom-context-menu">
+    <div id="hideColOption">👁 Hide Column</div>
+</div>
+
 <div class="bottom-div" id="table-container" style="height: 300px; ">
     <!-- REPLACE it with this clean baseline element string initialization -->
     <table class="table table-bordered" id="mainTable">
         <!-- Replace the <thead> inside #mainTable with this: -->
         <thead>
-        <tr class="bg-info" style="position: sticky; font-size: 11px;">
+        <tr class="bg-info" style="font-size: 11px;">
             <th class="excel-header-corner" style="width: 50px; min-width: 45px; border-inline-color: black; text-align: center;"># <div class="resizer"></div></th>
             <th id="cn pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">Control Name <div class="resizer"></div></th>
             <th id="ct pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">Control Type <div class="resizer"></div></th>

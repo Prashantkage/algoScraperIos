@@ -922,3 +922,359 @@ th .resizer:hover {
     transform: none !important;
 }
 
+/* --- TOOLTIP POSITIONING ADJUSTMENTS --- */
+
+/* 1. Base Wrapper Context */
+.custom-tooltip-wrapper {
+    position: relative !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* 2. Base Tooltip Design */
+.custom-tooltip {
+    position: absolute !important;
+    top: calc(100% + 6px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    padding: 4px 8px !important;
+    border-radius: 5px !important;
+    background: #ffffff !important;
+    color: #222222 !important;
+    border: 1px solid #c5c9d0 !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.15s ease, visibility 0.15s ease !important;
+    pointer-events: none !important;
+    z-index: 999999 !important;
+}
+
+/* Show Tooltip on Hover */
+.custom-tooltip-wrapper:hover .custom-tooltip {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* 3. Sticky Add Column Header (+) Tooltip Fix (Anchors right to avoid screen edge overflow) */
+#add_empty_column .custom-tooltip {
+    left: auto !important;
+    right: 0 !important;
+    top: calc(100% + 6px) !important;
+    transform: none !important;
+}
+
+/* 4. Delete Header and Delete Column Icon Tooltip Adjustments */
+#mainTable th[id*="page"].custom-tooltip-wrapper .custom-tooltip,
+.deleteColBtn + .custom-tooltip {
+    top: calc(100% + 6px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+}
+
+/* --- CLICK-TO-TOGGLE EYE UNHIDE DROPDOWN STYLES --- */
+.circular-eye-btn {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    border-radius: 50%;
+    border: none;
+    background-color: #B6B6B4; /* Disabled by default */
+    color: #ffffff;
+    font-size: 14px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: not-allowed;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.circular-eye-btn.active {
+    background-color: #4285F4 !important;
+    cursor: pointer !important;
+}
+
+.circular-eye-btn.active:hover {
+    background-color: #3367D6 !important;
+    transform: scale(1.05);
+}
+
+.unhide-dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.unhide-menu {
+    display: none; /* Controlled via JS click toggle */
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: #ffffff;
+    border: 1px solid #c5c9d0;
+    border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    z-index: 999999;
+    min-width: 160px;
+    max-height: 200px; /* Enable clean scrolling if many columns hidden */
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+/* Override CSS hover trigger to prevent menu disappearing while navigating */
+.unhide-dropdown-wrapper:hover .unhide-menu:not(:empty) {
+    display: none;
+}
+
+/* Active class toggled via Click */
+.unhide-menu.show {
+    display: block !important;
+}
+
+.unhide-item {
+    padding: 7px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #333333;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+}
+
+.unhide-item:hover {
+    background-color: #f0f4fe;
+    color: #4285F4;
+}
+
+/* --- TOOLTIP POSITION ADJUSTMENTS --- */
+
+/* 1. Add Row (Circular Button next to Download) Tooltip Alignment */
+.custom-tooltip-wrapper {
+    position: relative !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* 2. Base Tooltip Box Design */
+.custom-tooltip {
+    position: absolute !important;
+    top: calc(100% + 6px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    padding: 4px 8px !important;
+    border-radius: 5px !important;
+    background: #ffffff !important;
+    color: #222222 !important;
+    border: 1px solid #c5c9d0 !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.15s ease, visibility 0.15s ease !important;
+    pointer-events: none !important;
+    z-index: 999999 !important;
+}
+
+.custom-tooltip-wrapper:hover .custom-tooltip {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* 3. Sticky Add Column (+) Tooltip Adjustment (Anchors to right edge) */
+#add_empty_column .custom-tooltip {
+    left: auto !important;
+    right: 0 !important;
+    top: calc(100% + 6px) !important;
+    transform: none !important;
+}
+
+/* 4. Delete Header / Column Delete Button Tooltip Adjustment */
+#mainTable th[id*="page"].custom-tooltip-wrapper .custom-tooltip,
+.deleteColBtn + .custom-tooltip {
+    top: calc(100% + 6px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+}
+
+.unhide-dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.unhide-menu {
+    display: none; /* Controlled via JS click toggle now */
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: #ffffff;
+    border: 1px solid #c5c9d0;
+    border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    z-index: 999999;
+    min-width: 160px;
+    max-height: 200px; /* Enables clean scrolling if many columns are hidden */
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+/* Remove CSS hover triggering to prevent flicker/disappearing */
+.unhide-dropdown-wrapper:hover .unhide-menu:not(:empty) {
+    display: none;
+}
+
+/* Active class toggled via Click */
+.unhide-menu.show {
+    display: block !important;
+}
+
+.unhide-item {
+    padding: 7px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #333333;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+}
+
+.unhide-item:hover {
+    background-color: #f0f4fe;
+    color: #4285F4;
+}
+
+/* --- Eye Unhide Button & Dropdown Styles --- */
+.circular-eye-btn {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    border-radius: 50%;
+    border: none;
+    background-color: #B6B6B4; /* Disabled by default */
+    color: #ffffff;
+    font-size: 14px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: not-allowed;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.circular-eye-btn.active {
+    background-color: #4285F4 !important;
+    cursor: pointer !important;
+}
+
+.circular-eye-btn.active:hover {
+    background-color: #3367D6 !important;
+    transform: scale(1.05);
+}
+
+.unhide-dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.unhide-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    background: #ffffff;
+    border: 1px solid #c5c9d0;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 99999;
+    min-width: 150px;
+    padding: 4px 0;
+}
+
+.unhide-dropdown-wrapper:hover .unhide-menu:not(:empty) {
+    display: block;
+}
+
+.unhide-item {
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #333333;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.unhide-item:hover {
+    background-color: #f0f4fe;
+    color: #4285F4;
+}
+
+/* --- Right-Click Context Menu --- */
+.custom-context-menu {
+    display: none;
+    position: fixed;
+    background: #ffffff;
+    border: 1px solid #c5c9d0;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 999999;
+    padding: 4px 0;
+    min-width: 120px;
+}
+
+.custom-context-menu div {
+    padding: 6px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #333333;
+    cursor: pointer;
+}
+
+.custom-context-menu div:hover {
+    background-color: #f0f4fe;
+    color: #4285F4;
+}
+
+/* --- Fix Sticky Positioning Context for Table Header Plus Icon --- */
+#mainTable th.custom-tooltip-wrapper {
+    display: table-cell !important;
+    position: relative !important;
+}
+
+#mainTable th#add_empty_column {
+    position: sticky !important;
+    right: 0 !important;
+    top: 0 !important;
+    z-index: 50 !important;
+    background-color: #4285F4 !important;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.15) !important;
+    text-align: center !important;
+}
+
+#add_empty_column .custom-tooltip {
+    left: auto !important;
+    right: 4px !important;
+    top: calc(100% + 6px) !important;
+    transform: none !important;
+}
+
+/* Hide the hover tooltip completely whenever any column is hidden (when eye button is active) */
+.circular-eye-btn.active ~ .custom-tooltip {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+
+/* --- Fix Hover Gap so Eye Menu stays visible --- */
+
+/* 1. Position menu directly flush under the button */
+.unhide-menu {
+    top: 100% !important;
+    margin-top: 2px !important;
+}
