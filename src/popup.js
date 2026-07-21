@@ -1404,20 +1404,19 @@
             return validCount > 0;
         }
 
-        // 1. Download Interceptor with Empty Table Check
         document.getElementById("download").addEventListener('click', async () => {
-          if (!tableCreated || !hasValidTableData('myTable')) {
-              alert("No scraped data found to download.");
-              return;
-          }
+                  if (!tableCreated || !hasValidTableData('myTable')) {
+                      alert("No scraped data found to download.");
+                      return;
+                  }
 
-          if (hiddenColumns && hiddenColumns.length > 0) {
-              pendingExportAction = "download";
-              showHiddenColumnsWarning();
-          } else {
-              downloadTableAsJSON('myTable');
-          }
-        });
+                  if ((hiddenColumns && hiddenColumns.length > 0) || (hiddenRows && hiddenRows.length > 0)) {
+                      pendingExportAction = "download";
+                      showHiddenColumnsWarning();
+                  } else {
+                      downloadTableAsJSON('myTable');
+                  }
+                });
 
 
     function downloadTableAsJSON(tableId) {
@@ -1433,6 +1432,9 @@
 
         rows.forEach((row) => {
             if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
+
+            // NEW: Skip hidden rows
+                        if (window.getComputedStyle(row).display === 'none') return;
 
             var allCells = Array.from(row.querySelectorAll('td'));
             var visibleCells = allCells.filter(cell => window.getComputedStyle(cell).display !== 'none');
@@ -1726,55 +1728,57 @@
                 const tbody = document.getElementById('myTable');
 
                 // Replenish a blank placeholder row ONLY if TOTAL rows in table drop below 5
-                                if (tbody && tbody.querySelectorAll('tr').length < 5) {
-                                    const row = document.createElement('tr');
-                                    row.className = "empty-excel-row";
+                if (tbody && tbody.querySelectorAll('tr').length < 5) {
+                    const row = document.createElement('tr');
+                    row.className = "empty-excel-row";
 
-                                    var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr > *'));
-                                    var rowHtml = "";
+                    // FIX: Match header map dynamically so indices never misalign
+                    var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr > *'));
+                    var rowHtml = "";
 
-                                    allHeaders.forEach((th) => {
-                                        var thText = (th.textContent || th.innerText || '').replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
-                                        var isHidden = window.getComputedStyle(th).display === 'none';
-                                        var displayStyle = isHidden ? 'display: none !important;' : '';
+                    allHeaders.forEach((th) => {
+                        var thText = (th.textContent || th.innerText || '').replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                        var isHidden = window.getComputedStyle(th).display === 'none';
+                        var displayStyle = isHidden ? 'display: none !important;' : '';
 
-                                        if (th.classList.contains('excel-header-corner')) {
-                                            rowHtml += `<td class="row-index" style="${displayStyle}"></td>`;
-                                        } else if (th.id === 'add_empty_column') {
-                                            rowHtml += `<td class="add-col-cell" style="${displayStyle}">&nbsp;</td>`;
-                                        } else if (th.classList.contains('custom-editable-header')) {
-                                            rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
-                                        } else if (thText.includes('CONTROL NAME')) {
-                                            rowHtml += `<td class="cn pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                                        } else if (thText.includes('CONTROL TYPE')) {
-                                            rowHtml += `<td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                                        } else if (thText.includes('CONTROL ID')) {
-                                            rowHtml += `<td class="xpath pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                                        } else if (thText.includes('PAGE NAME')) {
-                                            rowHtml += `<td class="page pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                                        } else if (thText.includes('IDENTIFICATION TYPE')) {
-                                            rowHtml += `<td class="identificationType pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                                        } else if (thText.includes('CONTROL VALUE')) {
-                                            rowHtml += `<td class="controlValue pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                                        } else if (thText.includes('FEATURE NAME')) {
-                                            rowHtml += `<td class="featureName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                                        } else if (thText.includes('NODE NAME')) {
-                                            rowHtml += `<td class="nodeName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                                        } else if (th.classList.contains('fingerprint')) {
-                                            rowHtml += `<td class="fingerprint" style="display:none;"></td>`;
-                                        } else if (th.id === 'appUrl' || thText.includes('APP URL')) {
-                                            rowHtml += `<td class="appUrl" style="display:none;"></td>`;
-                                        } else if (thText.includes('DELETE')) {
-                                            rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}"><img src="icon/icons8-delete_red.svg" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; display:inline-block;"></td>`;
-                                        } else {
-                                            rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
-                                        }
-                                    });
+                        if (th.classList.contains('excel-header-corner')) {
+                            rowHtml += `<td class="row-index" style="${displayStyle}"></td>`;
+                        } else if (th.id === 'add_empty_column') {
+                            rowHtml += `<td class="add-col-cell" style="${displayStyle}">&nbsp;</td>`;
+                        } else if (th.classList.contains('custom-editable-header')) {
+                            rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
+                        } else if (thText.includes('CONTROL NAME')) {
+                            rowHtml += `<td class="cn pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                        } else if (thText.includes('CONTROL TYPE')) {
+                            rowHtml += `<td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                        } else if (thText.includes('CONTROL ID')) {
+                            rowHtml += `<td class="xpath pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                        } else if (thText.includes('PAGE NAME')) {
+                            rowHtml += `<td class="page pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                        } else if (thText.includes('IDENTIFICATION TYPE')) {
+                            rowHtml += `<td class="identificationType pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                        } else if (thText.includes('CONTROL VALUE')) {
+                            rowHtml += `<td class="controlValue pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                        } else if (thText.includes('FEATURE NAME')) {
+                            rowHtml += `<td class="featureName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                        } else if (thText.includes('NODE NAME')) {
+                            rowHtml += `<td class="nodeName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                        } else if (th.classList.contains('fingerprint')) {
+                            rowHtml += `<td class="fingerprint" style="display:none;"></td>`;
+                        } else if (th.id === 'appUrl' || thText.includes('APP URL')) {
+                            rowHtml += `<td class="appUrl" style="display:none;"></td>`;
+                        } else if (thText.includes('DELETE') || th.innerText.includes('Delete')) {
+                            // FIX: Changed display:inline-block to display:none here so auto-refilled rows do not show the trash can
+                            rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}"><img src="icon/icons8-delete_red.svg" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; display:none;"></td>`;
+                        } else {
+                            rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
+                        }
+                    });
 
-                                    row.innerHTML = rowHtml;
-                                    tbody.appendChild(row);
-                                    updateRowNumbers();
-                                }
+                    row.innerHTML = rowHtml;
+                    tbody.appendChild(row);
+                    updateRowNumbers();
+                }
                 return;
             }
 
@@ -3336,26 +3340,25 @@ function createAndAppendTable(dtControls) {
         }
     });
 
-    // 2. algoQA Interceptor with Empty Table Check
-        document.getElementById("algoQA").addEventListener("click", async () => {
-            const userData = JSON.parse(localStorage.getItem("algoQAUser"));
-            if (!userData) {
-                alert("Token data not found");
-                return;
-            }
+    document.getElementById("algoQA").addEventListener("click", async () => {
+                const userData = JSON.parse(localStorage.getItem("algoQAUser"));
+                if (!userData) {
+                    alert("Token data not found");
+                    return;
+                }
 
-            if (!tableCreated || !hasValidTableData('myTable')) {
-                alert("No scraped data found to send.");
-                return;
-            }
+                if (!tableCreated || !hasValidTableData('myTable')) {
+                    alert("No scraped data found to send.");
+                    return;
+                }
 
-            if (hiddenColumns && hiddenColumns.length > 0) {
-                pendingExportAction = "algoQA";
-                showHiddenColumnsWarning();
-            } else {
-                await sendTableDataToAPI("myTable");
-            }
-        });
+                if ((hiddenColumns && hiddenColumns.length > 0) || (hiddenRows && hiddenRows.length > 0)) {
+                    pendingExportAction = "algoQA";
+                    showHiddenColumnsWarning();
+                } else {
+                    await sendTableDataToAPI("myTable");
+                }
+            });
 
     async function sendTableDataToAPI(tableId) {
         const userData = JSON.parse(localStorage.getItem("algoQAUser"));
@@ -3371,6 +3374,9 @@ function createAndAppendTable(dtControls) {
 
         rows.forEach((row) => {
             if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
+
+            // NEW: Skip hidden rows
+                        if (window.getComputedStyle(row).display === 'none') return;
 
             var allCells = Array.from(row.querySelectorAll('td'));
             var visibleCells = allCells.filter(cell => window.getComputedStyle(cell).display !== 'none');
@@ -4338,12 +4344,19 @@ function createAndAppendTable(dtControls) {
     }
 
 
+
+
+
+
+
+
+
 // --- COLUMN HIDING / UNHIDING STATE MANAGEMENT ---
-let hiddenColumns = []; // Stores { index: number, name: string }
+let hiddenColumns = [];
 
 function updateEyeButtonState() {
     const eyeBtn = document.getElementById("unhide_col_btn");
-    const unhideMenu = document.getElementById("unhide_menu");
+    const unhideMenu = document.getElementById("unhide_col_menu");
 
     if (!eyeBtn || !unhideMenu) return;
 
@@ -4351,12 +4364,11 @@ function updateEyeButtonState() {
         eyeBtn.disabled = false;
         eyeBtn.classList.add("active");
 
-        // Populate dropdown list of hidden columns
         unhideMenu.innerHTML = "";
         hiddenColumns.forEach((col, arrIdx) => {
             const item = document.createElement("div");
             item.className = "unhide-item";
-            item.innerText = `👁 Unhide: ${col.name}`;
+            item.innerText = `Unhide: ${col.name}`;
             item.addEventListener("click", (e) => {
                 e.stopPropagation();
                 unhideColumn(arrIdx);
@@ -4382,7 +4394,6 @@ function hideColumn(colIndex) {
     let colName = th.querySelector("span")?.innerText.trim() || th.innerText.trim();
     colName = colName.replace("Delete Column", "").replace("Add Column", "").trim();
 
-    // Assign clear labels in dropdown for icon/index columns
     if (!colName || colName === "") {
         if (th.classList.contains("excel-header-corner")) {
             colName = "# (Index)";
@@ -4393,10 +4404,7 @@ function hideColumn(colIndex) {
         }
     }
 
-    // Force Hide Header cell using important flag
     th.style.setProperty("display", "none", "important");
-
-    // Force Hide Body cells for this column index
     const bodyRows = table.querySelectorAll("tbody tr");
     bodyRows.forEach(row => {
         if (row.cells[colIndex]) {
@@ -4431,18 +4439,80 @@ function unhideColumn(arrayIndex) {
     updateEyeButtonState();
 }
 
+// --- ROW HIDING / UNHIDING STATE MANAGEMENT ---
+let hiddenRows = []; // Stores the physical row elements
+
+function updateRowEyeButtonState() {
+    const eyeBtn = document.getElementById("unhide_row_btn");
+    const unhideMenu = document.getElementById("unhide_row_menu");
+
+    if (!eyeBtn || !unhideMenu) return;
+
+    if (hiddenRows.length > 0) {
+        eyeBtn.disabled = false;
+        eyeBtn.classList.add("active");
+
+        unhideMenu.innerHTML = "";
+        hiddenRows.forEach((rowObj, arrIdx) => {
+            const item = document.createElement("div");
+            item.className = "unhide-item";
+            item.innerText = `Unhide: ${rowObj.label}`;
+            item.addEventListener("click", (e) => {
+                e.stopPropagation();
+                unhideRow(arrIdx);
+            });
+            unhideMenu.appendChild(item);
+        });
+    } else {
+        eyeBtn.disabled = true;
+        eyeBtn.classList.remove("active");
+        unhideMenu.classList.remove("show");
+        unhideMenu.innerHTML = "";
+    }
+}
+
+function hideRow(rowIndexElem, trElement) {
+    let rowNum = rowIndexElem.innerText.trim();
+    let controlNameInput = trElement.querySelector('.cn');
+    let label = (controlNameInput && controlNameInput.innerText.trim() !== "")
+        ? `Row ${rowNum} (${controlNameInput.innerText.trim()})`
+        : `Row ${rowNum}`;
+
+    trElement.style.setProperty("display", "none", "important");
+    hiddenRows.push({ rowElement: trElement, label: label });
+    updateRowEyeButtonState();
+}
+
+function unhideRow(arrayIndex) {
+    const rowObj = hiddenRows[arrayIndex];
+    if (!rowObj || !rowObj.rowElement) return;
+
+    rowObj.rowElement.style.display = "";
+    hiddenRows.splice(arrayIndex, 1);
+    updateRowEyeButtonState();
+}
+
 // --- RIGHT-CLICK CONTEXT MENU EVENT LISTENERS ---
 let selectedColIndexToHide = null;
+let selectedRowToHide = null;
 
 document.addEventListener("DOMContentLoaded", () => {
-    const contextMenu = document.getElementById("colContextMenu");
-    const hideOption = document.getElementById("hideColOption");
     const mainTable = document.getElementById("mainTable");
-    const eyeBtn = document.getElementById("unhide_col_btn");
-    const unhideMenu = document.getElementById("unhide_menu");
+
+    // Column Menu Variables
+    const colContextMenu = document.getElementById("colContextMenu");
+    const hideColOption = document.getElementById("hideColOption");
+    const colEyeBtn = document.getElementById("unhide_col_btn");
+    const unhideColMenu = document.getElementById("unhide_col_menu");
+
+    // Row Menu Variables
+    const rowContextMenu = document.getElementById("rowContextMenu");
+    const hideRowOption = document.getElementById("hideRowOption");
+    const rowEyeBtn = document.getElementById("unhide_row_btn");
+    const unhideRowMenu = document.getElementById("unhide_row_menu");
 
     if (mainTable) {
-        // Right-Click Context Menu on ALL Headers (including #, Delete, and +)
+        // Right-Click Context Menu on HEADERS (Columns)
         mainTable.querySelector("thead").addEventListener("contextmenu", (e) => {
             const th = e.target.closest("th");
             if (!th) return;
@@ -4450,57 +4520,108 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
             selectedColIndexToHide = th.cellIndex;
 
-            if (contextMenu) {
-                            // Prevent menu from overflowing past right window border
-                            const menuWidth = 140;
-                            const posX = (e.clientX + menuWidth > window.innerWidth)
-                                ? e.clientX - menuWidth
-                                : e.clientX;
+            if (colContextMenu) {
+                const menuWidth = 140;
+                const posX = (e.clientX + menuWidth > window.innerWidth) ? e.clientX - menuWidth : e.clientX;
+                colContextMenu.style.left = `${posX}px`;
+                colContextMenu.style.top = `${e.clientY}px`;
+                colContextMenu.style.display = "block";
+                if (rowContextMenu) rowContextMenu.style.display = "none";
+            }
+        });
 
-                            contextMenu.style.left = `${posX}px`;
-                            contextMenu.style.top = `${e.clientY}px`;
-                            contextMenu.style.display = "block";
-                        }
+        // Right-Click Context Menu on ROW INDEX (Rows)
+        mainTable.querySelector("tbody").addEventListener("contextmenu", (e) => {
+            const td = e.target.closest("td.row-index");
+            if (!td) return; // Only trigger if right-clicking the grey '#' index column
+
+            e.preventDefault();
+            const tr = td.closest("tr");
+            selectedRowToHide = { td: td, tr: tr };
+
+            if (rowContextMenu) {
+                const menuWidth = 140;
+                const posX = (e.clientX + menuWidth > window.innerWidth) ? e.clientX - menuWidth : e.clientX;
+                rowContextMenu.style.left = `${posX}px`;
+                rowContextMenu.style.top = `${e.clientY}px`;
+                rowContextMenu.style.display = "block";
+                if (colContextMenu) colContextMenu.style.display = "none";
+            }
         });
     }
 
-    // Context Menu Hide Action Click
-    if (hideOption) {
-        hideOption.addEventListener("click", () => {
+    // Hide Column Action
+    if (hideColOption) {
+        hideColOption.addEventListener("click", () => {
             if (selectedColIndexToHide !== null) {
                 hideColumn(selectedColIndexToHide);
                 selectedColIndexToHide = null;
             }
-            if (contextMenu) contextMenu.style.display = "none";
+            if (colContextMenu) colContextMenu.style.display = "none";
         });
     }
 
-    // Toggle Eye Dropdown on Click
-    if (eyeBtn && unhideMenu) {
-        eyeBtn.addEventListener("click", (e) => {
+    // Hide Row Action
+    if (hideRowOption) {
+        hideRowOption.addEventListener("click", () => {
+            if (selectedRowToHide !== null) {
+                hideRow(selectedRowToHide.td, selectedRowToHide.tr);
+                selectedRowToHide = null;
+            }
+            if (rowContextMenu) rowContextMenu.style.display = "none";
+        });
+    }
+
+    // Toggle Column Eye Dropdown
+    if (colEyeBtn && unhideColMenu) {
+        colEyeBtn.addEventListener("click", (e) => {
             e.stopPropagation();
+            if (unhideRowMenu) unhideRowMenu.classList.remove("show"); // Close row menu
             if (hiddenColumns.length > 0) {
-                unhideMenu.classList.toggle("show");
+                unhideColMenu.classList.toggle("show");
             }
         });
     }
 
-    // Dismiss Context Menu and Eye Menu on Outside Click
+    // Toggle Row Eye Dropdown
+    if (rowEyeBtn && unhideRowMenu) {
+        rowEyeBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (unhideColMenu) unhideColMenu.classList.remove("show"); // Close col menu
+            if (hiddenRows.length > 0) {
+                unhideRowMenu.classList.toggle("show");
+            }
+        });
+    }
+
+    // Dismiss Menus on Outside Click
     document.addEventListener("click", (e) => {
-        if (contextMenu) contextMenu.style.display = "none";
-        if (unhideMenu && !unhideMenu.contains(e.target) && e.target !== eyeBtn) {
-            unhideMenu.classList.remove("show");
+        if (colContextMenu) colContextMenu.style.display = "none";
+        if (rowContextMenu) rowContextMenu.style.display = "none";
+
+        if (unhideColMenu && !unhideColMenu.contains(e.target) && e.target !== colEyeBtn) {
+            unhideColMenu.classList.remove("show");
+        }
+        if (unhideRowMenu && !unhideRowMenu.contains(e.target) && e.target !== rowEyeBtn) {
+            unhideRowMenu.classList.remove("show");
         }
     });
 });
+
+
+
+
+
+
+
 
 // 3. Warning Prompt Helper
     function showHiddenColumnsWarning() {
         const popup = document.getElementById('confirmationPopup');
         if (!popup) return;
 
-        popup.querySelector('p:nth-of-type(1)').textContent = "Warning: Columns are hidden!";
-        popup.querySelector('p:nth-of-type(2)').textContent = "Hidden columns will not be included in data.";
+        popup.querySelector('p:nth-of-type(1)').textContent = "Warning: Rows or Columns are hidden!";
+        popup.querySelector('p:nth-of-type(2)').textContent = "Hidden data will not be included in your export.";
 
         document.getElementById('overlay').style.display = 'block';
         popup.style.display = 'block';
@@ -4609,4 +4730,3 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('Scrape').disabled = false;
         document.getElementById('Scrape').style.backgroundColor = '#4285F4';
     }
-

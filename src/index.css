@@ -1288,3 +1288,66 @@ th .resizer:hover {
     top: 100% !important;
     margin-top: 2px !important;
 }
+
+
+.pill-btn {
+                    background-color: #4285F4;
+                    color: #ffffff !important;
+                    border: none;
+                    border-radius: 16px !important; /* Perfect Pill Shape */
+                    height: 28px !important;
+                    padding: 0 14px !important;
+                    font-size: 11px !important;
+                    font-weight: 700 !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 6px !important;
+                    cursor: pointer;
+                    transition: transform 0.15s ease, background-color 0.15s ease;
+                    box-shadow: 0 2px 6px rgba(66, 133, 244, 0.2);
+                }
+                .pill-btn:hover:not(:disabled) {
+                    background-color: #3367D6 !important;
+                    transform: scale(1.03);
+                }
+                .pill-btn:disabled {
+                    background-color: #B6B6B4 !important;
+                    box-shadow: none !important;
+                    cursor: not-allowed !important;
+                    transform: none !important;
+                }
+                .pill-btn svg {
+                    width: 14px;
+                    height: 14px;
+                    stroke: currentColor;
+                }
+/* Add Row Button - Green on hover */
+#add_row_btn:hover {
+    background-color: #34A853 !important;
+}
+
+/* Col and Row Unhide Buttons - Green on hover when active */
+.circular-eye-btn.active:hover {
+    background-color: #34A853 !important; /* Changed from Blue to Green */
+    transform: scale(1.05);
+}
+
+
+/* All Buttons - Green on hover when not disabled */
+#Scrape:hover:not(:disabled),
+#reset:hover:not(:disabled),
+#download:hover:not(:disabled),
+#scrapeUI:hover:not(:disabled),
+#algoQA:hover:not(:disabled),
+#Run:hover:not(:disabled),
+#changeTokenBtn:hover:not(:disabled),
+#add_row_btn:hover:not(:disabled) {
+    background-color: #34A853 !important; /* Beautiful green hover color */
+}
+
+/* Col and Row Unhide Buttons - Green on hover when active */
+.circular-eye-btn.active:hover {
+    background-color: #34A853 !important;
+    transform: scale(1.05);
+}
