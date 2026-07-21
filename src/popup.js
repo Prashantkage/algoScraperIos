@@ -1713,98 +1713,116 @@
 
     async function onTableClick(e) {
 
-        // 1. DELETE ROW HANDLER
-        if (e.target.classList.contains("deleteBtn")) {
-            const targetRow = e.target.closest("tr");
-            if (targetRow) {
-                targetRow.remove(); // Removes the exact clicked row
-            }
+            // 1. DELETE ROW HANDLER
+            if (e.target.classList.contains("deleteBtn")) {
+                const targetRow = e.target.closest("tr");
+                if (targetRow) {
+                    targetRow.remove(); // Removes the exact clicked row
+                }
 
-            // Update sequential numbering (# 1, 2, 3...)
-            updateRowNumbers();
-
-            const tbody = document.getElementById('myTable');
-
-            // Replenish a blank placeholder row ONLY if TOTAL rows in table drop below 5
-            if (tbody && tbody.querySelectorAll('tr').length < 5) {
-                var customColsCount = getCustomColsCount();
-                const row = document.createElement('tr');
-                row.className = "empty-excel-row";
-
-                var rowHtml = `
-                    <td class="row-index"></td>
-                    <td class="cn pt-3-half" contenteditable="true">&nbsp;</td>
-                    <td class="ct pt-3-half" contenteditable="true">&nbsp;</td>
-                    <td class="xpath pt-3-half">&nbsp;</td>
-                    <td class="page pt-3-half" contenteditable="true">&nbsp;</td>
-                    <td class="identificationType pt-3-half" contenteditable="true">&nbsp;</td>
-                    <td class="controlValue pt-3-half" contenteditable="true">&nbsp;</td>
-                    <td class="featureName pt-3-half" contenteditable="true">&nbsp;</td>
-                    <td class="nodeName pt-3-half" contenteditable="true">&nbsp;</td>
-                    <td class="fingerprint" style="display:none;"></td>
-                    <td class="appUrl" style="display:none;"></td>
-                    <td class="delete-cell" style="border-color:black"><img src="icon/icons8-delete_red.svg" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; display:none;"></td>
-                `;
-
-                for (let i = 0; i < customColsCount; i++) {
-                                rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">&nbsp;</td>`;
-                            }
-
-                            // Append matching cell under sticky '+' header
-                            rowHtml += `<td class="add-col-cell">&nbsp;</td>`;
-
-                            tableTopRow.innerHTML = rowHtml;
-                tbody.appendChild(row);
+                // Update sequential numbering (# 1, 2, 3...)
                 updateRowNumbers();
+
+                const tbody = document.getElementById('myTable');
+
+                // Replenish a blank placeholder row ONLY if TOTAL rows in table drop below 5
+                                if (tbody && tbody.querySelectorAll('tr').length < 5) {
+                                    const row = document.createElement('tr');
+                                    row.className = "empty-excel-row";
+
+                                    var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr > *'));
+                                    var rowHtml = "";
+
+                                    allHeaders.forEach((th) => {
+                                        var thText = (th.textContent || th.innerText || '').replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                                        var isHidden = window.getComputedStyle(th).display === 'none';
+                                        var displayStyle = isHidden ? 'display: none !important;' : '';
+
+                                        if (th.classList.contains('excel-header-corner')) {
+                                            rowHtml += `<td class="row-index" style="${displayStyle}"></td>`;
+                                        } else if (th.id === 'add_empty_column') {
+                                            rowHtml += `<td class="add-col-cell" style="${displayStyle}">&nbsp;</td>`;
+                                        } else if (th.classList.contains('custom-editable-header')) {
+                                            rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
+                                        } else if (thText.includes('CONTROL NAME')) {
+                                            rowHtml += `<td class="cn pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                                        } else if (thText.includes('CONTROL TYPE')) {
+                                            rowHtml += `<td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                                        } else if (thText.includes('CONTROL ID')) {
+                                            rowHtml += `<td class="xpath pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                                        } else if (thText.includes('PAGE NAME')) {
+                                            rowHtml += `<td class="page pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                                        } else if (thText.includes('IDENTIFICATION TYPE')) {
+                                            rowHtml += `<td class="identificationType pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                                        } else if (thText.includes('CONTROL VALUE')) {
+                                            rowHtml += `<td class="controlValue pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                                        } else if (thText.includes('FEATURE NAME')) {
+                                            rowHtml += `<td class="featureName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                                        } else if (thText.includes('NODE NAME')) {
+                                            rowHtml += `<td class="nodeName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                                        } else if (th.classList.contains('fingerprint')) {
+                                            rowHtml += `<td class="fingerprint" style="display:none;"></td>`;
+                                        } else if (th.id === 'appUrl' || thText.includes('APP URL')) {
+                                            rowHtml += `<td class="appUrl" style="display:none;"></td>`;
+                                        } else if (thText.includes('DELETE')) {
+                                            rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}"><img src="icon/icons8-delete_red.svg" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; display:inline-block;"></td>`;
+                                        } else {
+                                            rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
+                                        }
+                                    });
+
+                                    row.innerHTML = rowHtml;
+                                    tbody.appendChild(row);
+                                    updateRowNumbers();
+                                }
+                return;
             }
-            return;
-        }
 
-        // 2. SHOW ELEMENT HANDLER
-        if (e.target.id && e.target.id.startsWith("info_")) {
-            document.getElementById("split-div3").style.display = "block";
-            const row = e.target.closest("tr");
-            const xpath = row.querySelector(".xpath").innerText.trim();
-
-            if (xpath.startsWith("COORDINATE(")) {
-                const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
-                if (match) {
-                    const x = parseInt(match[1]);
-                    const y = parseInt(match[2]);
-                    showCoordinateMarker(x, y);
-                    return;
-                }
-            }
-
-            try {
+            // 2. SHOW ELEMENT HANDLER
+            if (e.target.id && e.target.id.startsWith("info_")) {
                 document.getElementById("split-div3").style.display = "block";
-                document.getElementById("image-container_ss").style.display = "flex";
-                document.getElementById("image-container_ss").style.justifyContent = "center";
-                document.getElementById("image-container_ss").style.alignItems = "center";
-                document.getElementById("image-container_ss").innerHTML = "";
+                const row = e.target.closest("tr");
+                const xpath = row.querySelector(".xpath").innerText.trim();
 
-                const el = await driver.findElement(By.xpath(xpath));
-                const image = await el.takeScreenshot();
-
-                let ss = document.getElementById("ss");
-                if (!ss) {
-                    ss = document.createElement("img");
-                    ss.id = "ss";
-                    ss.style.width = "280px";
-                    ss.style.height = "520px";
-                    ss.style.objectFit = "contain";
-                    document.getElementById("image-container_ss").appendChild(ss);
+                if (xpath.startsWith("COORDINATE(")) {
+                    const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
+                    if (match) {
+                        const x = parseInt(match[1]);
+                        const y = parseInt(match[2]);
+                        showCoordinateMarker(x, y);
+                        return;
+                    }
                 }
 
-                ss.src = "data:image/png;base64," + image;
-                showElementHover = false;
-                clearOverlay();
-            } catch (err) {
-                console.log("Show Element Error:", err);
-                alert("Unable to locate element");
+                try {
+                    document.getElementById("split-div3").style.display = "block";
+                    document.getElementById("image-container_ss").style.display = "flex";
+                    document.getElementById("image-container_ss").style.justifyContent = "center";
+                    document.getElementById("image-container_ss").style.alignItems = "center";
+                    document.getElementById("image-container_ss").innerHTML = "";
+
+                    const el = await driver.findElement(By.xpath(xpath));
+                    const image = await el.takeScreenshot();
+
+                    let ss = document.getElementById("ss");
+                    if (!ss) {
+                        ss = document.createElement("img");
+                        ss.id = "ss";
+                        ss.style.width = "280px";
+                        ss.style.height = "520px";
+                        ss.style.objectFit = "contain";
+                        document.getElementById("image-container_ss").appendChild(ss);
+                    }
+
+                    ss.src = "data:image/png;base64," + image;
+                    showElementHover = false;
+                    clearOverlay();
+                } catch (err) {
+                    console.log("Show Element Error:", err);
+                    alert("Unable to locate element");
+                }
             }
         }
-    }
 
 
     async function onShowElementHover(e) {
@@ -2141,111 +2159,149 @@
       }
     }
 
-    // 1. Add Row Handler (Inserts 1 new row at top, pushing default rows down without replacing them)
-    const addRowBtn = document.getElementById("add_row_btn");
-    if (addRowBtn && !addRowBtn.dataset.listenerAttached) {
-        addRowBtn.dataset.listenerAttached = "true"; // Prevent double execution
+   // 1. Add Row Handler (Inserts 1 new row at top, pushing default rows down without replacing them)
+       const addRowBtn = document.getElementById("add_row_btn");
+       if (addRowBtn && !addRowBtn.dataset.listenerAttached) {
+           addRowBtn.dataset.listenerAttached = "true";
 
-        addRowBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+           addRowBtn.addEventListener('click', async (e) => {
+               e.preventDefault();
+               e.stopPropagation();
 
-            var pageName = document.getElementById('pagename_searchbox').value || "";
-            var table = document.getElementById('myTable');
+               var pageName = document.getElementById('pagename_searchbox').value || "";
+               var table = document.getElementById('myTable');
+               var tableTopRow = table.insertRow(0);
 
-            var customColsCount = getCustomColsCount();
-            var tableTopRow = table.insertRow(0); // Insert at index 0 (top)
+               var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr > *'));
+               var rowHtml = "";
 
-            var rowHtml = `
-                <td class="row-index"></td>
-                <td class="cn pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;"></td>
-                <td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;"></td>
-                <td class="xpath pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;"></td>
-                <td class="page pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${pageName}</td>
-                <td class="identificationType pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;"></td>
-                <td class="controlValue pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;"></td>
-                <td class="featureName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${pageName}</td>
-                <td class="nodeName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${pageName}</td>
-                <td class="fingerprint pt-3-half" contenteditable="true" style="display:none;"></td>
-                <td class="appUrl pt-3-half" contenteditable="true" style="display:none;"></td>
-                <td class="delete-cell" style="border-color:black"><img src="icon/icons8-delete_red.svg" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; -webkit-user-drag: none; display:inline-block;"></td>
-            `;
+               allHeaders.forEach((th) => {
+                   // FIX: Use textContent to securely find headers even if CSS hides them
+                   var thText = (th.textContent || th.innerText || '').replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                   var isHidden = window.getComputedStyle(th).display === 'none';
+                   var displayStyle = isHidden ? 'display: none !important;' : '';
 
-            for (let i = 0; i < customColsCount; i++) {
-                rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">&nbsp;</td>`;
-            }
+                   if (th.classList.contains('excel-header-corner')) {
+                       rowHtml += `<td class="row-index" style="${displayStyle}"></td>`;
+                   } else if (th.id === 'add_empty_column') {
+                       rowHtml += `<td class="add-col-cell" style="${displayStyle}">&nbsp;</td>`;
+                   } else if (th.classList.contains('custom-editable-header')) {
+                       rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
+                   } else if (thText.includes('CONTROL NAME')) {
+                       rowHtml += `<td class="cn pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                   } else if (thText.includes('CONTROL TYPE')) {
+                       rowHtml += `<td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                   } else if (thText.includes('CONTROL ID')) {
+                       rowHtml += `<td class="xpath pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                   } else if (thText.includes('PAGE NAME')) {
+                       rowHtml += `<td class="page pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">${pageName}</td>`;
+                   } else if (thText.includes('IDENTIFICATION TYPE')) {
+                       rowHtml += `<td class="identificationType pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                   } else if (thText.includes('CONTROL VALUE')) {
+                       rowHtml += `<td class="controlValue pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                   } else if (thText.includes('FEATURE NAME')) {
+                       rowHtml += `<td class="featureName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">${pageName}</td>`;
+                   } else if (thText.includes('NODE NAME')) {
+                       rowHtml += `<td class="nodeName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">${pageName}</td>`;
+                   } else if (th.classList.contains('fingerprint')) {
+                       rowHtml += `<td class="fingerprint" style="display:none;"></td>`;
+                   } else if (th.id === 'appUrl' || thText.includes('APP URL')) {
+                       rowHtml += `<td class="appUrl" style="display:none;"></td>`;
+                   } else if (thText.includes('DELETE')) {
+                       rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}"><img src="icon/icons8-delete_red.svg" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; -webkit-user-drag: none; display:inline-block;"></td>`;
+                   } else {
+                       rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
+                   }
+               });
 
-            tableTopRow.innerHTML = rowHtml;
-            tableCreated = true;
-            document.getElementById('table-container').style.display = "block";
+               tableTopRow.innerHTML = rowHtml;
+               tableCreated = true;
+               document.getElementById('table-container').style.display = "block";
 
-            updateRowNumbers();
-        });
-    }
+               updateRowNumbers();
+           });
+       }
 
     // 2. Add Column Handler (Adds 1 column with editable header & delete trash icon)
-    // Safe Add Column Handler (Inserts new editable column before the sticky '+' button)
-    const addColBtn = document.getElementById("add_empty_column");
-    if (addColBtn && !addColBtn.dataset.listenerAttached) {
-        addColBtn.dataset.listenerAttached = "true";
+        const addColBtn = document.getElementById("add_empty_column");
+        if (addColBtn && !addColBtn.dataset.listenerAttached) {
+            addColBtn.dataset.listenerAttached = "true";
 
-        addColBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            addColBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
 
-            var headerRow = document.querySelector('#mainTable thead tr');
-            if (!headerRow) return;
+                var headerRow = document.querySelector('#mainTable thead tr');
+                if (!headerRow) return;
 
-            var existingCustomCols = headerRow.querySelectorAll('.custom-editable-header').length + 1;
+                var existingCustomCols = headerRow.querySelectorAll('.custom-editable-header').length + 1;
 
-            var newTh = document.createElement('th');
-            newTh.className = "custom-editable-header";
-            newTh.style.width = "180px";
-            newTh.style.textAlign = "center";
-            newTh.style.borderColor = "black";
+                var newTh = document.createElement('th');
+                newTh.className = "custom-editable-header";
+                newTh.style.width = "180px";
+                newTh.style.textAlign = "center";
+                newTh.style.borderColor = "black";
 
-            newTh.innerHTML = `
-                <span contenteditable="true" style="outline:none; cursor:text;">NEW_COLUMN_${existingCustomCols}</span>
-                <img src="icon/icons8-delete_red.svg" class="deleteColBtn" style="width:13px; cursor:pointer; margin-left:6px; vertical-align:middle;" title="Delete Column" />
-                <div class="resizer"></div>
-            `;
+                newTh.innerHTML = `
+                    <span contenteditable="true" style="outline:none; cursor:text;">NEW_COLUMN_${existingCustomCols}</span>
+                    <img src="icon/icons8-delete_red.svg" class="deleteColBtn" style="width:13px; cursor:pointer; margin-left:6px; vertical-align:middle;" title="Delete Column" />
+                    <div class="resizer"></div>
+                `;
 
-            // Column Delete Listener
-            const deleteColImg = newTh.querySelector('.deleteColBtn');
-            deleteColImg.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                var colIndex = newTh.cellIndex;
-                deleteCustomColumn(colIndex);
+                // Column Delete Listener
+                const deleteColImg = newTh.querySelector('.deleteColBtn');
+                deleteColImg.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    var colIndex = newTh.cellIndex;
+                    deleteCustomColumn(colIndex);
+                });
+
+                // FIX: Securely locate the Delete column using textContent
+                var deleteTh = Array.from(headerRow.children).find(th => {
+                    let t = (th.textContent || th.innerText || "").toUpperCase();
+                    return t.includes('DELETE');
+                });
+
+                if (deleteTh) {
+                    headerRow.insertBefore(newTh, deleteTh);
+                } else {
+                    headerRow.insertBefore(newTh, addColBtn);
+                }
+
+                // Add matching cell to all existing body rows BEFORE the Delete cell
+                var allBodyRows = document.querySelectorAll('#myTable tr');
+                allBodyRows.forEach(row => {
+                    var newTd = document.createElement('td');
+                    newTd.contentEditable = "true";
+                    newTd.style.overflow = "hidden";
+                    newTd.style.whiteSpace = "nowrap";
+                    newTd.style.textOverflow = "ellipsis";
+                    newTd.style.fontSize = "11px";
+                    newTd.style.fontWeight = "600";
+                    newTd.style.borderColor = "black";
+                    newTd.style.textAlign = "center";
+                    newTd.innerHTML = "&nbsp;";
+
+                    var deleteTd = row.querySelector('.delete-cell');
+                    if (deleteTd) {
+                        row.insertBefore(newTd, deleteTd);
+                    } else {
+                        var lastCell = row.querySelector('.add-col-cell') || row.lastElementChild;
+                        row.insertBefore(newTd, lastCell);
+                    }
+                });
+
+                initResizableTable();
+
+                // Auto-scroll the table to the far right so the user immediately sees the new column
+                const tableContainer = document.getElementById('table-container');
+                if (tableContainer) {
+                    setTimeout(() => {
+                        tableContainer.scrollLeft = tableContainer.scrollWidth;
+                    }, 50);
+                }
             });
-
-            // Insert new column BEFORE the sticky Add Column '+' TH
-            headerRow.insertBefore(newTh, addColBtn);
-
-            // Add matching cell to all existing body rows BEFORE the sticky '+' cell
-                        var allBodyRows = document.querySelectorAll('#myTable tr');
-                        allBodyRows.forEach(row => {
-                            var newTd = document.createElement('td');
-                            newTd.contentEditable = "true";
-                            newTd.style.overflow = "hidden";
-                            newTd.style.whiteSpace = "nowrap";
-                            newTd.style.textOverflow = "ellipsis";
-                            newTd.style.fontSize = "11px";
-                            newTd.style.fontWeight = "600";
-                            newTd.style.borderColor = "black";
-                            newTd.style.textAlign = "center";
-                            newTd.innerHTML = "&nbsp;";
-
-                            var lastCell = row.querySelector('.add-col-cell') || row.lastElementChild;
-                            if (lastCell) {
-                                row.insertBefore(newTd, lastCell);
-                            } else {
-                                row.appendChild(newTd);
-                            }
-                        });
-
-            initResizableTable();
-        });
-    }
+        }
 
 
 
@@ -2301,9 +2357,7 @@ function createAndAppendTable(dtControls) {
     var pageName = document.getElementById('pagename_searchbox').value;
     var tbody = document.getElementById('myTable');
 
-    // Fetch ONLY visible headers (ignores hidden columns completely)
-    var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
-    var visibleHeaders = allHeaders.filter(th => window.getComputedStyle(th).display !== 'none');
+    var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr > *'));
 
     for (var i = 0; i < dtControls.length; i++) {
         let xpaths = Array.isArray(dtControls[i].ControlId)
@@ -2342,35 +2396,44 @@ function createAndAppendTable(dtControls) {
 
         var rowHtml = "";
 
-        visibleHeaders.forEach((th) => {
-            var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+        // Build cells dynamically and hide them if the header is currently hidden
+        allHeaders.forEach((th) => {
+            // FIX: securely fetch header text ignoring CSS
+            var thText = (th.textContent || th.innerText || '').replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+
+            var isHidden = window.getComputedStyle(th).display === 'none';
+            var displayStyle = isHidden ? 'display: none !important;' : '';
 
             if (th.classList.contains('excel-header-corner')) {
-                rowHtml += `<td class="row-index"></td>`;
+                rowHtml += `<td class="row-index" style="${displayStyle}"></td>`;
             } else if (th.id === 'add_empty_column') {
-                rowHtml += `<td class="add-col-cell">&nbsp;</td>`;
+                rowHtml += `<td class="add-col-cell" style="${displayStyle}">&nbsp;</td>`;
             } else if (th.classList.contains('custom-editable-header')) {
-                rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">&nbsp;</td>`;
+                rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
             } else if (thText.includes('CONTROL NAME')) {
-                rowHtml += `<td class="cn pt-3-half" id="cn_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["CONTROL NAME"]}</td>`;
+                rowHtml += `<td class="cn pt-3-half" id="cn_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">${rowDataMap["CONTROL NAME"]}</td>`;
             } else if (thText.includes('CONTROL TYPE')) {
-                rowHtml += `<td class="ct pt-3-half" id="ct_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["CONTROL TYPE"]}</td>`;
+                rowHtml += `<td class="ct pt-3-half" id="ct_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">${rowDataMap["CONTROL TYPE"]}</td>`;
             } else if (thText.includes('CONTROL ID')) {
-                rowHtml += `<td class="xpath pt-3-half" id="xpath_${td_id}" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-color: black; text-align: center;">${rowDataMap["CONTROL ID"]}</td>`;
+                rowHtml += `<td class="xpath pt-3-half" id="xpath_${td_id}" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-color: black; text-align: center; ${displayStyle}">${rowDataMap["CONTROL ID"]}</td>`;
             } else if (thText.includes('PAGE NAME')) {
-                rowHtml += `<td class="page pt-3-half" id="page_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["PAGE NAME"]}</td>`;
+                rowHtml += `<td class="page pt-3-half" id="page_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">${rowDataMap["PAGE NAME"]}</td>`;
             } else if (thText.includes('IDENTIFICATION TYPE')) {
-                rowHtml += `<td class="identificationType pt-3-half" id="identificationType_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["IDENTIFICATION TYPE"]}</td>`;
+                rowHtml += `<td class="identificationType pt-3-half" id="identificationType_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">${rowDataMap["IDENTIFICATION TYPE"]}</td>`;
             } else if (thText.includes('CONTROL VALUE')) {
-                rowHtml += `<td class="controlValue pt-3-half" id="controlValue_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["CONTROL VALUE"]}</td>`;
+                rowHtml += `<td class="controlValue pt-3-half" id="controlValue_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">${rowDataMap["CONTROL VALUE"]}</td>`;
             } else if (thText.includes('FEATURE NAME')) {
-                rowHtml += `<td class="featureName pt-3-half" id="featureName_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["FEATURE NAME"]}</td>`;
+                rowHtml += `<td class="featureName pt-3-half" id="featureName_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">${rowDataMap["FEATURE NAME"]}</td>`;
             } else if (thText.includes('NODE NAME')) {
-                rowHtml += `<td class="nodeName pt-3-half" id="nodeName_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">${rowDataMap["NODE NAME"]}</td>`;
+                rowHtml += `<td class="nodeName pt-3-half" id="nodeName_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">${rowDataMap["NODE NAME"]}</td>`;
+            } else if (th.classList.contains('fingerprint')) {
+                rowHtml += `<td class="fingerprint" style="display:none;">${rowDataMap["FINGERPRINT"]}</td>`;
+            } else if (th.id === 'appUrl' || thText.includes('APP URL')) {
+                rowHtml += `<td class="appUrl" style="display:none;"></td>`;
             } else if (thText.includes('DELETE')) {
-                rowHtml += `<td class="delete-cell" style="border-color:black">${rowDataMap["DELETE"]}</td>`;
+                rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}">${rowDataMap["DELETE"]}</td>`;
             } else {
-                rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">&nbsp;</td>`;
+                rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
             }
         });
 
@@ -4192,43 +4255,60 @@ function createAndAppendTable(dtControls) {
 
 
     function renderDefaultExcelGrid(rowCount = 5) {
-                const tbody = document.getElementById('myTable');
-                tbody.innerHTML = '';
+            const tbody = document.getElementById('myTable');
+            tbody.innerHTML = '';
 
-                var customColsCount = getCustomColsCount();
+            var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr > *'));
 
-                for (let i = 1; i <= rowCount; i++) {
-                    const row = document.createElement('tr');
-                    row.className = "empty-excel-row";
+            for (let i = 1; i <= rowCount; i++) {
+                const row = document.createElement('tr');
+                row.className = "empty-excel-row";
+                var rowHtml = "";
 
-                    var rowHtml = `
-                        <td class="row-index">${i}</td>
-                        <td class="cn pt-3-half" contenteditable="true">&nbsp;</td>
-                        <td class="ct pt-3-half" contenteditable="true">&nbsp;</td>
-                        <td class="xpath pt-3-half">&nbsp;</td>
-                        <td class="page pt-3-half" contenteditable="true">&nbsp;</td>
-                        <td class="identificationType pt-3-half" contenteditable="true">&nbsp;</td>
-                        <td class="controlValue pt-3-half" contenteditable="true">&nbsp;</td>
-                        <td class="featureName pt-3-half" contenteditable="true">&nbsp;</td>
-                        <td class="nodeName pt-3-half" contenteditable="true">&nbsp;</td>
-                        <td class="fingerprint" style="display:none;"></td>
-                        <td class="appUrl" style="display:none;"></td>
-                        <td class="delete-cell" style="border-color:black"><img src="icon/icons8-delete_red.svg" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; display:none;"></td>
-                    `;
+                allHeaders.forEach((th) => {
+                    var thText = (th.textContent || th.innerText || '').replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                    var isHidden = window.getComputedStyle(th).display === 'none';
+                    var displayStyle = isHidden ? 'display: none !important;' : '';
 
-                    for (let k = 0; k < customColsCount; k++) {
-                        rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center;">&nbsp;</td>`;
+                    if (th.classList.contains('excel-header-corner')) {
+                        rowHtml += `<td class="row-index" style="${displayStyle}">${i}</td>`;
+                    } else if (th.id === 'add_empty_column') {
+                        rowHtml += `<td class="add-col-cell" style="${displayStyle}">&nbsp;</td>`;
+                    } else if (th.classList.contains('custom-editable-header')) {
+                        rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
+                    } else if (thText.includes('CONTROL NAME')) {
+                        rowHtml += `<td class="cn pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                    } else if (thText.includes('CONTROL TYPE')) {
+                        rowHtml += `<td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                    } else if (thText.includes('CONTROL ID')) {
+                        rowHtml += `<td class="xpath pt-3-half" style="border-color: black; text-align: center; ${displayStyle}"></td>`;
+                    } else if (thText.includes('PAGE NAME')) {
+                        rowHtml += `<td class="page pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                    } else if (thText.includes('IDENTIFICATION TYPE')) {
+                        rowHtml += `<td class="identificationType pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                    } else if (thText.includes('CONTROL VALUE')) {
+                        rowHtml += `<td class="controlValue pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                    } else if (thText.includes('FEATURE NAME')) {
+                        rowHtml += `<td class="featureName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                    } else if (thText.includes('NODE NAME')) {
+                        rowHtml += `<td class="nodeName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                    } else if (th.classList.contains('fingerprint')) {
+                        rowHtml += `<td class="fingerprint" style="display:none;"></td>`;
+                    } else if (th.id === 'appUrl' || thText.includes('APP URL')) {
+                        rowHtml += `<td class="appUrl" style="display:none;"></td>`;
+                    } else if (thText.includes('DELETE')) {
+                        rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}"><img src="icon/icons8-delete_red.svg" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; display:none;"></td>`;
+                    } else {
+                        rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
                     }
+                });
 
-                    // Append matching cell under sticky '+' header
-                    rowHtml += `<td class="add-col-cell">&nbsp;</td>`;
-
-                    row.innerHTML = rowHtml;
-                    tbody.appendChild(row);
-                }
-
-                initResizableTable();
+                row.innerHTML = rowHtml;
+                tbody.appendChild(row);
             }
+
+            initResizableTable();
+        }
 
     // Call on window load so empty Excel rows appear immediately on launch
         window.addEventListener("DOMContentLoaded", () => {

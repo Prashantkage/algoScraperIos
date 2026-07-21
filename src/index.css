@@ -82,26 +82,30 @@ div[style*="font-size: 11px;"] {
     font-weight: 600 !important;
 }
 
-/* Card Box View Container for the Spreadsheet Table Panel Layout */
+/* Dynamic Auto-Adjusting Card Box View Container */
 .bottom-div {
-    flex: 1;
+    flex: 0 1 auto !important;        /* 0 = Shrink-wrap height, 1 = Allow shrinking if window is too small */
+    min-height: 0 !important;         /* CRITICAL FIX: Forces the scrollbar to appear instead of clipping off screen */
+    height: fit-content !important;   /* Automatically hugs the exact height of current rows */
+    max-height: none !important;      /* Removes the rigid 300px cap so it dynamically fits the window */
     overflow-y: auto !important;
     overflow-x: auto !important;
     background-color: #ffffff;
     box-sizing: border-box;
     display: block !important;
 
-    /* Spacing adjustments to form a clean card box look */
-    margin-top: -8px !important;     /* Pulls the table closer to the search utility bar */
-    margin-left: 15px !important;    /* Creates clean visual breathing room on the left */
-    margin-right: 15px !important;   /* Creates matching visual symmetry on the right */
-    margin-bottom: 5px !important;  /* Stops table edge from sticking against the window bottom */
+    /* Spacing adjustments */
+    margin-top: -8px !important;
+    margin-left: 15px !important;
+    margin-right: 15px !important;
+    margin-bottom: 15px !important;   /* Extra bottom margin so it doesn't hit the absolute edge of the app */
 
     /* Spreadsheet box structural frame styling */
     border: 1px solid #c5c9d0 !important;
-    border-radius: 6px !important;   /* Rounds the container corners slightly for a modern card finish */
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); /* Gives the table container box a clean desktop elevate depth lift */
+    border-radius: 6px !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
+
 .text-input {
   font-size: 16px;
 }
@@ -221,12 +225,6 @@ input[type=submit]:hover {
   flex: 1;
   padding: 15px;
 }
-.bottom-div {
-    max-height: 300px;
-    overflow-y: auto;
-    overflow-x: auto;
-    display: none;
-}
 .table th{
   position: sticky;
   top: 0;
@@ -311,10 +309,12 @@ th .resizer:hover {
     background-color: #4285F4 !important; /* Highlights clear selection tracking width */
 }
 
-/* Force table columns and body cells to accurately obey width properties */
+/* Force table columns and body cells to accurately obey width and height properties */
 #mainTable {
-    table-layout: fixed !important; /* Enforces strict resizer dimensions */
+    table-layout: fixed !important;
     width: max-content !important;
+    height: auto !important;          /* Crucial: Prevents the table from demanding extra vertical space */
+    margin-bottom: 0 !important;      /* Removes default table bottom margins that create empty space */
     border-collapse: collapse !important;
     background-color: #ffffff;
     box-sizing: border-box;
@@ -903,15 +903,22 @@ th .resizer:hover {
     position: relative !important;
 }
 
-/* Sticky Right Pinning for Add Column Header */
+/* Fix Add Column Header (Removes sticky pinning that caused floating blocks) */
 #mainTable th#add_empty_column {
-    position: sticky !important;
-    right: 0 !important;
-    top: 0 !important;
-    z-index: 50 !important; /* Ensures it stays stacked cleanly above other headers */
+    position: relative !important;
     background-color: #4285F4 !important;
-    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.15) !important; /* Visual separator line */
     text-align: center !important;
+    width: 35px !important;
+    min-width: 35px !important;
+}
+
+/* Ensure the body cells under the + column are clean and match */
+#mainTable td.add-col-cell {
+    width: 35px !important;
+    min-width: 35px !important;
+    text-align: center !important;
+    background-color: transparent !important;
+    padding: 0 !important;
 }
 
 /* Tooltip adjustment inside sticky header */
@@ -1246,14 +1253,17 @@ th .resizer:hover {
     position: relative !important;
 }
 
+/* Fix Add Column Header: Keeps it at the top, but stops it from floating left/right over other columns */
 #mainTable th#add_empty_column {
     position: sticky !important;
-    right: 0 !important;
-    top: 0 !important;
-    z-index: 50 !important;
+    top: 0 !important;            /* Keep it stuck to the top row */
+    right: auto !important;       /* REMOVED right:0 so it scrolls naturally with the table */
+    z-index: 20 !important;       /* Matches normal headers so it doesn't float above them */
     background-color: #4285F4 !important;
-    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: none !important;  /* Removed the floating border shadow */
     text-align: center !important;
+    width: 35px !important;
+    min-width: 35px !important;
 }
 
 #add_empty_column .custom-tooltip {
