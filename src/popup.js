@@ -97,17 +97,16 @@
 
     window.addEventListener("DOMContentLoaded", () => {
 
-            document.getElementById("split-div3").style.display = "none";
+        document.getElementById("split-div3").style.display = "none";
 
-            document.getElementById("tapBtn").style.background = "#4285F4";
-            document.getElementById("tapBtn").style.color = "#fff";
+        document.getElementById("tapBtn").style.background = "#4285F4";
+        document.getElementById("tapBtn").style.color = "#fff";
 
-            document.getElementById("touchBtn").style.background = "#fff";
-            document.getElementById("touchBtn").style.color = "#333";
+        document.getElementById("touchBtn").style.background = "#fff";
+        document.getElementById("touchBtn").style.color = "#333";
 
-            // Forces the button to stay hidden at startup
-            document.getElementById("changeTokenBtn").style.setProperty("display", "none", "important");
-        });
+        document.getElementById("changeTokenBtn").style.display = "none";
+    });
 
     ipcRenderer.on("launch-mode", (event, launchedFromProtocol) => {
             launchedViaProtocol = launchedFromProtocol;
@@ -1113,26 +1112,22 @@
                       }
                     }
                     CNcount = 0;
+                    dtControls.push({
+                        ControlName: controlName,
+                        ControlType: controlType,
+                        ControlId: xpath,
+                        Fingerprint: new XMLSerializer().serializeToString(node)
+                    });
+                  }
+                }
 
-                                        var extractedValue = node.getAttribute("text") || node.getAttribute("content-desc") || "";
-
-                                        dtControls.push({
-                                            ControlName: controlName,
-                                            ControlType: controlType,
-                                            ControlId: xpath,
-                                            ControlValue: extractedValue, // Send extracted value to the table
-                                            Fingerprint: new XMLSerializer().serializeToString(node)
-                                        });
-                                      }
-                                    }
-
-                                  }
-                                }
+              }
+            }
 
 
-                                // Function to create and append the HTML table
-                                dtControls = [];
-                              }
+            // Function to create and append the HTML table
+            dtControls = [];
+          }
           if (plateformOption === 'IOS') {
             let listOfTags = [];
 
@@ -1286,39 +1281,35 @@
                   }
 
                   // to remove dulpicates from page
-                                    if (!controlNameLists.includes(controlName)) {
-                                      controlNameLists.push(controlName);
-                                    }
-                                    else {
-                                      controlNameLists.push(controlName)
-                                      if (controlNameLists.includes(controlName)) {
-                                        var CNcount = 0;
-                                        var CN = controlName;
-                                        for (var j = 0; j < controlNameLists.length; j++) {
-                                          if (CN === controlNameLists[j])
-                                            CNcount++;
-                                        }
-                                        controlName = controlName + "_" + (CNcount);
+                  if (!controlNameLists.includes(controlName)) {
+                    controlNameLists.push(controlName);
+                  }
+                  else {
+                    controlNameLists.push(controlName)
+                    if (controlNameLists.includes(controlName)) {
+                      var CNcount = 0;
+                      var CN = controlName;
+                      for (var j = 0; j < controlNameLists.length; j++) {
+                        if (CN === controlNameLists[j])
+                          CNcount++;
+                      }
+                      controlName = controlName + "_" + (CNcount);
 
-                                      }
-                                    }
+                    }
+                  }
 
-                                    // Extract the actual value inside the element
-                                    var extractedValue = node.getAttribute("value") || node.getAttribute("label") || "";
+                  dtControls.push({
+                      ControlName: controlName,
+                      ControlType: controlType,
+                      ControlId: xpath,
+                      Fingerprint: new XMLSerializer().serializeToString(node)
+                  });
+                }
 
-                                    dtControls.push({
-                                        ControlName: controlName,
-                                        ControlType: controlType,
-                                        ControlId: xpath,
-                                        ControlValue: extractedValue, // Send extracted value to the table
-                                        Fingerprint: new XMLSerializer().serializeToString(node)
-                                    });
-                                  }
-
-                                }
-                              }
-                              dtControls = [];
-                            }
+              }
+            }
+            dtControls = [];
+          }
           document.getElementById('div_status_bar').style.display = 'none';
           showElementHover = false;
           hoverRequestId++;
@@ -2369,19 +2360,19 @@ function createAndAppendTable(dtControls) {
         td_id = i;
 
         let rowDataMap = {
-                    "#": "",
-                    "CONTROL NAME": dtControls[i].ControlName || "",
-                    "CONTROL TYPE": dtControls[i].ControlType || "",
-                    "CONTROL ID": controlIdCellHtml,
-                    "PAGE NAME": pageName,
-                    "IDENTIFICATION TYPE": "",
-                    "CONTROL VALUE": dtControls[i].ControlValue || "", // CHANGED: Dynamically grabs extracted value
-                    "FEATURE NAME": pageName,
-                    "NODE NAME": pageName,
-                    "DELETE": `<img src="icon/icons8-delete_red.svg" id="del_${td_id}" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; overflow: hidden; cursor: pointer; -webkit-user-drag: none; display:inline-block;">`,
-                    "FINGERPRINT": (dtControls[i].Fingerprint || "").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
-                    "APP URL": ""
-                };
+            "#": "",
+            "CONTROL NAME": dtControls[i].ControlName || "",
+            "CONTROL TYPE": dtControls[i].ControlType || "",
+            "CONTROL ID": controlIdCellHtml,
+            "PAGE NAME": pageName,
+            "IDENTIFICATION TYPE": "",
+            "CONTROL VALUE": "",
+            "FEATURE NAME": pageName,
+            "NODE NAME": pageName,
+            "DELETE": `<img src="icon/icons8-delete_red.svg" id="del_${td_id}" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; overflow: hidden; cursor: pointer; -webkit-user-drag: none; display:inline-block;">`,
+            "FINGERPRINT": (dtControls[i].Fingerprint || "").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+            "APP URL": ""
+        };
 
         var rowHtml = "";
 
@@ -2507,74 +2498,59 @@ function createAndAppendTable(dtControls) {
                 document.addEventListener('mouseup', handleMouseUp);
             });
 
-           // 2. Double-Click Auto-Fit Calculation
-                       resizer.addEventListener('dblclick', function(e) {
-                           e.preventDefault();
-                           e.stopPropagation();
+            // 2. Double-Click Auto-Fit Calculation
+            resizer.addEventListener('dblclick', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
 
-                           const table = document.getElementById('mainTable');
-                           const colIndex = th.cellIndex;
-                           let maxWidth = 45; // Baseline safety minimum
+                th.style.width = '';
+                th.style.minWidth = '';
 
-                           // Create a highly accurate measurement span
-                           const dummySpan = document.createElement('span');
-                           dummySpan.style.visibility = 'hidden';
-                           dummySpan.style.position = 'absolute';
-                           dummySpan.style.whiteSpace = 'nowrap';
+                const table = document.getElementById('mainTable');
+                const colIndex = th.cellIndex;
+                let maxWidth = 30; // Baseline safety minimum
 
-                           // Explicitly copy exact font styles instead of shorthand for cross-browser accuracy
-                           const thStyle = window.getComputedStyle(th);
-                           dummySpan.style.fontFamily = thStyle.fontFamily;
-                           dummySpan.style.fontSize = thStyle.fontSize;
-                           dummySpan.style.fontWeight = thStyle.fontWeight;
-                           document.body.appendChild(dummySpan);
+                const dummySpan = document.createElement('span');
+                dummySpan.style.visibility = 'hidden';
+                dummySpan.style.position = 'absolute';
+                dummySpan.style.whiteSpace = 'nowrap';
+                dummySpan.style.font = window.getComputedStyle(th).font;
+                document.body.appendChild(dummySpan);
 
-                           // 1. Measure header text safely (ignoring hidden SVG text like DELETE)
-                           let headerText = th.textContent.replace('Delete Column', '').replace('Add Column', '').replace('DELETE', '').replace(/\s+/g, ' ').trim();
-                           dummySpan.innerText = headerText;
-                           maxWidth = Math.max(maxWidth, dummySpan.offsetWidth + 40); // 40px buffer for header icons/padding
+                // Measure header text
+                dummySpan.innerText = th.innerText.replace(/\s+/g, ' ').trim();
+                maxWidth = Math.max(maxWidth, dummySpan.offsetWidth + 20);
 
-                           // 2. Measure cell contents in rows
-                           const rows = table.querySelectorAll('tbody tr');
-                           rows.forEach(row => {
-                               const cell = row.cells[colIndex];
-                               if (cell && window.getComputedStyle(cell).display !== 'none') {
+                // Measure cell contents in rows
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const cell = row.cells[colIndex];
+                    if (cell) {
+                        let textToMeasure = "";
+                        const selectEl = cell.querySelector('select');
+                        if (selectEl) {
+                            Array.from(selectEl.options).forEach(opt => {
+                                if (opt.text.length > textToMeasure.length) {
+                                    textToMeasure = opt.text;
+                                }
+                            });
+                        } else {
+                            textToMeasure = cell.innerText;
+                        }
 
-                                   // Switch to body cell font styles for accurate measurement
-                                   const cellStyle = window.getComputedStyle(cell);
-                                   dummySpan.style.fontFamily = cellStyle.fontFamily;
-                                   dummySpan.style.fontSize = cellStyle.fontSize;
-                                   dummySpan.style.fontWeight = cellStyle.fontWeight;
+                        dummySpan.innerText = textToMeasure;
+                        const cellWidth = dummySpan.offsetWidth + 25;
+                        if (cellWidth > maxWidth) {
+                            maxWidth = cellWidth;
+                        }
+                    }
+                });
 
-                                   let textToMeasure = "";
-                                   const selectEl = cell.querySelector('select');
+                document.body.removeChild(dummySpan);
 
-                                   if (selectEl) {
-                                       // For dropdowns, measure the physically longest string
-                                       Array.from(selectEl.options).forEach(opt => {
-                                           if (opt.text.length > textToMeasure.length) {
-                                               textToMeasure = opt.text;
-                                           }
-                                       });
-                                       dummySpan.innerText = textToMeasure;
-                                       maxWidth = Math.max(maxWidth, dummySpan.offsetWidth + 50); // 50px buffer for dropdown arrow and padding
-                                   } else {
-                                       // Standard cells and contenteditable fields
-                                       textToMeasure = cell.innerText.replace(/\s+/g, ' ').trim();
-                                       if (textToMeasure && textToMeasure !== "") {
-                                           dummySpan.innerText = textToMeasure;
-                                           maxWidth = Math.max(maxWidth, dummySpan.offsetWidth + 30); // 30px buffer for standard padding
-                                       }
-                                   }
-                               }
-                           });
-
-                           document.body.removeChild(dummySpan);
-
-                           // Apply precisely measured width
-                           th.style.width = `${maxWidth}px`;
-                           th.style.minWidth = `${maxWidth}px`;
-                       });
+                th.style.width = `${maxWidth}px`;
+                th.style.minWidth = `${maxWidth}px`;
+            });
         });
     }
 
@@ -3200,30 +3176,26 @@ function createAndAppendTable(dtControls) {
             ];
 
             if (!allowedTypes.includes(node.nodeName))
-                            continue;
+                continue;
 
-                        let controlName =
-                            node.getAttribute("name") ||
-                            node.getAttribute("label") ||
-                            node.getAttribute("value") ||
-                            node.nodeName;
+            let controlName =
+                node.getAttribute("name") ||
+                node.getAttribute("label") ||
+                node.getAttribute("value") ||
+                node.nodeName;
 
-                        controlName = controlName.trim();
+            controlName = controlName.trim();
 
-                        // Extract the actual value inside the element
-                        let controlValue = node.getAttribute("value") || node.getAttribute("label") || node.getAttribute("text") || "";
+            // Generates candidate XPaths without picking up outer toolbars/mic wrappers
+            let allXPaths = getAllPossibleXPaths(node);
 
-                        // Generates candidate XPaths without picking up outer toolbars/mic wrappers
-                        let allXPaths = getAllPossibleXPaths(node);
-
-                        dtControls.push({
-                            ControlName: controlName,
-                            ControlType: node.nodeName.replace("XCUIElementType", ""),
-                            ControlId: allXPaths, // Pass array of candidate XPaths into table dropdown generator
-                            ControlValue: controlValue, // Pass the extracted value
-                            Fingerprint: new XMLSerializer().serializeToString(node)
-                        });
-                    }
+            dtControls.push({
+                ControlName: controlName,
+                ControlType: node.nodeName.replace("XCUIElementType", ""),
+                ControlId: allXPaths, // Pass array of candidate XPaths into table dropdown generator
+                Fingerprint: new XMLSerializer().serializeToString(node)
+            });
+        }
 
         const pageName =
         document.getElementById("pagename_searchbox")
@@ -3286,18 +3258,15 @@ function createAndAppendTable(dtControls) {
         console.log("Validation Result:", isValidJson);
 
         // Cryptographically and structurally sound token validation check
-                if (isValidJson && parsedData) {
+        if (isValidJson && parsedData) {
 
-                    tokenInput.style.display = "none";
-                    tokenStatus.style.display = "block";
-
-                    // Forces the button to become visible
-                    document.getElementById("changeTokenBtn").style.setProperty("display", "inline-flex", "important");
-
-                    tokenStatus.innerHTML = "✅ Connected";
-                    tokenStatus.style.backgroundColor = "#d4edda";
-                    tokenStatus.style.border = "1px solid #c3e6cb";
-                    tokenStatus.style.color = "#155724";
+            tokenInput.style.display = "none";
+            tokenStatus.style.display = "block";
+            document.getElementById("changeTokenBtn").style.display = "inline-block";
+            tokenStatus.innerHTML = "✅ Connected";
+            tokenStatus.style.backgroundColor = "#d4edda";
+            tokenStatus.style.border = "1px solid #c3e6cb";
+            tokenStatus.style.color = "#155724";
 
             // Save complete validated payload locally as a single clean stringified object
             localStorage.setItem("algoQAUser", JSON.stringify(parsedData));
@@ -3841,18 +3810,16 @@ function createAndAppendTable(dtControls) {
             localStorage.removeItem("algoQAUser");
 
             // Clear and restore input properties (using display instead of visibility)
-                        tokenInput.value = "";
-                        tokenInput.style.display = "inline-block";
-                        tokenInput.disabled = false;
-                        tokenInput.readOnly = false;
-                        tokenInput.removeAttribute("disabled");
-                        tokenInput.removeAttribute("readonly");
+            tokenInput.value = "";
+            tokenInput.style.display = "inline-block";
+            tokenInput.disabled = false;
+            tokenInput.readOnly = false;
+            tokenInput.removeAttribute("disabled");
+            tokenInput.removeAttribute("readonly");
 
-                        // Hide connected labels and the change button itself
-                        document.getElementById("tokenStatus").style.display = "none";
-
-                        // Forces the button to hide again
-                        changeTokenBtn.style.setProperty("display", "none", "important");
+            // Hide connected labels and the change button itself
+            document.getElementById("tokenStatus").style.display = "none";
+            changeTokenBtn.style.display = "none";
 
             // Define the component array requiring strict locking actions
             const lockButtons = ["Run", "Scrape", "scrapeUI", "reset", "algoQA"];
@@ -4180,40 +4147,36 @@ function createAndAppendTable(dtControls) {
         }
 
         let controlName =
-                    matchedNode.getAttribute("name") ||
-                    matchedNode.getAttribute("value") ||
-                    matchedNode.getAttribute("label") ||
-                    matchedNode.nodeName;
+            matchedNode.getAttribute("name") ||
+            matchedNode.getAttribute("value") ||
+            matchedNode.getAttribute("label") ||
+            matchedNode.nodeName;
 
-                controlName = controlName.trim();
+        controlName = controlName.trim();
 
-                // Grab value or text attribute for the clicked element
-                let controlValue = matchedNode.getAttribute("value") || matchedNode.getAttribute("label") || matchedNode.getAttribute("text") || "";
+        // Fetch candidate XPaths
+        let allXPaths = getAllPossibleXPaths(matchedNode);
 
-                // Fetch candidate XPaths
-                let allXPaths = getAllPossibleXPaths(matchedNode);
-
-                // IF ELEMENT IS "XCUIElementTypeOther" OR "Other": Append precise tap coordinates as a option
-                if (
-                    matchedNode.nodeName === "XCUIElementTypeOther" ||
-                    matchedNode.nodeName === "Other"
-                ) {
-                    const coordString = `COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`;
-                    if (!allXPaths.includes(coordString)) {
-                        allXPaths.push(coordString);
-                    }
-                }
-
-                createAndAppendTable([
-                    {
-                        ControlName: controlName,
-                        ControlType: matchedNode.nodeName.replace("XCUIElementType", ""),
-                        ControlId: allXPaths,
-                        ControlValue: controlValue, // Add the extracted value to the table
-                        Fingerprint: new XMLSerializer().serializeToString(matchedNode)
-                    }
-                ]);
+        // IF ELEMENT IS "XCUIElementTypeOther" OR "Other": Append precise tap coordinates as a option
+        if (
+            matchedNode.nodeName === "XCUIElementTypeOther" ||
+            matchedNode.nodeName === "Other"
+        ) {
+            const coordString = `COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`;
+            if (!allXPaths.includes(coordString)) {
+                allXPaths.push(coordString);
             }
+        }
+
+        createAndAppendTable([
+            {
+                ControlName: controlName,
+                ControlType: matchedNode.nodeName.replace("XCUIElementType", ""),
+                ControlId: allXPaths,
+                Fingerprint: new XMLSerializer().serializeToString(matchedNode)
+            }
+        ]);
+    }
 
 
     // Dedicated handler for option hover events
@@ -4666,30 +4629,40 @@ function updateRowEyeButtonState() {
     const newOkayBtn = okayBtn.cloneNode(true);
     okayBtn.parentNode.replaceChild(newOkayBtn, okayBtn);
 
+
+
+
     newOkayBtn.addEventListener('click', async () => {
-        document.getElementById('confirmationPopup').style.display = 'none';
-        document.getElementById('overlay').style.display = 'none';
+            document.getElementById('confirmationPopup').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
 
-        // Reset popup text back to default reset message
-        setTimeout(() => {
-            const popup = document.getElementById('confirmationPopup');
-            if (popup) {
-                popup.querySelector('p:nth-of-type(1)').textContent = "Do you really want to reset?";
-                popup.querySelector('p:nth-of-type(2)').textContent = "You will not be able to recover the data!";
-            }
-        }, 200);
+            // Reset popup text back to default reset message
+            setTimeout(() => {
+                const popup = document.getElementById('confirmationPopup');
+                if (popup) {
+                    popup.querySelector('p:nth-of-type(1)').textContent = "Do you really want to reset?";
+                    popup.querySelector('p:nth-of-type(2)').textContent = "You will not be able to recover the data!";
+                }
+            }, 200);
 
-        if (pendingExportAction === "download") {
-            pendingExportAction = null;
-            downloadTableAsJSON('myTable');
-        } else if (pendingExportAction === "algoQA") {
-            pendingExportAction = null;
-            await sendTableDataToAPI("myTable");
-        } else {
-            // Default Reset Action execution
-            executeResetAction();
-        }
-    });
+            if (pendingExportAction === "download") {
+                        pendingExportAction = null;
+                        downloadTableAsJSON('myTable');
+                    } else if (pendingExportAction === "algoQA") {
+                        pendingExportAction = null;
+                        await sendTableDataToAPI("myTable");
+                    } else {
+                        // Default Reset Action execution
+                        await executeResetAction();
+                    }
+                });
+
+
+
+
+
+
+
 
     const backBtn = document.getElementById("back_btn");
     const newBackBtn = backBtn.cloneNode(true);
@@ -4708,59 +4681,95 @@ function updateRowEyeButtonState() {
     });
 
     // Encapsulated Reset Function
-    function executeResetAction() {
-        document.getElementById('sttus_bar_div').style.display = 'none';
-        document.getElementById('brokenText').style.display = 'none';
-        counter = 0;
-        initialData = [];
-        xpath_id = 0;
-        screenNameList = [];
-        showElement = false;
+        async function executeResetAction() {
+            document.getElementById('sttus_bar_div').style.display = 'none';
+            document.getElementById('brokenText').style.display = 'none';
+            counter = 0;
+            initialData = [];
+            xpath_id = 0;
+            screenNameList = [];
+            showElement = false;
 
-        const imgElement = document.getElementById('screenshot');
-        if (imgElement) imgElement.remove();
+            // WE DO NOT QUIT THE DRIVER HERE ANYMORE SO THE APP STAYS OPEN ON DEVICE.
+            // The driver session stays fully active in the background.
 
-        const dummy = document.getElementById("dummyDevice");
-        if (dummy) dummy.style.display = "block";
+            const imgElement = document.getElementById('screenshot');
+            if (imgElement) imgElement.remove();
 
-        imgTagFlag = false;
-        const ssElement = document.getElementById('ss');
-        if (ssElement) ssElement.remove();
+            // Restore the original SVG icon layout
+            const dummy = document.getElementById("dummyDevice");
+            if (dummy) {
+                dummy.style.display = "block";
+                dummy.innerHTML = `
+                    <div class="phone-welcome-overlay">
+                        <svg class="info-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                        </svg>
+                        <p>Your page will load here once you select an app and click on "Launch Application".</p>
+                    </div>
+                `;
+            }
 
-        ssflag = false;
-        document.getElementById("split-div3").style.display = "none";
+            imgTagFlag = false;
+            const ssElement = document.getElementById('ss');
+            if (ssElement) ssElement.remove();
 
-        const previewContainer = document.getElementById("image-container_ss");
-        if (previewContainer) previewContainer.innerHTML = "";
+            ssflag = false;
+            document.getElementById("split-div3").style.display = "none";
 
-        var table = document.getElementById('myTable');
-        var rowCount = table.rows.length;
-        for (var i = rowCount - 1; i >= 0; i--) {
-            table.deleteRow(i);
+            const previewContainer = document.getElementById("image-container_ss");
+            if (previewContainer) previewContainer.innerHTML = "";
+
+            var table = document.getElementById('myTable');
+            var rowCount = table.rows.length;
+            for (var i = rowCount - 1; i >= 0; i--) {
+                table.deleteRow(i);
+            }
+
+            renderDefaultExcelGrid(5);
+            document.getElementById('table-container').style.display = "none";
+            tableCreated = false;
+
+            // HELPER: Safely delete old screenshots without crashing the app
+            function safelyDeletePngs(dirPath) {
+                if (!dirPath || !fs.existsSync(dirPath)) return;
+                fs.readdir(dirPath, (err, files) => {
+                    if (err) return;
+                    files.forEach(file => {
+                        const filePath = path.join(dirPath, file);
+                        if (path.extname(filePath) === '.png') {
+                            fs.unlink(filePath, e => {});
+                        }
+                    });
+                });
+            }
+
+            var plateformName = document.getElementById('platformname');
+            var plateformOption = plateformName.options[plateformName.selectedIndex].text;
+            if (plateformOption === 'Android') {
+                safelyDeletePngs(systemAppData);
+            } else if (plateformOption === 'IOS') {
+                safelyDeletePngs(folderPath);
+            }
+
+            // Reset values
+            document.getElementById('pagename_searchbox').value = '';
+            document.getElementById('searchbox').value = '';
+
+            // 1. Keep "Launch Application" Button DISABLED since session is still running
+            const runBtn = document.getElementById('Run');
+            if (runBtn) {
+                runBtn.disabled = true;
+                runBtn.style.backgroundColor = '#B6B6B4';
+            }
+
+            // 2. DISABLE ALL Bottom Tools (Scrape, Scrape UI, Download, Reset, AlgoQA)
+            const actionButtons = ['Scrape', 'scrapeUI', 'download', 'reset', 'algoQA'];
+            actionButtons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.disabled = true;
+                    btn.style.backgroundColor = '#B6B6B4';
+                }
+            });
         }
-
-        renderDefaultExcelGrid(5);
-        document.getElementById('table-container').style.display = "none";
-
-        var plateformName = document.getElementById('platformname');
-        var plateformOption = plateformName.options[plateformName.selectedIndex].text;
-        if (plateformOption === 'Android') {
-            deletePngFile(systemAppData);
-        } else if (plateformOption === 'IOS') {
-            deletePngFile(folderPath);
-        }
-
-        document.getElementById('pagename_searchbox').value = '';
-        document.getElementById('searchbox').value = '';
-
-        document.getElementById('download').disabled = true;
-        document.getElementById('download').style.backgroundColor = '#B6B6B4';
-        document.getElementById('reset').disabled = true;
-        document.getElementById('reset').style.backgroundColor = '#B6B6B4';
-        document.getElementById('scrapeUI').disabled = true;
-        document.getElementById('scrapeUI').style.backgroundColor = '#B6B6B4';
-        document.getElementById('algoQA').disabled = true;
-        document.getElementById('algoQA').style.backgroundColor = '#B6B6B4';
-        document.getElementById('Scrape').disabled = false;
-        document.getElementById('Scrape').style.backgroundColor = '#4285F4';
-    }
