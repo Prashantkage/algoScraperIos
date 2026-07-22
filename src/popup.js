@@ -2507,59 +2507,74 @@ function createAndAppendTable(dtControls) {
                 document.addEventListener('mouseup', handleMouseUp);
             });
 
-            // 2. Double-Click Auto-Fit Calculation
-            resizer.addEventListener('dblclick', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
+           // 2. Double-Click Auto-Fit Calculation
+                       resizer.addEventListener('dblclick', function(e) {
+                           e.preventDefault();
+                           e.stopPropagation();
 
-                th.style.width = '';
-                th.style.minWidth = '';
+                           const table = document.getElementById('mainTable');
+                           const colIndex = th.cellIndex;
+                           let maxWidth = 45; // Baseline safety minimum
 
-                const table = document.getElementById('mainTable');
-                const colIndex = th.cellIndex;
-                let maxWidth = 30; // Baseline safety minimum
+                           // Create a highly accurate measurement span
+                           const dummySpan = document.createElement('span');
+                           dummySpan.style.visibility = 'hidden';
+                           dummySpan.style.position = 'absolute';
+                           dummySpan.style.whiteSpace = 'nowrap';
 
-                const dummySpan = document.createElement('span');
-                dummySpan.style.visibility = 'hidden';
-                dummySpan.style.position = 'absolute';
-                dummySpan.style.whiteSpace = 'nowrap';
-                dummySpan.style.font = window.getComputedStyle(th).font;
-                document.body.appendChild(dummySpan);
+                           // Explicitly copy exact font styles instead of shorthand for cross-browser accuracy
+                           const thStyle = window.getComputedStyle(th);
+                           dummySpan.style.fontFamily = thStyle.fontFamily;
+                           dummySpan.style.fontSize = thStyle.fontSize;
+                           dummySpan.style.fontWeight = thStyle.fontWeight;
+                           document.body.appendChild(dummySpan);
 
-                // Measure header text
-                dummySpan.innerText = th.innerText.replace(/\s+/g, ' ').trim();
-                maxWidth = Math.max(maxWidth, dummySpan.offsetWidth + 20);
+                           // 1. Measure header text safely (ignoring hidden SVG text like DELETE)
+                           let headerText = th.textContent.replace('Delete Column', '').replace('Add Column', '').replace('DELETE', '').replace(/\s+/g, ' ').trim();
+                           dummySpan.innerText = headerText;
+                           maxWidth = Math.max(maxWidth, dummySpan.offsetWidth + 40); // 40px buffer for header icons/padding
 
-                // Measure cell contents in rows
-                const rows = table.querySelectorAll('tbody tr');
-                rows.forEach(row => {
-                    const cell = row.cells[colIndex];
-                    if (cell) {
-                        let textToMeasure = "";
-                        const selectEl = cell.querySelector('select');
-                        if (selectEl) {
-                            Array.from(selectEl.options).forEach(opt => {
-                                if (opt.text.length > textToMeasure.length) {
-                                    textToMeasure = opt.text;
-                                }
-                            });
-                        } else {
-                            textToMeasure = cell.innerText;
-                        }
+                           // 2. Measure cell contents in rows
+                           const rows = table.querySelectorAll('tbody tr');
+                           rows.forEach(row => {
+                               const cell = row.cells[colIndex];
+                               if (cell && window.getComputedStyle(cell).display !== 'none') {
 
-                        dummySpan.innerText = textToMeasure;
-                        const cellWidth = dummySpan.offsetWidth + 25;
-                        if (cellWidth > maxWidth) {
-                            maxWidth = cellWidth;
-                        }
-                    }
-                });
+                                   // Switch to body cell font styles for accurate measurement
+                                   const cellStyle = window.getComputedStyle(cell);
+                                   dummySpan.style.fontFamily = cellStyle.fontFamily;
+                                   dummySpan.style.fontSize = cellStyle.fontSize;
+                                   dummySpan.style.fontWeight = cellStyle.fontWeight;
 
-                document.body.removeChild(dummySpan);
+                                   let textToMeasure = "";
+                                   const selectEl = cell.querySelector('select');
 
-                th.style.width = `${maxWidth}px`;
-                th.style.minWidth = `${maxWidth}px`;
-            });
+                                   if (selectEl) {
+                                       // For dropdowns, measure the physically longest string
+                                       Array.from(selectEl.options).forEach(opt => {
+                                           if (opt.text.length > textToMeasure.length) {
+                                               textToMeasure = opt.text;
+                                           }
+                                       });
+                                       dummySpan.innerText = textToMeasure;
+                                       maxWidth = Math.max(maxWidth, dummySpan.offsetWidth + 50); // 50px buffer for dropdown arrow and padding
+                                   } else {
+                                       // Standard cells and contenteditable fields
+                                       textToMeasure = cell.innerText.replace(/\s+/g, ' ').trim();
+                                       if (textToMeasure && textToMeasure !== "") {
+                                           dummySpan.innerText = textToMeasure;
+                                           maxWidth = Math.max(maxWidth, dummySpan.offsetWidth + 30); // 30px buffer for standard padding
+                                       }
+                                   }
+                               }
+                           });
+
+                           document.body.removeChild(dummySpan);
+
+                           // Apply precisely measured width
+                           th.style.width = `${maxWidth}px`;
+                           th.style.minWidth = `${maxWidth}px`;
+                       });
         });
     }
 
