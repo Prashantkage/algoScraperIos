@@ -108,47 +108,23 @@
             const tokenStatus = document.getElementById("tokenStatus");
             const changeTokenBtn = document.getElementById("changeTokenBtn");
 
-            // STRICT INITIALIZATION: Force hide change button & status immediately
-            if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
-            if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
+            // ALWAYS clear past session on a fresh app launch so it never auto-connects
+            localStorage.removeItem("algoQAUser");
 
-            // Check if a valid session token already exists in localStorage
-            const savedUser = localStorage.getItem("algoQAUser");
-            let isConnected = false;
-
-            if (savedUser) {
-                try {
-                    const parsedData = JSON.parse(savedUser);
-                    if (parsedData && (parsedData.userID || parsedData.baseUrl)) {
-                        isConnected = true;
-                    }
-                } catch (e) {
-                    isConnected = false;
-                }
+            // STRICT DISCONNECTED STATE ON LOAD: Show input, strictly hide status and change button
+            if (tokenInput) {
+                tokenInput.value = "";
+                tokenInput.style.setProperty("display", "inline-block", "important");
+                tokenInput.disabled = false;
+                tokenInput.readOnly = false;
             }
+            if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
+            if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
 
-            if (isConnected) {
-                // Connected: Hide input, show status and change button
-                if (tokenInput) tokenInput.style.setProperty("display", "none", "important");
-                if (tokenStatus) {
-                    tokenStatus.style.setProperty("display", "block", "important");
-                    tokenStatus.innerHTML = "✅ Connected";
-                    tokenStatus.style.backgroundColor = "#d4edda";
-                    tokenStatus.style.border = "1px solid #c3e6cb";
-                    tokenStatus.style.color = "#155724";
-                }
-                if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "inline-block", "important");
-
-                const runBtn = document.getElementById("Run");
-                if (runBtn && !driver) {
-                    runBtn.disabled = false;
-                    runBtn.style.backgroundColor = "#4285F4";
-                }
-            } else {
-                // Disconnected: Show input, strictly hide status and change button
-                if (tokenInput) tokenInput.style.setProperty("display", "inline-block", "important");
-                if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
-                if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
+            const runBtn = document.getElementById("Run");
+            if (runBtn) {
+                runBtn.disabled = true;
+                runBtn.style.backgroundColor = "#B6B6B4";
             }
         });
 
@@ -179,31 +155,20 @@
                 document.getElementById("algoQA").style.backgroundColor = "#B6B6B4";
 
             } else {
-                // NORMAL MODE: Check token state first so it doesn't override DOMContentLoaded
-                const savedUser = localStorage.getItem("algoQAUser");
-                let isConnected = false;
-                if (savedUser) {
-                    try {
-                        const parsedData = JSON.parse(savedUser);
-                        if (parsedData && (parsedData.userID || parsedData.baseUrl)) {
-                            isConnected = true;
-                        }
-                    } catch (e) {}
+                // NORMAL MODE: Enforce strict disconnected state. Do not reconnect automatically.
+                if (tokenInput) {
+                    tokenInput.style.setProperty("display", "inline-block", "important");
+                    tokenInput.value = "";
+                    tokenInput.disabled = false;
+                    tokenInput.readOnly = false;
                 }
+                if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
+                if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
 
-                if (isConnected) {
-                    // Already connected: Show Change button, hide token input
-                    if (tokenInput) tokenInput.style.setProperty("display", "none", "important");
-                    if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "inline-block", "important");
-                    if (tokenStatus) tokenStatus.style.setProperty("display", "block", "important");
-                } else {
-                    // Disconnected: Show token input, STRICTLY hide Change button
-                    if (tokenInput) tokenInput.style.setProperty("display", "inline-block", "important");
-                    if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
-                    if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
-
-                    document.getElementById("Run").disabled = true;
-                    document.getElementById("Run").style.backgroundColor = "#B6B6B4";
+                const runBtn = document.getElementById("Run");
+                if (runBtn) {
+                    runBtn.disabled = true;
+                    runBtn.style.backgroundColor = "#B6B6B4";
                 }
             }
         });
