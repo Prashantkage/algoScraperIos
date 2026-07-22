@@ -3185,60 +3185,52 @@ function createAndAppendTable(dtControls) {
 
     document.getElementById("scrapeUI").addEventListener("click", async () => {
 
-        dtControls = [];
-        controlNameLists = [];
+            dtControls = [];
+            controlNameLists = [];
 
-        const xmlNodes = window.xmlDoc.getElementsByTagName("*");
+            const xmlNodes = window.xmlDoc.getElementsByTagName("*");
 
-        for (let i = 0; i < xmlNodes.length; i++) {
-            const node = xmlNodes[i];
+            for (let i = 0; i < xmlNodes.length; i++) {
+                const node = xmlNodes[i];
 
-            const allowedTypes = [
-                "XCUIElementTypeButton",
-                "XCUIElementTypeStaticText",
-                "XCUIElementTypeTextField",
-                "XCUIElementTypeSecureTextField",
-                "XCUIElementTypeSearchField",
-                "XCUIElementTypeImage",
-                "XCUIElementTypeTextView"
-            ];
+                const allowedTypes = [
+                    "XCUIElementTypeButton",
+                    "XCUIElementTypeStaticText",
+                    "XCUIElementTypeTextField",
+                    "XCUIElementTypeSecureTextField",
+                    "XCUIElementTypeSearchField",
+                    "XCUIElementTypeImage",
+                    "XCUIElementTypeTextView"
+                ];
 
-            if (!allowedTypes.includes(node.nodeName))
-                continue;
+                if (!allowedTypes.includes(node.nodeName))
+                    continue;
 
-            let controlName =
-                node.getAttribute("name") ||
-                node.getAttribute("label") ||
-                node.getAttribute("value") ||
-                node.nodeName;
+                // 1. Generate clean, professional variable name (e.g., btn_Login)
+                let controlName = generateProfessionalControlName(node);
 
-            controlName = controlName.trim();
+                // 2. Fetch STRICT exact-match XPaths only
+                let allXPaths = getAllPossibleXPaths(node);
 
-            // Generates candidate XPaths without picking up outer toolbars/mic wrappers
-            let allXPaths = getAllPossibleXPaths(node);
+                dtControls.push({
+                    ControlName: controlName,
+                    ControlType: node.nodeName.replace("XCUIElementType", "").replace("android.widget.", ""),
+                    ControlId: allXPaths,
+                    Fingerprint: new XMLSerializer().serializeToString(node)
+                });
+            }
 
-            dtControls.push({
-                ControlName: controlName,
-                ControlType: node.nodeName.replace("XCUIElementType", ""),
-                ControlId: allXPaths, // Pass array of candidate XPaths into table dropdown generator
-                Fingerprint: new XMLSerializer().serializeToString(node)
-            });
-        }
+            const pageName = document.getElementById("pagename_searchbox").value.trim();
 
-        const pageName =
-        document.getElementById("pagename_searchbox")
-        .value
-        .trim();
+            if(pageName === ""){
+                document.getElementById("pagename_searchbox").style.borderColor = "red";
+                alert("Please enter Page Name.");
+                return;
+            }
 
-        if(pageName === ""){
-            document.getElementById("pagename_searchbox").style.borderColor = "red";
-            alert("Please enter Page Name.");
-            return;
-        }
-
-        createAndAppendTable(dtControls);
-        dtControls = [];
-    });
+            createAndAppendTable(dtControls);
+            dtControls = [];
+        });
 
     document.getElementById("closePreview").addEventListener("click", () => {
         document.getElementById("split-div3").style.display = "none";
@@ -3982,94 +3974,37 @@ function createAndAppendTable(dtControls) {
         }
     }
 
+
+
+
     function getAllPossibleXPaths(node) {
         if (!node || node.nodeType !== 1) return [];
 
         let candidates = [];
+        const tagName = node.nodeName;
 
-        // Outer root wrappers that should NEVER be used as relative parents
-        const absoluteStopNodes = [
-            "AppiumAUT",
-            "XCUIElementTypeApplication",
-            "hierarchy",
-            "XCUIElementTypeWindow"
-        ];
+        // Outer root wrappers that should NEVER be targeted
+        if (tagName === "AppiumAUT" || tagName === "XCUIElementTypeApplication" || tagName === "XCUIElementTypeWindow") {
+            return [`//${tagName}`];
+        }
 
-        const attributes = ["name", "resource-id", "content-desc", "text", "value", "label"];
+        const attributes = ["name", "resource-id", "content-desc", "text", "label", "value"];
 
-        // -------------------------------------------------------------
-        // 1. DIRECT LEAF XPATHS (Target Element Attributes)
-        // -------------------------------------------------------------
+        // 1. EXACT DIRECT ATTRIBUTES ONLY (No Contains, No Parents)
         for (let attr of attributes) {
             let val = node.getAttribute(attr);
             if (val && val.trim() !== "") {
-                val = val.trim().replace(/"/g, '\\"');
-                let xpath = `//${node.nodeName}[@${attr}="${val}"]`;
+                // Strip quotes to prevent XPath syntax breaks
+                let cleanVal = val.trim().replace(/"/g, '');
+                let xpath = `//${tagName}[@${attr}="${cleanVal}"]`;
                 if (!candidates.includes(xpath)) {
                     candidates.push(xpath);
                 }
             }
         }
 
-        // -------------------------------------------------------------
-        // 2. RELATIVE TO IMMEDIATE PARENT CONTAINER
-        // -------------------------------------------------------------
-        let parent = node.parentNode;
-
-        // Ascend only if parent is a non-structural or root container
-        while (parent && parent.nodeType === 1 && absoluteStopNodes.includes(parent.nodeName)) {
-            parent = parent.parentNode;
-        }
-
-        if (parent && parent.nodeType === 1 && !absoluteStopNodes.includes(parent.nodeName)) {
-
-            // A. Parent Direct Attribute (Only if parent has valid label/name and is a cell/group)
-            for (let attr of attributes) {
-                let pVal = parent.getAttribute(attr);
-                if (pVal && pVal.trim() !== "") {
-                    pVal = pVal.trim().replace(/"/g, '\\"');
-                    let parentXpath = `//${parent.nodeName}[@${attr}="${pVal}"]`;
-
-                    if (!candidates.includes(parentXpath)) {
-                        candidates.push(parentXpath);
-                    }
-
-                    let parentChildRel = `${parentXpath}//${node.nodeName}`;
-                    if (!candidates.includes(parentChildRel)) {
-                        candidates.push(parentChildRel);
-                    }
-                }
-            }
-
-            // B. Calculate Exact Local Index Relative to Parent
-            let globalParents = window.xmlDoc.evaluate(`//${parent.nodeName}`, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-            let parentGlobalIndex = 1;
-            for (let k = 0; k < globalParents.snapshotLength; k++) {
-                if (globalParents.snapshotItem(k) === parent) {
-                    parentGlobalIndex = k + 1;
-                    break;
-                }
-            }
-
-            let siblings = parent.getElementsByTagName(node.nodeName);
-            let matchIndex = 1;
-            for (let i = 0; i < siblings.length; i++) {
-                if (siblings[i] === node) {
-                    matchIndex = i + 1;
-                    break;
-                }
-            }
-
-            let parentChildXPath = `(//${parent.nodeName})[${parentGlobalIndex}]//${node.nodeName}[${matchIndex}]`;
-            if (!candidates.includes(parentChildXPath)) {
-                candidates.push(parentChildXPath);
-            }
-        }
-
-        // -------------------------------------------------------------
-        // 3. FALLBACK GLOBAL INDEXED XPATH
-        // -------------------------------------------------------------
-        let fallbackXpath = `//${node.nodeName}`;
+        // 2. EXACT GLOBAL INDEX MATCH ONLY
+        let fallbackXpath = `//${tagName}`;
         let globalResults = window.xmlDoc.evaluate(fallbackXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
         for (let i = 0; i < globalResults.snapshotLength; i++) {
             if (globalResults.snapshotItem(i) === node) {
@@ -4077,13 +4012,12 @@ function createAndAppendTable(dtControls) {
                 if (!candidates.includes(indexedXpath)) {
                     candidates.push(indexedXpath);
                 }
+                break; // Found our exact node index, stop looking
             }
         }
 
-        // -------------------------------------------------------------
-        // 4. AUTOMATIC COORDINATE FALLBACK FOR "Other" NODES
-        // -------------------------------------------------------------
-        if (node.nodeName === "XCUIElementTypeOther" || node.nodeName === "Other") {
+        // 3. EXACT COORDINATE (Only for unclickable elements like 'Other' or 'View')
+        if (tagName === "XCUIElementTypeOther" || tagName === "Other" || tagName === "android.view.View") {
             let x = parseFloat(node.getAttribute("x"));
             let y = parseFloat(node.getAttribute("y"));
             let width = parseFloat(node.getAttribute("width"));
@@ -4099,116 +4033,95 @@ function createAndAppendTable(dtControls) {
             }
         }
 
-        return candidates.length > 0 ? candidates : [`//${node.nodeName}`];
+        // Return strict matches, or standard tag fallback
+        return candidates.length > 0 ? candidates : [`//${tagName}`];
     }
+
+
+
+
+
 
 
     async function findIOSLocator(clickX, clickY) {
 
-        const pageName = document.getElementById("pagename_searchbox").value.trim();
+            const pageName = document.getElementById("pagename_searchbox").value.trim();
 
-        if (pageName === "") {
-            document.getElementById("pagename_searchbox").style.borderColor = "red";
-            alert("Please enter Page Name.");
-            return;
-        }
-
-        const nodes = window.xmlDoc.getElementsByTagName("*");
-        let matchedNode = null;
-        let smallestArea = Number.MAX_VALUE;
-
-        const allowedTypes = [
-            "XCUIElementTypeButton",
-            "XCUIElementTypeStaticText",
-            "XCUIElementTypeTextField",
-            "XCUIElementTypeSecureTextField",
-            "XCUIElementTypeSearchField",
-            "XCUIElementTypeImage",
-            "XCUIElementTypeTextView",
-            "XCUIElementTypeHeader",
-            "XCUIElementTypeCell"
-        ];
-
-        for (let i = 0; i < nodes.length; i++) {
-            const node = nodes[i];
-            const x = parseFloat(node.getAttribute("x"));
-            const y = parseFloat(node.getAttribute("y"));
-            const width = parseFloat(node.getAttribute("width"));
-            const height = parseFloat(node.getAttribute("height"));
-
-            if (isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) {
-                continue;
+            if (pageName === "") {
+                document.getElementById("pagename_searchbox").style.borderColor = "red";
+                alert("Please enter Page Name.");
+                return;
             }
 
-            // Filter out full screen or invalid 0-size elements
-            if (width <= 0 || height <= 0) continue;
+            const nodes = window.xmlDoc.getElementsByTagName("*");
+            let matchedNode = null;
+            let smallestArea = Number.MAX_VALUE;
 
-            if (clickX >= x && clickX <= (x + width) && clickY >= y && clickY <= (y + height)) {
-                if (
-                    node.nodeName === "XCUIElementTypeApplication" ||
-                    node.nodeName === "XCUIElementTypeWindow"
-                ) {
+            // Root elements that should never be selected as specific controls
+            const ignoreTypes = [
+                "AppiumAUT",
+                "XCUIElementTypeApplication",
+                "XCUIElementTypeWindow",
+                "hierarchy"
+            ];
+
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+                const x = parseFloat(node.getAttribute("x"));
+                const y = parseFloat(node.getAttribute("y"));
+                const width = parseFloat(node.getAttribute("width"));
+                const height = parseFloat(node.getAttribute("height"));
+
+                if (isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) {
                     continue;
                 }
 
-                const area = width * height;
+                if (width <= 0 || height <= 0) continue;
 
-                // Prioritize leaf element tags (e.g. Header/StaticText/Cell over full screen background)
-                if (allowedTypes.includes(node.nodeName)) {
-                    if (area < smallestArea) {
+                // Check if click coordinates fall inside this element's bounding box
+                if (clickX >= x && clickX <= (x + width) && clickY >= y && clickY <= (y + height)) {
+
+                    if (ignoreTypes.includes(node.nodeName)) {
+                        continue;
+                    }
+
+                    const area = width * height;
+
+                    // STRICT RULE: The absolute smallest node under the cursor wins.
+                    // Using <= ensures if a child has the exact same size as its parent, the child wins.
+                    if (area <= smallestArea) {
                         smallestArea = area;
                         matchedNode = node;
                     }
-                } else if (!matchedNode) {
-                    smallestArea = area;
-                    matchedNode = node;
                 }
             }
-        }
 
-        // Fallback if no matching DOM node found
-        if (!matchedNode) {
+            if (!matchedNode) {
+                createAndAppendTable([
+                    {
+                        ControlName: `coord_${Math.round(clickX)}_${Math.round(clickY)}`,
+                        ControlType: "Coordinate",
+                        ControlId: [`COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`]
+                    }
+                ]);
+                return;
+            }
+
+            // 1. Generate Clean Variable Name from the exact matched node
+            let controlName = generateProfessionalControlName(matchedNode);
+
+            // 2. Fetch STRICT XPaths (No parents, no loose matches)
+            let allXPaths = getAllPossibleXPaths(matchedNode);
+
             createAndAppendTable([
                 {
-                    ControlName: `Coordinate_${Math.round(clickX)}_${Math.round(clickY)}`,
-                    ControlType: "Coordinate",
-                    ControlId: [`COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`]
+                    ControlName: controlName,
+                    ControlType: matchedNode.nodeName.replace("XCUIElementType", "").replace("android.widget.", ""),
+                    ControlId: allXPaths,
+                    Fingerprint: new XMLSerializer().serializeToString(matchedNode)
                 }
             ]);
-            return;
         }
-
-        let controlName =
-            matchedNode.getAttribute("name") ||
-            matchedNode.getAttribute("value") ||
-            matchedNode.getAttribute("label") ||
-            matchedNode.nodeName;
-
-        controlName = controlName.trim();
-
-        // Fetch candidate XPaths
-        let allXPaths = getAllPossibleXPaths(matchedNode);
-
-        // IF ELEMENT IS "XCUIElementTypeOther" OR "Other": Append precise tap coordinates as a option
-        if (
-            matchedNode.nodeName === "XCUIElementTypeOther" ||
-            matchedNode.nodeName === "Other"
-        ) {
-            const coordString = `COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`;
-            if (!allXPaths.includes(coordString)) {
-                allXPaths.push(coordString);
-            }
-        }
-
-        createAndAppendTable([
-            {
-                ControlName: controlName,
-                ControlType: matchedNode.nodeName.replace("XCUIElementType", ""),
-                ControlId: allXPaths,
-                Fingerprint: new XMLSerializer().serializeToString(matchedNode)
-            }
-        ]);
-    }
 
 
     // Dedicated handler for option hover events
@@ -4713,95 +4626,189 @@ function updateRowEyeButtonState() {
     });
 
     // Encapsulated Reset Function
-        async function executeResetAction() {
-            document.getElementById('sttus_bar_div').style.display = 'none';
-            document.getElementById('brokenText').style.display = 'none';
-            counter = 0;
-            initialData = [];
-            xpath_id = 0;
-            screenNameList = [];
-            showElement = false;
+        function executeResetAction() {
+            try {
+                // 1. Safely hide status bars and errors
+                const statusBar = document.getElementById('sttus_bar_div');
+                if (statusBar) statusBar.style.display = 'none';
 
-            // WE DO NOT QUIT THE DRIVER HERE ANYMORE SO THE APP STAYS OPEN ON DEVICE.
-            // The driver session stays fully active in the background.
+                const brokenText = document.getElementById('brokenText');
+                if (brokenText) brokenText.style.display = 'none';
 
-            const imgElement = document.getElementById('screenshot');
-            if (imgElement) imgElement.remove();
+                // 2. Clear application state variables
+                counter = 0;
+                initialData = [];
+                xpath_id = 0;
+                screenNameList = [];
+                showElement = false;
 
-            // Restore the original SVG icon layout
-            const dummy = document.getElementById("dummyDevice");
-            if (dummy) {
-                dummy.style.display = "block";
-                dummy.innerHTML = `
-                    <div class="phone-welcome-overlay">
-                        <svg class="info-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
-                        </svg>
-                        <p>Your page will load here once you select an app and click on "Launch Application".</p>
-                    </div>
-                `;
-            }
+                // 3. Clear existing screenshots
+                const imgElement = document.getElementById('screenshot');
+                if (imgElement) imgElement.remove();
 
-            imgTagFlag = false;
-            const ssElement = document.getElementById('ss');
-            if (ssElement) ssElement.remove();
-
-            ssflag = false;
-            document.getElementById("split-div3").style.display = "none";
-
-            const previewContainer = document.getElementById("image-container_ss");
-            if (previewContainer) previewContainer.innerHTML = "";
-
-            var table = document.getElementById('myTable');
-            var rowCount = table.rows.length;
-            for (var i = rowCount - 1; i >= 0; i--) {
-                table.deleteRow(i);
-            }
-
-            renderDefaultExcelGrid(5);
-            document.getElementById('table-container').style.display = "none";
-            tableCreated = false;
-
-            // HELPER: Safely delete old screenshots without crashing the app
-            function safelyDeletePngs(dirPath) {
-                if (!dirPath || !fs.existsSync(dirPath)) return;
-                fs.readdir(dirPath, (err, files) => {
-                    if (err) return;
-                    files.forEach(file => {
-                        const filePath = path.join(dirPath, file);
-                        if (path.extname(filePath) === '.png') {
-                            fs.unlink(filePath, e => {});
-                        }
-                    });
-                });
-            }
-
-            var plateformName = document.getElementById('platformname');
-            var plateformOption = plateformName.options[plateformName.selectedIndex].text;
-            if (plateformOption === 'Android') {
-                safelyDeletePngs(systemAppData);
-            } else if (plateformOption === 'IOS') {
-                safelyDeletePngs(folderPath);
-            }
-
-            // Reset values
-            document.getElementById('pagename_searchbox').value = '';
-            document.getElementById('searchbox').value = '';
-
-            // 1. Keep "Launch Application" Button DISABLED since session is still running
-            const runBtn = document.getElementById('Run');
-            if (runBtn) {
-                runBtn.disabled = true;
-                runBtn.style.backgroundColor = '#B6B6B4';
-            }
-
-            // 2. DISABLE ALL Bottom Tools (Scrape, Scrape UI, Download, Reset, AlgoQA)
-            const actionButtons = ['Scrape', 'scrapeUI', 'download', 'reset', 'algoQA'];
-            actionButtons.forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) {
-                    btn.disabled = true;
-                    btn.style.backgroundColor = '#B6B6B4';
+                // 4. Restore the original SVG icon layout for the dummy device
+                const dummy = document.getElementById("dummyDevice");
+                if (dummy) {
+                    dummy.style.display = "block";
+                    dummy.innerHTML = `
+                        <div class="phone-welcome-overlay">
+                            <svg class="info-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                            </svg>
+                            <p>Your page will load here once you select an app and click on "Launch Application".</p>
+                        </div>
+                    `;
                 }
-            });
+
+                imgTagFlag = false;
+                const ssElement = document.getElementById('ss');
+                if (ssElement) ssElement.remove();
+                ssflag = false;
+
+                const splitDiv3 = document.getElementById("split-div3");
+                if (splitDiv3) splitDiv3.style.display = "none";
+
+                const previewContainer = document.getElementById("image-container_ss");
+                if (previewContainer) previewContainer.innerHTML = "";
+
+                // 5. Wipe out the table rows
+                var table = document.getElementById('myTable');
+                if (table) {
+                    var rowCount = table.rows.length;
+                    for (var i = rowCount - 1; i >= 0; i--) {
+                        table.deleteRow(i);
+                    }
+                }
+
+                renderDefaultExcelGrid(5);
+
+                const tableContainer = document.getElementById('table-container');
+                if (tableContainer) tableContainer.style.display = "none";
+                tableCreated = false;
+
+                // 6. HELPER: Safely delete old screenshots without crashing the app
+                function safelyDeletePngs(dirPath) {
+                    if (!dirPath || !fs.existsSync(dirPath)) return;
+                    fs.readdir(dirPath, (err, files) => {
+                        if (err) return;
+                        files.forEach(file => {
+                            const filePath = path.join(dirPath, file);
+                            if (path.extname(filePath) === '.png') {
+                                fs.unlink(filePath, e => {});
+                            }
+                        });
+                    });
+                }
+
+                var plateformName = document.getElementById('platformname');
+                if (plateformName && plateformName.options.length > 0) {
+                    var plateformOption = plateformName.options[plateformName.selectedIndex].text;
+                    if (plateformOption === 'Android') {
+                        safelyDeletePngs(systemAppData);
+                    } else if (plateformOption === 'IOS') {
+                        safelyDeletePngs(folderPath);
+                    }
+                }
+
+                // 7. Reset Input Fields
+                const pageNameSearch = document.getElementById('pagename_searchbox');
+                if (pageNameSearch) pageNameSearch.value = '';
+
+                const searchBox = document.getElementById('searchbox');
+                if (searchBox) searchBox.value = '';
+
+                // 8. Restore Button States Perfectly
+
+                // STAY DISABLED: "Launch Application" stays locked because session is already active
+                const runBtn = document.getElementById('Run');
+                if (runBtn) {
+                    runBtn.disabled = true;
+                    runBtn.style.backgroundColor = '#B6B6B4';
+                }
+
+                // DISABLE bottom export/utility tools
+                const actionButtons = ['scrapeUI', 'download', 'reset', 'algoQA'];
+                actionButtons.forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.style.backgroundColor = '#B6B6B4';
+                    }
+                });
+
+                // ENABLE main "Scrape" button so the user can immediately resume capturing
+                const scrapeBtn = document.getElementById('Scrape');
+                if (scrapeBtn) {
+                    scrapeBtn.disabled = false;
+                    scrapeBtn.style.backgroundColor = '#4285F4';
+                }
+
+                // Make sure token session and Change button remain visually intact
+                const tokenInput = document.getElementById("tokenInput");
+                if (tokenInput && localStorage.getItem("algoQAUser")) {
+                    const changeTokenBtn = document.getElementById("changeTokenBtn");
+                    if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "inline-block", "important");
+                }
+
+            } catch (err) {
+                // Log any unexpected errors instead of completely freezing the UI
+                console.error("Reset encountered an error, but was caught safely:", err);
+            }
         }
+
+
+
+function generateProfessionalControlName(node) {
+    if (!node) return "unknown_control";
+
+    // 1. Get exact text or ID
+    let rawName = node.getAttribute("name") ||
+                  node.getAttribute("content-desc") ||
+                  node.getAttribute("label") ||
+                  node.getAttribute("text") ||
+                  node.getAttribute("value") ||
+                  "";
+
+    if (!rawName.trim()) {
+        let resId = node.getAttribute("resource-id");
+        if (resId && resId.includes('/')) {
+            rawName = resId.split('/')[1];
+        }
+    }
+
+    rawName = rawName.trim();
+
+    // 2. Identify UI Type for Prefix
+    let prefix = "elm_";
+    const tag = node.nodeName.toLowerCase();
+
+    if (tag.includes("button")) prefix = "btn_";
+    else if (tag.includes("textfield") || tag.includes("edittext") || tag.includes("searchfield") || tag.includes("input")) prefix = "txt_";
+    else if (tag.includes("image") || tag.includes("icon")) prefix = "img_";
+    else if (tag.includes("statictext") || tag.includes("textview") || tag.includes("label")) prefix = "lbl_";
+    else if (tag.includes("checkbox") || tag.includes("toggle") || tag.includes("switch") || tag.includes("radio")) prefix = "chk_";
+    else if (tag.includes("cell")) prefix = "cell_";
+
+    // 3. Fallback if no readable text
+    if (!rawName) {
+        let cleanTag = node.nodeName.replace("XCUIElementType", "").replace("android.widget.", "").replace("android.view.", "");
+        return `${prefix}${cleanTag}`;
+    }
+
+    // 4. Sanitize (Letters, numbers, underscores only)
+    let cleanName = rawName.replace(/[^a-zA-Z0-9 ]/g, "").trim().replace(/\s+/g, "_");
+
+    // Cap length to keep table clean
+    if (cleanName.length > 25) {
+        cleanName = cleanName.substring(0, 25);
+    }
+
+    // Prevent starting with a number
+    if (/^\d/.test(cleanName)) {
+        cleanName = "num_" + cleanName;
+    }
+
+    return `${prefix}${cleanName}`;
+}
+
+
