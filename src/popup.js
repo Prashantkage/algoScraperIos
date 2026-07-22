@@ -96,17 +96,61 @@
     );
 
     window.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("split-div3").style.display = "none";
 
-        document.getElementById("split-div3").style.display = "none";
+            document.getElementById("tapBtn").style.background = "#4285F4";
+            document.getElementById("tapBtn").style.color = "#fff";
 
-        document.getElementById("tapBtn").style.background = "#4285F4";
-        document.getElementById("tapBtn").style.color = "#fff";
+            document.getElementById("touchBtn").style.background = "#fff";
+            document.getElementById("touchBtn").style.color = "#333";
 
-        document.getElementById("touchBtn").style.background = "#fff";
-        document.getElementById("touchBtn").style.color = "#333";
+            const tokenInput = document.getElementById("tokenInput");
+            const tokenStatus = document.getElementById("tokenStatus");
+            const changeTokenBtn = document.getElementById("changeTokenBtn");
 
-        document.getElementById("changeTokenBtn").style.display = "none";
-    });
+            // STRICT INITIALIZATION: Force hide change button & status immediately
+            if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
+            if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
+
+            // Check if a valid session token already exists in localStorage
+            const savedUser = localStorage.getItem("algoQAUser");
+            let isConnected = false;
+
+            if (savedUser) {
+                try {
+                    const parsedData = JSON.parse(savedUser);
+                    if (parsedData && (parsedData.userID || parsedData.baseUrl)) {
+                        isConnected = true;
+                    }
+                } catch (e) {
+                    isConnected = false;
+                }
+            }
+
+            if (isConnected) {
+                // Connected: Hide input, show status and change button
+                if (tokenInput) tokenInput.style.setProperty("display", "none", "important");
+                if (tokenStatus) {
+                    tokenStatus.style.setProperty("display", "block", "important");
+                    tokenStatus.innerHTML = "✅ Connected";
+                    tokenStatus.style.backgroundColor = "#d4edda";
+                    tokenStatus.style.border = "1px solid #c3e6cb";
+                    tokenStatus.style.color = "#155724";
+                }
+                if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "inline-block", "important");
+
+                const runBtn = document.getElementById("Run");
+                if (runBtn && !driver) {
+                    runBtn.disabled = false;
+                    runBtn.style.backgroundColor = "#4285F4";
+                }
+            } else {
+                // Disconnected: Show input, strictly hide status and change button
+                if (tokenInput) tokenInput.style.setProperty("display", "inline-block", "important");
+                if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
+                if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
+            }
+        });
 
     ipcRenderer.on("launch-mode", (event, launchedFromProtocol) => {
             launchedViaProtocol = launchedFromProtocol;
@@ -116,7 +160,7 @@
             const tokenStatus = document.getElementById("tokenStatus");
 
             if (launchedViaProtocol) {
-                // DEEP LINK MODE: Aggressively hide the token box, status, and Change button
+                // DEEP LINK MODE: Hide all token controls completely
                 if (tokenInput) tokenInput.style.setProperty("display", "none", "important");
                 if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
                 if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
@@ -135,13 +179,32 @@
                 document.getElementById("algoQA").style.backgroundColor = "#B6B6B4";
 
             } else {
-                // NORMAL MODE: Show Token box, hide Change button until a token is entered
-                if (tokenInput) tokenInput.style.display = "inline-block";
-                if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
-                if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
+                // NORMAL MODE: Check token state first so it doesn't override DOMContentLoaded
+                const savedUser = localStorage.getItem("algoQAUser");
+                let isConnected = false;
+                if (savedUser) {
+                    try {
+                        const parsedData = JSON.parse(savedUser);
+                        if (parsedData && (parsedData.userID || parsedData.baseUrl)) {
+                            isConnected = true;
+                        }
+                    } catch (e) {}
+                }
 
-                document.getElementById("Run").disabled = true;
-                document.getElementById("Run").style.backgroundColor = "#B6B6B4";
+                if (isConnected) {
+                    // Already connected: Show Change button, hide token input
+                    if (tokenInput) tokenInput.style.setProperty("display", "none", "important");
+                    if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "inline-block", "important");
+                    if (tokenStatus) tokenStatus.style.setProperty("display", "block", "important");
+                } else {
+                    // Disconnected: Show token input, STRICTLY hide Change button
+                    if (tokenInput) tokenInput.style.setProperty("display", "inline-block", "important");
+                    if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
+                    if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
+
+                    document.getElementById("Run").disabled = true;
+                    document.getElementById("Run").style.backgroundColor = "#B6B6B4";
+                }
             }
         });
 
@@ -3257,62 +3320,64 @@ function createAndAppendTable(dtControls) {
 
         console.log("Validation Result:", isValidJson);
 
-        // Cryptographically and structurally sound token validation check
-        if (isValidJson && parsedData) {
+        // Inside your tokenInput keydown listener:
+                if (isValidJson && parsedData) {
+                    // Hide token input, Show connected status & Change button
+                    tokenInput.style.setProperty("display", "none", "important");
+                    tokenStatus.style.setProperty("display", "block", "important");
 
-            tokenInput.style.display = "none";
-            tokenStatus.style.display = "block";
-            document.getElementById("changeTokenBtn").style.display = "inline-block";
-            tokenStatus.innerHTML = "✅ Connected";
-            tokenStatus.style.backgroundColor = "#d4edda";
-            tokenStatus.style.border = "1px solid #c3e6cb";
-            tokenStatus.style.color = "#155724";
+                    const changeTokenBtn = document.getElementById("changeTokenBtn");
+                    if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "inline-block", "important");
 
-            // Save complete validated payload locally as a single clean stringified object
-            localStorage.setItem("algoQAUser", JSON.stringify(parsedData));
+                    tokenStatus.innerHTML = "✅ Connected";
+                    tokenStatus.style.backgroundColor = "#d4edda";
+                    tokenStatus.style.border = "1px solid #c3e6cb";
+                    tokenStatus.style.color = "#155724";
 
-            console.log("Saved Data:", localStorage.getItem("algoQAUser"));
+                    localStorage.setItem("algoQAUser", JSON.stringify(parsedData));
+                    console.log("Saved Data:", localStorage.getItem("algoQAUser"));
 
-            const runBtn = document.getElementById("Run");
+                    const runBtn = document.getElementById("Run");
 
-            // Session Check: If app is already active, lock Launch but restore scraper controls
-            if (driver) {
-                runBtn.disabled = true;
-                runBtn.style.backgroundColor = "#B6B6B4";
+                    // Session Check: If app is already active, lock Launch but restore scraper controls
+                    if (driver) {
+                        runBtn.disabled = true;
+                        runBtn.style.backgroundColor = "#B6B6B4";
 
-                const featureButtons = ["Scrape", "scrapeUI", "reset", "algoQA"];
-                featureButtons.forEach(btnId => {
-                    const btn = document.getElementById(btnId);
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.style.backgroundColor = "#4285F4";
+                        const featureButtons = ["Scrape", "scrapeUI", "reset", "algoQA"];
+                        featureButtons.forEach(btnId => {
+                            const btn = document.getElementById(btnId);
+                            if (btn) {
+                                btn.disabled = false;
+                                btn.style.backgroundColor = "#4285F4";
+                            }
+                        });
+                    } else {
+                        runBtn.disabled = false;
+                        runBtn.style.backgroundColor = "#4285F4";
                     }
-                });
-            } else {
-                // Normal fallback state: Ready for launch app initialization
-                runBtn.disabled = false;
-                runBtn.style.backgroundColor = "#4285F4";
-            }
 
-        } else {
-            // Clear and fail immediately if token is invalid or tampered with
-            tokenInput.style.display = "none";
-            tokenStatus.style.display = "block";
-            tokenStatus.innerHTML = "❌ Invalid Token";
-            tokenStatus.style.backgroundColor = "#f8d7da";
-            tokenStatus.style.border = "1px solid #f5c6cb";
-            tokenStatus.style.color = "#721c24";
+                } else {
+                    // Clear and fail immediately if token is invalid or tampered with
+                    tokenInput.style.setProperty("display", "none", "important");
+                    tokenStatus.style.setProperty("display", "block", "important");
+                    tokenStatus.innerHTML = "❌ Invalid Token";
+                    tokenStatus.style.backgroundColor = "#f8d7da";
+                    tokenStatus.style.border = "1px solid #f5c6cb";
+                    tokenStatus.style.color = "#721c24";
 
-            // Wait exactly 2 seconds, clean up error states, then restore the editable text input box
-            setTimeout(() => {
-                tokenStatus.style.display = "none";
+                    // Hide change button on error
+                    const changeTokenBtn = document.getElementById("changeTokenBtn");
+                    if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
 
-                tokenInput.style.display = "inline-block";
-                tokenInput.value = "";
-                tokenInput.readOnly = false;
-                tokenInput.focus();
-            }, 2000);
-        }
+                    setTimeout(() => {
+                        tokenStatus.style.setProperty("display", "none", "important");
+                        tokenInput.style.setProperty("display", "inline-block", "important");
+                        tokenInput.value = "";
+                        tokenInput.readOnly = false;
+                        tokenInput.focus();
+                    }, 2000);
+                }
     });
 
     document.getElementById("algoQA").addEventListener("click", async () => {
@@ -3806,22 +3871,22 @@ function createAndAppendTable(dtControls) {
         changeTokenBtn.addEventListener("click", () => {
             const tokenInput = document.getElementById("tokenInput");
 
-            // Remove saved token payload strings cleanly
+            // Remove saved token payload
             localStorage.removeItem("algoQAUser");
 
-            // Clear and restore input properties (using display instead of visibility)
+            // Restore token input field
             tokenInput.value = "";
-            tokenInput.style.display = "inline-block";
+            tokenInput.style.setProperty("display", "inline-block", "important");
             tokenInput.disabled = false;
             tokenInput.readOnly = false;
             tokenInput.removeAttribute("disabled");
             tokenInput.removeAttribute("readonly");
 
-            // Hide connected labels and the change button itself
-            document.getElementById("tokenStatus").style.display = "none";
-            changeTokenBtn.style.display = "none";
+            // Strictly hide the change button and connected status
+            changeTokenBtn.style.setProperty("display", "none", "important");
+            document.getElementById("tokenStatus").style.setProperty("display", "none", "important");
 
-            // Define the component array requiring strict locking actions
+            // Lock down dependent feature buttons until re-authenticated
             const lockButtons = ["Run", "Scrape", "scrapeUI", "reset", "algoQA"];
             lockButtons.forEach(btnId => {
                 const btn = document.getElementById(btnId);
@@ -3838,9 +3903,11 @@ function createAndAppendTable(dtControls) {
                 downloadBtn.style.backgroundColor = "#4285F4";
             }
 
-            // Direct system focus properties back onto text input container
             tokenInput.focus();
         });
+
+
+
 
 
     function generateUniqueXPath(node) {
