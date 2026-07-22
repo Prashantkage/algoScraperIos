@@ -84,10 +84,10 @@ div[style*="font-size: 11px;"] {
 
 /* Dynamic Auto-Adjusting Card Box View Container */
 .bottom-div {
-    flex: 0 1 auto !important;        /* 0 = Shrink-wrap height, 1 = Allow shrinking if window is too small */
-    min-height: 0 !important;         /* CRITICAL FIX: Forces the scrollbar to appear instead of clipping off screen */
-    height: fit-content !important;   /* Automatically hugs the exact height of current rows */
-    max-height: none !important;      /* Removes the rigid 300px cap so it dynamically fits the window */
+    flex: 1 1 0 !important;           /* CRITICAL FIX: 1 = Grow to fill empty space, 1 = Allow shrinking, 0 = Flex basis */
+    min-height: 0 !important;         /* Forces the scrollbar to appear inside the container instead of clipping off screen */
+    height: auto !important;          /* Removed fit-content so it naturally stretches to the bottom of the window */
+    max-height: none !important;
     overflow-y: auto !important;
     overflow-x: auto !important;
     background-color: #ffffff;
@@ -312,7 +312,7 @@ th .resizer:hover {
 /* Force table columns and body cells to accurately obey width and height properties */
 #mainTable {
     table-layout: fixed !important;
-    width: max-content !important;
+    width: 100% !important;           /* CHANGED: Forces columns to stretch out into the empty grey space */
     height: auto !important;          /* Crucial: Prevents the table from demanding extra vertical space */
     margin-bottom: 0 !important;      /* Removes default table bottom margins that create empty space */
     border-collapse: collapse !important;

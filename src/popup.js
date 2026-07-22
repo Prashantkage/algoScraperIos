@@ -4234,67 +4234,97 @@ function createAndAppendTable(dtControls) {
 
 
 
-    function renderDefaultExcelGrid(rowCount = 5) {
-            const tbody = document.getElementById('myTable');
-            tbody.innerHTML = '';
-
+    function createEmptyRowHtml() {
             var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr > *'));
+            var rowHtml = "";
 
-            for (let i = 1; i <= rowCount; i++) {
-                const row = document.createElement('tr');
-                row.className = "empty-excel-row";
-                var rowHtml = "";
+            allHeaders.forEach((th) => {
+                var thText = (th.textContent || th.innerText || '').replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                var isHidden = window.getComputedStyle(th).display === 'none';
+                var displayStyle = isHidden ? 'display: none !important;' : '';
 
-                allHeaders.forEach((th) => {
-                    var thText = (th.textContent || th.innerText || '').replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
-                    var isHidden = window.getComputedStyle(th).display === 'none';
-                    var displayStyle = isHidden ? 'display: none !important;' : '';
-
-                    if (th.classList.contains('excel-header-corner')) {
-                        rowHtml += `<td class="row-index" style="${displayStyle}">${i}</td>`;
-                    } else if (th.id === 'add_empty_column') {
-                        rowHtml += `<td class="add-col-cell" style="${displayStyle}">&nbsp;</td>`;
-                    } else if (th.classList.contains('custom-editable-header')) {
-                        rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
-                    } else if (thText.includes('CONTROL NAME')) {
-                        rowHtml += `<td class="cn pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                    } else if (thText.includes('CONTROL TYPE')) {
-                        rowHtml += `<td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                    } else if (thText.includes('CONTROL ID')) {
-                        rowHtml += `<td class="xpath pt-3-half" style="border-color: black; text-align: center; ${displayStyle}"></td>`;
-                    } else if (thText.includes('PAGE NAME')) {
-                        rowHtml += `<td class="page pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                    } else if (thText.includes('IDENTIFICATION TYPE')) {
-                        rowHtml += `<td class="identificationType pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                    } else if (thText.includes('CONTROL VALUE')) {
-                        rowHtml += `<td class="controlValue pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                    } else if (thText.includes('FEATURE NAME')) {
-                        rowHtml += `<td class="featureName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                    } else if (thText.includes('NODE NAME')) {
-                        rowHtml += `<td class="nodeName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                    } else if (th.classList.contains('fingerprint')) {
-                        rowHtml += `<td class="fingerprint" style="display:none;"></td>`;
-                    } else if (th.id === 'appUrl' || thText.includes('APP URL')) {
-                        rowHtml += `<td class="appUrl" style="display:none;"></td>`;
-                    } else if (thText.includes('DELETE')) {
-                        rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}"><img src="icon/icons8-delete_red.svg" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; display:none;"></td>`;
-                    } else {
-                        rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
-                    }
-                });
-
-                row.innerHTML = rowHtml;
-                tbody.appendChild(row);
-            }
-
-            initResizableTable();
+                if (th.classList.contains('excel-header-corner')) {
+                    rowHtml += `<td class="row-index" style="${displayStyle}"></td>`;
+                } else if (th.id === 'add_empty_column') {
+                    rowHtml += `<td class="add-col-cell" style="${displayStyle}">&nbsp;</td>`;
+                } else if (th.classList.contains('custom-editable-header')) {
+                    rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
+                } else if (thText.includes('CONTROL ID')) {
+                    rowHtml += `<td class="xpath pt-3-half" style="border-color: black; text-align: center; ${displayStyle}"></td>`;
+                } else if (thText.includes('APP URL') || th.id === 'appUrl') {
+                    rowHtml += `<td class="appUrl" style="display:none;"></td>`;
+                } else if (th.classList.contains('fingerprint')) {
+                    rowHtml += `<td class="fingerprint" style="display:none;"></td>`;
+                } else if (thText.includes('DELETE') || th.innerText.includes('Delete') || th.id === 'delete_header') {
+                    rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}"><img src="icon/icons8-delete_red.svg" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; display:none;"></td>`;
+                } else {
+                    rowHtml += `<td class="cn pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                }
+            });
+            return rowHtml;
         }
 
-    // Call on window load so empty Excel rows appear immediately on launch
+        function adjustEmptyRows() {
+            const container = document.getElementById('table-container');
+            const tbody = document.getElementById('myTable');
+
+            if (!container || !tbody || container.style.display === "none") return;
+
+            const headerRow = document.querySelector('#mainTable thead tr');
+            const headerHeight = headerRow ? headerRow.clientHeight : 32;
+            const rowHeight = 28; // Based on your CSS configuration
+
+            // Calculate exactly how many rows fit inside the window right now
+            const availableHeight = container.clientHeight - headerHeight;
+            const targetRowCount = Math.max(5, Math.floor(availableHeight / rowHeight));
+
+            let currentRows = Array.from(tbody.querySelectorAll('tr'));
+            let emptyRows = Array.from(tbody.querySelectorAll('tr.empty-excel-row'));
+            let dataRowCount = currentRows.length - emptyRows.length;
+
+            let desiredEmptyRows = targetRowCount - dataRowCount;
+            if (desiredEmptyRows < 0) desiredEmptyRows = 0;
+
+            if (emptyRows.length < desiredEmptyRows) {
+                // Fill missing space with blank rows
+                const rowsToAdd = desiredEmptyRows - emptyRows.length;
+                for (let i = 0; i < rowsToAdd; i++) {
+                    const row = document.createElement('tr');
+                    row.className = "empty-excel-row";
+                    row.innerHTML = createEmptyRowHtml();
+                    tbody.appendChild(row);
+                }
+                updateRowNumbers();
+                initResizableTable();
+            } else if (emptyRows.length > desiredEmptyRows) {
+                // Trim excess blank rows if window shrinks
+                const rowsToRemove = emptyRows.length - desiredEmptyRows;
+                for(let i = 0; i < rowsToRemove; i++) {
+                    if(emptyRows[emptyRows.length - 1 - i]) {
+                        emptyRows[emptyRows.length - 1 - i].remove();
+                    }
+                }
+                updateRowNumbers();
+            }
+        }
+
+        function renderDefaultExcelGrid() {
+            const tbody = document.getElementById('myTable');
+            if (tbody) tbody.innerHTML = ''; // Wipe existing rows
+
+            // Automatically inject the precise number of rows needed
+            adjustEmptyRows();
+        }
+
+        // Initialize and track window resizing automatically
         window.addEventListener("DOMContentLoaded", () => {
             document.getElementById('table-container').style.display = "block";
-            renderDefaultExcelGrid(5);
-            initResizableTable(); // <--- ADD THIS LINE HERE
+            renderDefaultExcelGrid();
+            initResizableTable();
+        });
+
+        window.addEventListener('resize', () => {
+            requestAnimationFrame(adjustEmptyRows);
         });
 
     // Function to delete a custom column by index across headers and body rows
