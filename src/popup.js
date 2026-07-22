@@ -1112,22 +1112,26 @@
                       }
                     }
                     CNcount = 0;
-                    dtControls.push({
-                        ControlName: controlName,
-                        ControlType: controlType,
-                        ControlId: xpath,
-                        Fingerprint: new XMLSerializer().serializeToString(node)
-                    });
-                  }
-                }
 
-              }
-            }
+                                        var extractedValue = node.getAttribute("text") || node.getAttribute("content-desc") || "";
+
+                                        dtControls.push({
+                                            ControlName: controlName,
+                                            ControlType: controlType,
+                                            ControlId: xpath,
+                                            ControlValue: extractedValue, // Send extracted value to the table
+                                            Fingerprint: new XMLSerializer().serializeToString(node)
+                                        });
+                                      }
+                                    }
+
+                                  }
+                                }
 
 
-            // Function to create and append the HTML table
-            dtControls = [];
-          }
+                                // Function to create and append the HTML table
+                                dtControls = [];
+                              }
           if (plateformOption === 'IOS') {
             let listOfTags = [];
 
@@ -1281,35 +1285,39 @@
                   }
 
                   // to remove dulpicates from page
-                  if (!controlNameLists.includes(controlName)) {
-                    controlNameLists.push(controlName);
-                  }
-                  else {
-                    controlNameLists.push(controlName)
-                    if (controlNameLists.includes(controlName)) {
-                      var CNcount = 0;
-                      var CN = controlName;
-                      for (var j = 0; j < controlNameLists.length; j++) {
-                        if (CN === controlNameLists[j])
-                          CNcount++;
-                      }
-                      controlName = controlName + "_" + (CNcount);
+                                    if (!controlNameLists.includes(controlName)) {
+                                      controlNameLists.push(controlName);
+                                    }
+                                    else {
+                                      controlNameLists.push(controlName)
+                                      if (controlNameLists.includes(controlName)) {
+                                        var CNcount = 0;
+                                        var CN = controlName;
+                                        for (var j = 0; j < controlNameLists.length; j++) {
+                                          if (CN === controlNameLists[j])
+                                            CNcount++;
+                                        }
+                                        controlName = controlName + "_" + (CNcount);
 
-                    }
-                  }
+                                      }
+                                    }
 
-                  dtControls.push({
-                      ControlName: controlName,
-                      ControlType: controlType,
-                      ControlId: xpath,
-                      Fingerprint: new XMLSerializer().serializeToString(node)
-                  });
-                }
+                                    // Extract the actual value inside the element
+                                    var extractedValue = node.getAttribute("value") || node.getAttribute("label") || "";
 
-              }
-            }
-            dtControls = [];
-          }
+                                    dtControls.push({
+                                        ControlName: controlName,
+                                        ControlType: controlType,
+                                        ControlId: xpath,
+                                        ControlValue: extractedValue, // Send extracted value to the table
+                                        Fingerprint: new XMLSerializer().serializeToString(node)
+                                    });
+                                  }
+
+                                }
+                              }
+                              dtControls = [];
+                            }
           document.getElementById('div_status_bar').style.display = 'none';
           showElementHover = false;
           hoverRequestId++;
@@ -2360,19 +2368,19 @@ function createAndAppendTable(dtControls) {
         td_id = i;
 
         let rowDataMap = {
-            "#": "",
-            "CONTROL NAME": dtControls[i].ControlName || "",
-            "CONTROL TYPE": dtControls[i].ControlType || "",
-            "CONTROL ID": controlIdCellHtml,
-            "PAGE NAME": pageName,
-            "IDENTIFICATION TYPE": "",
-            "CONTROL VALUE": "",
-            "FEATURE NAME": pageName,
-            "NODE NAME": pageName,
-            "DELETE": `<img src="icon/icons8-delete_red.svg" id="del_${td_id}" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; overflow: hidden; cursor: pointer; -webkit-user-drag: none; display:inline-block;">`,
-            "FINGERPRINT": (dtControls[i].Fingerprint || "").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
-            "APP URL": ""
-        };
+                    "#": "",
+                    "CONTROL NAME": dtControls[i].ControlName || "",
+                    "CONTROL TYPE": dtControls[i].ControlType || "",
+                    "CONTROL ID": controlIdCellHtml,
+                    "PAGE NAME": pageName,
+                    "IDENTIFICATION TYPE": "",
+                    "CONTROL VALUE": dtControls[i].ControlValue || "", // CHANGED: Dynamically grabs extracted value
+                    "FEATURE NAME": pageName,
+                    "NODE NAME": pageName,
+                    "DELETE": `<img src="icon/icons8-delete_red.svg" id="del_${td_id}" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; overflow: hidden; cursor: pointer; -webkit-user-drag: none; display:inline-block;">`,
+                    "FINGERPRINT": (dtControls[i].Fingerprint || "").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+                    "APP URL": ""
+                };
 
         var rowHtml = "";
 
@@ -3176,26 +3184,30 @@ function createAndAppendTable(dtControls) {
             ];
 
             if (!allowedTypes.includes(node.nodeName))
-                continue;
+                            continue;
 
-            let controlName =
-                node.getAttribute("name") ||
-                node.getAttribute("label") ||
-                node.getAttribute("value") ||
-                node.nodeName;
+                        let controlName =
+                            node.getAttribute("name") ||
+                            node.getAttribute("label") ||
+                            node.getAttribute("value") ||
+                            node.nodeName;
 
-            controlName = controlName.trim();
+                        controlName = controlName.trim();
 
-            // Generates candidate XPaths without picking up outer toolbars/mic wrappers
-            let allXPaths = getAllPossibleXPaths(node);
+                        // Extract the actual value inside the element
+                        let controlValue = node.getAttribute("value") || node.getAttribute("label") || node.getAttribute("text") || "";
 
-            dtControls.push({
-                ControlName: controlName,
-                ControlType: node.nodeName.replace("XCUIElementType", ""),
-                ControlId: allXPaths, // Pass array of candidate XPaths into table dropdown generator
-                Fingerprint: new XMLSerializer().serializeToString(node)
-            });
-        }
+                        // Generates candidate XPaths without picking up outer toolbars/mic wrappers
+                        let allXPaths = getAllPossibleXPaths(node);
+
+                        dtControls.push({
+                            ControlName: controlName,
+                            ControlType: node.nodeName.replace("XCUIElementType", ""),
+                            ControlId: allXPaths, // Pass array of candidate XPaths into table dropdown generator
+                            ControlValue: controlValue, // Pass the extracted value
+                            Fingerprint: new XMLSerializer().serializeToString(node)
+                        });
+                    }
 
         const pageName =
         document.getElementById("pagename_searchbox")
@@ -4147,36 +4159,40 @@ function createAndAppendTable(dtControls) {
         }
 
         let controlName =
-            matchedNode.getAttribute("name") ||
-            matchedNode.getAttribute("value") ||
-            matchedNode.getAttribute("label") ||
-            matchedNode.nodeName;
+                    matchedNode.getAttribute("name") ||
+                    matchedNode.getAttribute("value") ||
+                    matchedNode.getAttribute("label") ||
+                    matchedNode.nodeName;
 
-        controlName = controlName.trim();
+                controlName = controlName.trim();
 
-        // Fetch candidate XPaths
-        let allXPaths = getAllPossibleXPaths(matchedNode);
+                // Grab value or text attribute for the clicked element
+                let controlValue = matchedNode.getAttribute("value") || matchedNode.getAttribute("label") || matchedNode.getAttribute("text") || "";
 
-        // IF ELEMENT IS "XCUIElementTypeOther" OR "Other": Append precise tap coordinates as a option
-        if (
-            matchedNode.nodeName === "XCUIElementTypeOther" ||
-            matchedNode.nodeName === "Other"
-        ) {
-            const coordString = `COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`;
-            if (!allXPaths.includes(coordString)) {
-                allXPaths.push(coordString);
+                // Fetch candidate XPaths
+                let allXPaths = getAllPossibleXPaths(matchedNode);
+
+                // IF ELEMENT IS "XCUIElementTypeOther" OR "Other": Append precise tap coordinates as a option
+                if (
+                    matchedNode.nodeName === "XCUIElementTypeOther" ||
+                    matchedNode.nodeName === "Other"
+                ) {
+                    const coordString = `COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`;
+                    if (!allXPaths.includes(coordString)) {
+                        allXPaths.push(coordString);
+                    }
+                }
+
+                createAndAppendTable([
+                    {
+                        ControlName: controlName,
+                        ControlType: matchedNode.nodeName.replace("XCUIElementType", ""),
+                        ControlId: allXPaths,
+                        ControlValue: controlValue, // Add the extracted value to the table
+                        Fingerprint: new XMLSerializer().serializeToString(matchedNode)
+                    }
+                ]);
             }
-        }
-
-        createAndAppendTable([
-            {
-                ControlName: controlName,
-                ControlType: matchedNode.nodeName.replace("XCUIElementType", ""),
-                ControlId: allXPaths,
-                Fingerprint: new XMLSerializer().serializeToString(matchedNode)
-            }
-        ]);
-    }
 
 
     // Dedicated handler for option hover events
