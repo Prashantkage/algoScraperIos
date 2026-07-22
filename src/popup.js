@@ -45,6 +45,35 @@
     let hoverTimer = null;
     let lastXPath = "";
 
+    function showErrorPopup(title, error) {
+        const titleElem = document.getElementById('launchErrorTitle');
+        const logElem = document.getElementById('launchErrorLog');
+        const popupElem = document.getElementById('launchErrorPopup');
+        const overlayElem = document.getElementById('overlay');
+        const appRunningPopup = document.getElementById('AppRunningPopup');
+
+        if (appRunningPopup) appRunningPopup.style.display = 'none';
+        if (overlayElem) overlayElem.style.display = 'block';
+
+        if (titleElem) titleElem.innerText = title;
+        if (logElem) {
+            logElem.innerText = error?.stack || error?.message || String(error);
+        }
+
+        if (popupElem) popupElem.style.display = 'block';
+
+        const okBtn = document.getElementById("okay_button");
+        if (okBtn) {
+            okBtn.onclick = () => {
+                if (popupElem) popupElem.style.display = 'none';
+                if (overlayElem) overlayElem.style.display = 'none';
+
+                // Send close event to main process to stop all background processes and quit app
+                ipcRenderer.send("close-app");
+            };
+        }
+    }
+
     ipcRenderer.on(
         "user-data",
         (event, userData) => {
@@ -80,41 +109,41 @@
     });
 
     ipcRenderer.on("launch-mode", (event, launchedFromProtocol) => {
+            launchedViaProtocol = launchedFromProtocol;
 
-        launchedViaProtocol = launchedFromProtocol;
+            const tokenInput = document.getElementById("tokenInput");
+            const changeTokenBtn = document.getElementById("changeTokenBtn");
+            const tokenStatus = document.getElementById("tokenStatus");
 
-        const tokenInput = document.getElementById("tokenInput");
+            if (launchedViaProtocol) {
+                // DEEP LINK MODE: Aggressively hide the token box, status, and Change button
+                if (tokenInput) tokenInput.style.setProperty("display", "none", "important");
+                if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
+                if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
 
-        if (launchedViaProtocol) {
+                document.getElementById("Run").disabled = false;
+                document.getElementById("Run").style.backgroundColor = "#4285F4";
+                document.getElementById("Scrape").disabled = true;
+                document.getElementById("Scrape").style.backgroundColor = "#B6B6B4";
+                document.getElementById("download").disabled = true;
+                document.getElementById("download").style.backgroundColor = "#B6B6B4";
+                document.getElementById("reset").disabled = true;
+                document.getElementById("reset").style.backgroundColor = "#B6B6B4";
+                document.getElementById("scrapeUI").disabled = true;
+                document.getElementById("scrapeUI").style.backgroundColor = "#B6B6B4";
+                document.getElementById("algoQA").disabled = true;
+                document.getElementById("algoQA").style.backgroundColor = "#B6B6B4";
 
-            tokenInput.style.visibility = "hidden";
+            } else {
+                // NORMAL MODE: Show Token box, hide Change button until a token is entered
+                if (tokenInput) tokenInput.style.display = "inline-block";
+                if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
+                if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
 
-            document.getElementById("Run").disabled = false;
-            document.getElementById("Run").style.backgroundColor = "#4285F4";
-
-            document.getElementById("Scrape").disabled = true;
-            document.getElementById("Scrape").style.backgroundColor = "#B6B6B4";
-
-            document.getElementById("download").disabled = true;
-            document.getElementById("download").style.backgroundColor = "#B6B6B4";
-
-            document.getElementById("reset").disabled = true;
-            document.getElementById("reset").style.backgroundColor = "#B6B6B4";
-
-            document.getElementById("scrapeUI").disabled = true;
-            document.getElementById("scrapeUI").style.backgroundColor = "#B6B6B4";
-
-            document.getElementById("algoQA").disabled = true;
-            document.getElementById("algoQA").style.backgroundColor = "#B6B6B4";
-
-        } else {
-
-            tokenInput.style.visibility = "visible";
-
-            document.getElementById("Run").disabled = true;
-            document.getElementById("Run").style.backgroundColor = "#B6B6B4";
-        }
-    });
+                document.getElementById("Run").disabled = true;
+                document.getElementById("Run").style.backgroundColor = "#B6B6B4";
+            }
+        });
 
     const CryptoJS = require("crypto-js");
 
@@ -251,253 +280,201 @@
     document.getElementById('algoQA').style.backgroundColor = '#B6B6B4';
 
     document.getElementById("Run").addEventListener('click', async () => {
-      var plateformName = document.getElementById('platformname');
-      var plateformOption = plateformName.options[plateformName.selectedIndex].text;
-      const information = document.getElementById('info')
-      var appName = document.getElementById('appname').value;
-      var deviceName = document.getElementById('devicename').value;
-      var udidName = document.getElementById('udid').value;
-      var platformVersion = document.getElementById('platformversion').value;
-      var automationName = document.getElementById('automationName').value;
-      var bundleID = document.getElementById('bundleID').value;
-      var appPackage = document.getElementById('apppackage').value;
-      var appActivity = document.getElementById('appactivity').value;
-      var appiumURL = document.getElementById('appiumurl').value;
-
-      if (plateformOption === 'Android') {
-        if (appName.trim() === '') {
-          document.getElementById('appname').style.borderColor = 'red';
-        } if (deviceName.trim() === '') {
-          document.getElementById('devicename').style.borderColor = 'red';
-        } if (udidName.trim() === '') {
-          document.getElementById('udid').style.borderColor = 'red';
-        } if (appPackage.trim() === '') {
-          document.getElementById('apppackage').style.borderColor = 'red';
-        } if (appActivity.trim() === '') {
-          document.getElementById('appactivity').style.borderColor = 'red';
-        } if (appiumURL.trim() === '') {
-          document.getElementById('appiumurl').style.borderColor = 'red';
-        } if (automationName.trim() === '') {
-          document.getElementById('automationName').style.borderColor = 'red';
-        }
-
-        if (appName.trim() != '' && deviceName.trim() != '' && udidName.trim() != '' && appPackage.trim() != '' && appActivity.trim() != '' && appiumURL.trim() != '' && automationName.trim() != '') {
-          document.getElementById('platformname').disabled = true;
-      document.getElementById('AppRunningPopup').style.display = 'block'
-      document.getElementById('overlay').style.display = 'block';
-          var appName = document.getElementById('appname').value;
-          var deviceName = document.getElementById('devicename').value;
-          var udidName = document.getElementById('udid').value;
-          var appPackage = document.getElementById('apppackage').value;
-          var appActivity = document.getElementById('appactivity').value;
-          var appiumURL = document.getElementById('appiumurl').value;
-          var automationName = document.getElementById('automationName').value;
-          ipcRenderer.send('appPackage', appPackage);
-      initialData = [];
-          initialData.push(plateformOption, deviceName, appPackage, appActivity, appiumURL, udidName, automationName);
-          if (process.platform !== 'darwin') {
-            startApp(initialData);
-          }
-          else {
-            launchApp(initialData)
-
-          }
-        }
-      } else if (plateformOption === 'IOS') {
-        if (appName.trim() === '') {
-          document.getElementById('appname').style.borderColor = 'red';
-        } if (deviceName.trim() === '') {
-          document.getElementById('devicename').style.borderColor = 'red';
-        } if (udidName.trim() === '') {
-          document.getElementById('udid').style.borderColor = 'red';
-        } if (appiumURL.trim() === '') {
-          document.getElementById('appiumurl').style.borderColor = 'red';
-        } if (platformVersion.trim() === '') {
-          document.getElementById('platformversion').style.borderColor = 'red';
-        } if (automationName.trim() === '') {
-          document.getElementById('automationName').style.borderColor = 'red';
-        } if (bundleID.trim() === '') {
-          document.getElementById('bundleID').style.borderColor = 'red';
-        }
-
-        if (appName.trim() != '' && deviceName.trim() != '' && udidName.trim() != '' && platformVersion.trim() != '' && automationName.trim() != '' && appiumURL.trim() != '' && bundleID.trim() != '') {
-          document.getElementById('platformname').disabled = true;
-          document.getElementById('AppRunningPopup').style.display = 'block';
-          document.getElementById('overlay').style.display = 'block';
+          var plateformName = document.getElementById('platformname');
+          var plateformOption = plateformName.options[plateformName.selectedIndex].text;
+          const information = document.getElementById('info')
           var appName = document.getElementById('appname').value;
           var deviceName = document.getElementById('devicename').value;
           var udidName = document.getElementById('udid').value;
           var platformVersion = document.getElementById('platformversion').value;
           var automationName = document.getElementById('automationName').value;
-          var appiumURL = document.getElementById('appiumurl').value;
           var bundleID = document.getElementById('bundleID').value;
-          initialData.push(plateformOption, deviceName, platformVersion, automationName, appiumURL, udidName, bundleID);
-          launchApp(initialData)
-          document.getElementById("appname").disabled = true;
-          document.getElementById("devicename").disabled = true;
-          document.getElementById("udid").disabled = true;
-          document.getElementById("appiumurl").disabled = true;
-          document.getElementById("platformversion").disabled = true;
-          document.getElementById("automationName").disabled = true;
-          document.getElementById("bundleID").disabled = true;
-        }
-      }
-    });
+          var appPackage = document.getElementById('apppackage').value;
+          var appActivity = document.getElementById('appactivity').value;
+          var appiumURL = document.getElementById('appiumurl').value;
+
+          // NEW HELPER: Shows the loading GIF beautifully inside the screenshot dummy container
+          function triggerScreenshotLoader() {
+              document.getElementById('overlay').style.display = 'block'; // Keep background unclickable
+              document.getElementById('AppRunningPopup').style.display = 'none'; // Force hide the giant popup
+
+              const dummyDevice = document.getElementById("dummyDevice");
+              if (dummyDevice) {
+                  dummyDevice.style.display = "block";
+                  dummyDevice.innerHTML = `
+                      <div class="phone-welcome-overlay">
+                          <img src="icon/load-8510_256.gif" style="height: 50px; width: 50px; margin-bottom: 15px;" />
+                          <p>Starting Session & Fetching Screen...</p>
+                      </div>
+                  `;
+              }
+          }
+
+          if (plateformOption === 'Android') {
+            if (appName.trim() === '') document.getElementById('appname').style.borderColor = 'red';
+            if (deviceName.trim() === '') document.getElementById('devicename').style.borderColor = 'red';
+            if (udidName.trim() === '') document.getElementById('udid').style.borderColor = 'red';
+            if (appPackage.trim() === '') document.getElementById('apppackage').style.borderColor = 'red';
+            if (appActivity.trim() === '') document.getElementById('appactivity').style.borderColor = 'red';
+            if (appiumURL.trim() === '') document.getElementById('appiumurl').style.borderColor = 'red';
+            if (automationName.trim() === '') document.getElementById('automationName').style.borderColor = 'red';
+
+            if (appName.trim() != '' && deviceName.trim() != '' && udidName.trim() != '' && appPackage.trim() != '' && appActivity.trim() != '' && appiumURL.trim() != '' && automationName.trim() != '') {
+              document.getElementById('platformname').disabled = true;
+
+              triggerScreenshotLoader(); // Show loading in screenshot area
+
+              ipcRenderer.send('appPackage', appPackage);
+              initialData = [];
+              initialData.push(plateformOption, deviceName, appPackage, appActivity, appiumURL, udidName, automationName);
+              if (process.platform !== 'darwin') {
+                startApp(initialData);
+              } else {
+                launchApp(initialData)
+              }
+            }
+          } else if (plateformOption === 'IOS') {
+            if (appName.trim() === '') document.getElementById('appname').style.borderColor = 'red';
+            if (deviceName.trim() === '') document.getElementById('devicename').style.borderColor = 'red';
+            if (udidName.trim() === '') document.getElementById('udid').style.borderColor = 'red';
+            if (appiumURL.trim() === '') document.getElementById('appiumurl').style.borderColor = 'red';
+            if (platformVersion.trim() === '') document.getElementById('platformversion').style.borderColor = 'red';
+            if (automationName.trim() === '') document.getElementById('automationName').style.borderColor = 'red';
+            if (bundleID.trim() === '') document.getElementById('bundleID').style.borderColor = 'red';
+
+            if (appName.trim() != '' && deviceName.trim() != '' && udidName.trim() != '' && platformVersion.trim() != '' && automationName.trim() != '' && appiumURL.trim() != '' && bundleID.trim() != '') {
+              document.getElementById('platformname').disabled = true;
+
+              triggerScreenshotLoader(); // Show loading in screenshot area
+
+              initialData.push(plateformOption, deviceName, platformVersion, automationName, appiumURL, udidName, bundleID);
+              launchApp(initialData)
+              document.getElementById("appname").disabled = true;
+              document.getElementById("devicename").disabled = true;
+              document.getElementById("udid").disabled = true;
+              document.getElementById("appiumurl").disabled = true;
+              document.getElementById("platformversion").disabled = true;
+              document.getElementById("automationName").disabled = true;
+              document.getElementById("bundleID").disabled = true;
+            }
+          }
+        });
 
 
     async function startApp(initialData) {
+        var Androide_desiredCaps = {
+            platformName: initialData[0],
+            "appium:options": {
+                deviceName: initialData[1],
+                udid: initialData[5],
+                appPackage: initialData[2],
+                appActivity: initialData[3],
+                automationName: initialData[6],
+                newCommandTimeout: 3000,
+                autoGrantPermissions: true,
+                noReset: true
+            }
+        };
 
-      // setting capabilities
-      var Androide_desiredCaps = {
-        platformName: initialData[0],
-        "appium:options": {
-          deviceName: initialData[1],
-          udid: initialData[5],
-          appPackage: initialData[2],
-          appActivity: initialData[3],
-          automationName: initialData[6],
-          newCommandTimeout: 3000,
-          autoGrantPermissions: true,
-          noReset: true
+        var IOS_desiredCaps = {
+            platformName: initialData[0],
+            "appium:options": {
+                deviceName: initialData[1],
+                platformVersion: initialData[2],
+                automationName: initialData[3],
+                udid: initialData[5],
+                bundleId: initialData[6],
+                simpleIsVisibleCheck: true,
+                preventWDAAttachments: true,
+                useJSONSource: false,
+                newCommandTimeout: 500000
+            }
+        };
+
+        try {
+            if (initialData[0] === 'Android') {
+                console.log("STEP 1");
+                driver = await new wd.Builder()
+                    .usingServer(initialData[4])
+                    .withCapabilities(Androide_desiredCaps) // Fixed typo from your code
+                    .forBrowser("")
+                    .build();
+                console.log("STEP 2 - SESSION CREATED");
+            }
+
+            document.getElementById('Scrape').disabled = false;
+            document.getElementById('Scrape').style.backgroundColor = '#4285F4';
+            document.getElementById('Run').disabled = true;
+            document.getElementById('Run').style.backgroundColor = '#B6B6B4';
+            document.getElementById('AppRunningPopup').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+
+        } catch (error) {
+            console.error("startApp error:", error);
+            showErrorPopup("Failed to Start App", error);
         }
-      };
-
-      var IOS_desiredCaps = {
-        platformName: initialData[0],
-        "appium:options": {
-          deviceName: initialData[1],
-          platformVersion: initialData[2],
-          automationName: initialData[3],
-          udid: initialData[5],
-          bundleId: initialData[6],
-          simpleIsVisibleCheck: true,
-          preventWDAAttachments: true,
-          useJSONSource: false,
-          newCommandTimeout: 500000
-        }
-      };
-      //Initiating the Driver
-      try {
-
-      // changed
-
-
-        if (initialData[0] === 'Android') {
-
-            console.log("STEP 1");
-
-            driver = await new wd.Builder()
-                .usingServer(initialData[4])
-                .withCapabilities(darwin_Androide_desiredCaps)
-                .forBrowser("")
-                .build();
-
-            console.log("STEP 2 - SESSION CREATED");
-        }
-
-        //changed
-
-      document.getElementById('Scrape').disabled = false;
-      document.getElementById('Scrape').style.backgroundColor = '#4285F4'
-      document.getElementById('Run').disabled = true;
-      document.getElementById('Run').style.backgroundColor = '#B6B6B4'
-        document.getElementById('AppRunningPopup').style.display = 'none'
-        document.getElementById('overlay').style.display = 'none';
-
-
-        //changed
-
-
-      } catch (error) {
-        document.getElementById('AppRunningPopup').style.display = 'none'
-        document.getElementById('overlay').style.display = 'none';
-        document.getElementById('launchErrorPopup').style.display = 'block'
-        document.getElementById('overlay').style.display = 'block';
-        document.getElementById("okay_button").addEventListener('click', async () => {
-          document.getElementById('launchErrorPopup').style.display = 'none'
-          document.getElementById('overlay').style.display = 'none';
-          document.getElementById('platformname').disabled = false;
-        });
-      }
     }
 
 
     async function launchApp(initialData) {
-      var darwin_Androide_desiredCaps = {
-        platformName: initialData[0],
-        "appium:options": {
-          deviceName: initialData[1],
-          appPackage: initialData[2],
-          appActivity: initialData[3],
-          newCommandTimeout: 3000,
-          automationName: initialData[6],
-          noReset: true
+        var darwin_Androide_desiredCaps = {
+            platformName: initialData[0],
+            "appium:options": {
+                deviceName: initialData[1],
+                appPackage: initialData[2],
+                appActivity: initialData[3],
+                newCommandTimeout: 3000,
+                automationName: initialData[6],
+                noReset: true
+            }
+        };
+        var darwin_IOS_desiredCaps = {
+            platformName: initialData[0],
+            "appium:options": {
+                deviceName: initialData[1],
+                platformVersion: initialData[2],
+                automationName: initialData[3],
+                udid: initialData[5],
+                bundleId: initialData[6],
+                simpleIsVisibleCheck: true,
+                preventWDAAttachments: true,
+                useJSONSource: false,
+                newCommandTimeout: 500000
+            }
+        };
+
+        try {
+            if (initialData[0] === 'Android') {
+                driver = await new wd.Builder().usingServer(initialData[4]).withCapabilities(darwin_Androide_desiredCaps).forBrowser("").build();
+                console.log("Android Driver Session Established. Activating application package...");
+                await driver.executeScript("mobile: activateApp", { appId: initialData[2] });
+            } else if (initialData[0] === 'IOS') {
+                driver = await new wd.Builder().usingServer(initialData[4]).withCapabilities(darwin_IOS_desiredCaps).forBrowser("").build();
+                console.log("iOS Driver Session Established. Activating application bundle...");
+                await driver.executeScript("mobile: activateApp", { bundleId: initialData[6] });
+            }
+        } catch (error) {
+            console.error("Failed to initialize driver session:", error);
+            showErrorPopup("Appium Driver Initialization Failed", error);
+            return;
         }
-      };
-      var darwin_IOS_desiredCaps = {
-        platformName: initialData[0],
-        "appium:options": {
-          deviceName: initialData[1],
-          platformVersion: initialData[2],
-          automationName: initialData[3],
-          udid: initialData[5],
-          bundleId: initialData[6],
-          simpleIsVisibleCheck: true,
-          preventWDAAttachments: true,
-          useJSONSource: false,
-          newCommandTimeout: 500000
-        }
-      };
 
-      // Initiating the Driver
-      try {
-        if (initialData[0] === 'Android') {
-          driver = await new wd.Builder().usingServer(initialData[4]).withCapabilities(darwin_Androide_desiredCaps).forBrowser("").build();
+        document.getElementById('Run').disabled = true;
+        document.getElementById('Run').style.backgroundColor = '#B6B6B4';
+        document.getElementById('Scrape').disabled = false;
+        document.getElementById('Scrape').style.backgroundColor = '#4285F4';
+        document.getElementById('download').disabled = false;
+        document.getElementById('download').style.backgroundColor = '#4285F4';
+        document.getElementById('reset').disabled = false;
+        document.getElementById('reset').style.backgroundColor = '#4285F4';
+        document.getElementById('scrapeUI').disabled = false;
+        document.getElementById('scrapeUI').style.backgroundColor = '#4285F4';
+        document.getElementById('algoQA').disabled = false;
+        document.getElementById('algoQA').style.backgroundColor = '#4285F4';
+        document.getElementById('AppRunningPopup').style.display = 'none';
+        document.getElementById('overlay').style.display = 'none';
 
-          console.log("Android Driver Session Established. Activating application package...");
-          // Explicitly pull the targeted app to the foreground
-          await driver.executeScript("mobile: activateApp", { appId: initialData[2] });
-        }
-        else if (initialData[0] === 'IOS') {
-          driver = await new wd.Builder().usingServer(initialData[4]).withCapabilities(darwin_IOS_desiredCaps).forBrowser("").build();
-
-          console.log("iOS Driver Session Established. Activating application bundle...");
-          // Explicitly pull the targeted app to the foreground
-          await driver.executeScript("mobile: activateApp", { bundleId: initialData[6] });
-        }
-      } catch (error) {
-         console.error("Failed to initialize driver session:", error);
-         // Re-enable run buttons if initialization crashes out completely
-         document.getElementById('AppRunningPopup').style.display = 'none';
-         document.getElementById('overlay').style.display = 'none';
-         alert("Launch error: " + error.message);
-         return;
-      }
-
-      // Update UI State safely since driver session is validated
-      document.getElementById('Run').disabled = true;
-      document.getElementById('Run').style.backgroundColor = '#B6B6B4';
-
-      document.getElementById('Scrape').disabled = false;
-      document.getElementById('Scrape').style.backgroundColor = '#4285F4';
-
-      document.getElementById('download').disabled = false;
-      document.getElementById('download').style.backgroundColor = '#4285F4';
-
-      document.getElementById('reset').disabled = false;
-      document.getElementById('reset').style.backgroundColor = '#4285F4';
-
-      document.getElementById('scrapeUI').disabled = false;
-      document.getElementById('scrapeUI').style.backgroundColor = '#4285F4';
-
-      document.getElementById('algoQA').disabled = false;
-      document.getElementById('algoQA').style.backgroundColor = '#4285F4';
-
-      document.getElementById('AppRunningPopup').style.display = 'none';
-      document.getElementById('overlay').style.display = 'none';
-
-      // Proceed to screen extraction steps
-      await loadFirstScreen();
+        await loadFirstScreen();
     }
 
 
@@ -1363,23 +1340,14 @@
       }
     }
       }
-    }
-    catch(error){
+    } catch(error) {
+          document.getElementById('div_status_bar').style.display = 'none';
+          document.getElementById('download').disabled = false;
+          document.getElementById('download').style.backgroundColor = '#4285F4';
 
-      document.getElementById('div_status_bar').style.display = 'none'
-
-      if (error.message.includes('unknown server-side error')) {
-        document.getElementById('Error').style.display = 'block'
-        document.getElementById('overlay').style.display = 'block';
-        document.getElementById("ok_btn").addEventListener('click', async () => {
-          document.getElementById('Error').style.display = 'none'
-          document.getElementById('SamePageNameError').style.display = 'none'
-          document.getElementById('overlay').style.display = 'none';
-        });
-                document.getElementById('download').disabled = false;
-            document.getElementById('download').style.backgroundColor = '#4285F4'
-      }
-    }
+          console.error("Scraping Error:", error);
+          showErrorPopup("Error occurred while scraping", error);
+        }
 
     });
 
@@ -1521,10 +1489,17 @@
         imgElement.remove();
       }
       const dummy = document.getElementById("dummyDevice");
-
-      if (dummy) {
-          dummy.style.display = "block";
-      }
+              if (dummy) {
+                  dummy.style.display = "block";
+                  dummy.innerHTML = `
+                      <div class="phone-welcome-overlay">
+                          <svg class="info-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                          </svg>
+                          <p>Your page will load here once you select an app and click on "Launch Application".</p>
+                      </div>
+                  `;
+              }
       imgTagFlag = false;
       const ssElement = document.getElementById('ss');
       if (ssElement) {
@@ -1822,11 +1797,11 @@
                     showElementHover = false;
                     clearOverlay();
                 } catch (err) {
-                    console.log("Show Element Error:", err);
-                    alert("Unable to locate element");
-                }
-            }
-        }
+                                    console.error("Show Element Error:", err);
+                                    showErrorPopup("Unable to locate element", err);
+                                }
+                            }
+                        }
 
 
     async function onShowElementHover(e) {
@@ -1969,8 +1944,9 @@
             clearOverlay();
 
         } catch (err) {
-            console.log("Touch Error:", err);
-        } finally {
+                    console.error("Touch Error:", err);
+                    showErrorPopup("Action Failed: Tap Element", err);
+                } finally {
             // 3. Dismount the localized loader view cleanly
             const targetLoader = document.getElementById("localTouchLoader");
             if (targetLoader) {
@@ -3170,10 +3146,9 @@ function createAndAppendTable(dtControls) {
                 if (brokenText)
                     brokenText.style.display = "flex";
 
-                console.error("IOS ELEMENT ERROR:");
-                console.error(e);
-                alert(e.message);
-        } finally {
+                console.error("IOS ELEMENT ERROR:", e);
+                                showErrorPopup("Failed to Load Element Image", e);
+                        } finally {
           loadingImage = false; // Reset loadingImage flag after image loading is complete or failed
           document.getElementById("div_status_bar_ss").style.display = "none";
         }
@@ -3457,10 +3432,10 @@ function createAndAppendTable(dtControls) {
             exec("xcrun simctl shutdown all", () => { ipcRenderer.send("close-app"); });
 
         } catch (error) {
-            console.error("Error sending table data:", error);
-            alert("Failed to share data to AlgoQA");
-        }
-    }
+                    console.error("Error sending table data:", error);
+                    showErrorPopup("Failed to share data to AlgoQA", error);
+                }
+            }
 
 
 
@@ -3828,45 +3803,44 @@ function createAndAppendTable(dtControls) {
 
     const changeTokenBtn = document.getElementById("changeTokenBtn");
 
-    changeTokenBtn.addEventListener("click", () => {
-        const tokenInput = document.getElementById("tokenInput");
+        changeTokenBtn.addEventListener("click", () => {
+            const tokenInput = document.getElementById("tokenInput");
 
-        // Remove saved token payload strings cleanly
-        localStorage.removeItem("algoQAUser");
+            // Remove saved token payload strings cleanly
+            localStorage.removeItem("algoQAUser");
 
-        // Clear and restore input properties
-        tokenInput.value = "";
-        tokenInput.style.visibility = "visible";
-        tokenInput.style.display = "inline-block";
-        tokenInput.disabled = false;
-        tokenInput.readOnly = false;
-        tokenInput.removeAttribute("disabled");
-        tokenInput.removeAttribute("readonly");
+            // Clear and restore input properties (using display instead of visibility)
+            tokenInput.value = "";
+            tokenInput.style.display = "inline-block";
+            tokenInput.disabled = false;
+            tokenInput.readOnly = false;
+            tokenInput.removeAttribute("disabled");
+            tokenInput.removeAttribute("readonly");
 
-        // Hide connected labels and the change button itself
-        document.getElementById("tokenStatus").style.display = "none";
-        changeTokenBtn.style.display = "none";
+            // Hide connected labels and the change button itself
+            document.getElementById("tokenStatus").style.display = "none";
+            changeTokenBtn.style.display = "none";
 
-        // Define the component array requiring strict locking actions
-        const lockButtons = ["Run", "Scrape", "scrapeUI", "reset", "algoQA"];
-        lockButtons.forEach(btnId => {
-            const btn = document.getElementById(btnId);
-            if (btn) {
-                btn.disabled = true;
-                btn.style.backgroundColor = "#B6B6B4";
+            // Define the component array requiring strict locking actions
+            const lockButtons = ["Run", "Scrape", "scrapeUI", "reset", "algoQA"];
+            lockButtons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.disabled = true;
+                    btn.style.backgroundColor = "#B6B6B4";
+                }
+            });
+
+            // Explicitly guarantee that download actions bypass this freeze block completely
+            const downloadBtn = document.getElementById("download");
+            if (downloadBtn && tableCreated) {
+                downloadBtn.disabled = false;
+                downloadBtn.style.backgroundColor = "#4285F4";
             }
+
+            // Direct system focus properties back onto text input container
+            tokenInput.focus();
         });
-
-        // Explicitly guarantee that download actions bypass this freeze block completely
-        const downloadBtn = document.getElementById("download");
-        if (downloadBtn && tableCreated) {
-            downloadBtn.disabled = false;
-            downloadBtn.style.backgroundColor = "#4285F4";
-        }
-
-        // Direct system focus properties back onto text input container
-        tokenInput.focus();
-    });
 
 
     function generateUniqueXPath(node) {
@@ -4383,61 +4357,61 @@ function updateEyeButtonState() {
     }
 }
 
-function hideColumn(colIndex) {
-    const table = document.getElementById("mainTable");
-    if (!table) return;
-
-    const headerRow = table.querySelector("thead tr");
-    if (!headerRow || !headerRow.cells[colIndex]) return;
-
-    const th = headerRow.cells[colIndex];
-    let colName = th.querySelector("span")?.innerText.trim() || th.innerText.trim();
-    colName = colName.replace("Delete Column", "").replace("Add Column", "").trim();
-
-    if (!colName || colName === "") {
-        if (th.classList.contains("excel-header-corner")) {
-            colName = "# (Index)";
-        } else if (th.id === "add_empty_column") {
-            colName = "+ (Add Column)";
-        } else {
-            colName = "Column " + (colIndex + 1);
-        }
-    }
-
-    th.style.setProperty("display", "none", "important");
-    const bodyRows = table.querySelectorAll("tbody tr");
-    bodyRows.forEach(row => {
-        if (row.cells[colIndex]) {
-            row.cells[colIndex].style.setProperty("display", "none", "important");
-        }
-    });
-
-    hiddenColumns.push({ index: colIndex, name: colName });
-    updateEyeButtonState();
-}
-
-function unhideColumn(arrayIndex) {
-    const colInfo = hiddenColumns[arrayIndex];
-    if (!colInfo) return;
-
-    const table = document.getElementById("mainTable");
-    if (!table) return;
-
-    const headerRow = table.querySelector("thead tr");
-    if (headerRow && headerRow.cells[colInfo.index]) {
-        headerRow.cells[colInfo.index].style.display = "";
-    }
-
-    const bodyRows = table.querySelectorAll("tbody tr");
-    bodyRows.forEach(row => {
-        if (row.cells[colInfo.index]) {
-            row.cells[colInfo.index].style.display = "";
-        }
-    });
-
-    hiddenColumns.splice(arrayIndex, 1);
-    updateEyeButtonState();
-}
+//function hideColumn(colIndex) {
+//    const table = document.getElementById("mainTable");
+//    if (!table) return;
+//
+//    const headerRow = table.querySelector("thead tr");
+//    if (!headerRow || !headerRow.cells[colIndex]) return;
+//
+//    const th = headerRow.cells[colIndex];
+//    let colName = th.querySelector("span")?.innerText.trim() || th.innerText.trim();
+//    colName = colName.replace("Delete Column", "").replace("Add Column", "").trim();
+//
+//    if (!colName || colName === "") {
+//        if (th.classList.contains("excel-header-corner")) {
+//            colName = "# (Index)";
+//        } else if (th.id === "add_empty_column") {
+//            colName = "+ (Add Column)";
+//        } else {
+//            colName = "Column " + (colIndex + 1);
+//        }
+//    }
+//
+//    th.style.setProperty("display", "none", "important");
+//    const bodyRows = table.querySelectorAll("tbody tr");
+//    bodyRows.forEach(row => {
+//        if (row.cells[colIndex]) {
+//            row.cells[colIndex].style.setProperty("display", "none", "important");
+//        }
+//    });
+//
+//    hiddenColumns.push({ index: colIndex, name: colName });
+//    updateEyeButtonState();
+//}
+//
+//function unhideColumn(arrayIndex) {
+//    const colInfo = hiddenColumns[arrayIndex];
+//    if (!colInfo) return;
+//
+//    const table = document.getElementById("mainTable");
+//    if (!table) return;
+//
+//    const headerRow = table.querySelector("thead tr");
+//    if (headerRow && headerRow.cells[colInfo.index]) {
+//        headerRow.cells[colInfo.index].style.display = "";
+//    }
+//
+//    const bodyRows = table.querySelectorAll("tbody tr");
+//    bodyRows.forEach(row => {
+//        if (row.cells[colInfo.index]) {
+//            row.cells[colInfo.index].style.display = "";
+//        }
+//    });
+//
+//    hiddenColumns.splice(arrayIndex, 1);
+//    updateEyeButtonState();
+//}
 
 // --- ROW HIDING / UNHIDING STATE MANAGEMENT ---
 let hiddenRows = []; // Stores the physical row elements
@@ -4471,149 +4445,142 @@ function updateRowEyeButtonState() {
     }
 }
 
-function hideRow(rowIndexElem, trElement) {
-    let rowNum = rowIndexElem.innerText.trim();
-    let controlNameInput = trElement.querySelector('.cn');
-    let label = (controlNameInput && controlNameInput.innerText.trim() !== "")
-        ? `Row ${rowNum} (${controlNameInput.innerText.trim()})`
-        : `Row ${rowNum}`;
-
-    trElement.style.setProperty("display", "none", "important");
-    hiddenRows.push({ rowElement: trElement, label: label });
-    updateRowEyeButtonState();
-}
-
-function unhideRow(arrayIndex) {
-    const rowObj = hiddenRows[arrayIndex];
-    if (!rowObj || !rowObj.rowElement) return;
-
-    rowObj.rowElement.style.display = "";
-    hiddenRows.splice(arrayIndex, 1);
-    updateRowEyeButtonState();
-}
+//function hideRow(rowIndexElem, trElement) {
+//    let rowNum = rowIndexElem.innerText.trim();
+//    let controlNameInput = trElement.querySelector('.cn');
+//    let label = (controlNameInput && controlNameInput.innerText.trim() !== "")
+//        ? `Row ${rowNum} (${controlNameInput.innerText.trim()})`
+//        : `Row ${rowNum}`;
+//
+//    trElement.style.setProperty("display", "none", "important");
+//    hiddenRows.push({ rowElement: trElement, label: label });
+//    updateRowEyeButtonState();
+//}
+//
+//function unhideRow(arrayIndex) {
+//    const rowObj = hiddenRows[arrayIndex];
+//    if (!rowObj || !rowObj.rowElement) return;
+//
+//    rowObj.rowElement.style.display = "";
+//    hiddenRows.splice(arrayIndex, 1);
+//    updateRowEyeButtonState();
+//}
 
 // --- RIGHT-CLICK CONTEXT MENU EVENT LISTENERS ---
-let selectedColIndexToHide = null;
-let selectedRowToHide = null;
-
-document.addEventListener("DOMContentLoaded", () => {
-    const mainTable = document.getElementById("mainTable");
-
-    // Column Menu Variables
-    const colContextMenu = document.getElementById("colContextMenu");
-    const hideColOption = document.getElementById("hideColOption");
-    const colEyeBtn = document.getElementById("unhide_col_btn");
-    const unhideColMenu = document.getElementById("unhide_col_menu");
-
-    // Row Menu Variables
-    const rowContextMenu = document.getElementById("rowContextMenu");
-    const hideRowOption = document.getElementById("hideRowOption");
-    const rowEyeBtn = document.getElementById("unhide_row_btn");
-    const unhideRowMenu = document.getElementById("unhide_row_menu");
-
-    if (mainTable) {
-        // Right-Click Context Menu on HEADERS (Columns)
-        mainTable.querySelector("thead").addEventListener("contextmenu", (e) => {
-            const th = e.target.closest("th");
-            if (!th) return;
-
-            e.preventDefault();
-            selectedColIndexToHide = th.cellIndex;
-
-            if (colContextMenu) {
-                const menuWidth = 140;
-                const posX = (e.clientX + menuWidth > window.innerWidth) ? e.clientX - menuWidth : e.clientX;
-                colContextMenu.style.left = `${posX}px`;
-                colContextMenu.style.top = `${e.clientY}px`;
-                colContextMenu.style.display = "block";
-                if (rowContextMenu) rowContextMenu.style.display = "none";
-            }
-        });
-
-        // Right-Click Context Menu on ROW INDEX (Rows)
-        mainTable.querySelector("tbody").addEventListener("contextmenu", (e) => {
-            const td = e.target.closest("td.row-index");
-            if (!td) return; // Only trigger if right-clicking the grey '#' index column
-
-            e.preventDefault();
-            const tr = td.closest("tr");
-            selectedRowToHide = { td: td, tr: tr };
-
-            if (rowContextMenu) {
-                const menuWidth = 140;
-                const posX = (e.clientX + menuWidth > window.innerWidth) ? e.clientX - menuWidth : e.clientX;
-                rowContextMenu.style.left = `${posX}px`;
-                rowContextMenu.style.top = `${e.clientY}px`;
-                rowContextMenu.style.display = "block";
-                if (colContextMenu) colContextMenu.style.display = "none";
-            }
-        });
-    }
-
-    // Hide Column Action
-    if (hideColOption) {
-        hideColOption.addEventListener("click", () => {
-            if (selectedColIndexToHide !== null) {
-                hideColumn(selectedColIndexToHide);
-                selectedColIndexToHide = null;
-            }
-            if (colContextMenu) colContextMenu.style.display = "none";
-        });
-    }
-
-    // Hide Row Action
-    if (hideRowOption) {
-        hideRowOption.addEventListener("click", () => {
-            if (selectedRowToHide !== null) {
-                hideRow(selectedRowToHide.td, selectedRowToHide.tr);
-                selectedRowToHide = null;
-            }
-            if (rowContextMenu) rowContextMenu.style.display = "none";
-        });
-    }
-
-    // Toggle Column Eye Dropdown
-    if (colEyeBtn && unhideColMenu) {
-        colEyeBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (unhideRowMenu) unhideRowMenu.classList.remove("show"); // Close row menu
-            if (hiddenColumns.length > 0) {
-                unhideColMenu.classList.toggle("show");
-            }
-        });
-    }
-
-    // Toggle Row Eye Dropdown
-    if (rowEyeBtn && unhideRowMenu) {
-        rowEyeBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (unhideColMenu) unhideColMenu.classList.remove("show"); // Close col menu
-            if (hiddenRows.length > 0) {
-                unhideRowMenu.classList.toggle("show");
-            }
-        });
-    }
-
-    // Dismiss Menus on Outside Click
-    document.addEventListener("click", (e) => {
-        if (colContextMenu) colContextMenu.style.display = "none";
-        if (rowContextMenu) rowContextMenu.style.display = "none";
-
-        if (unhideColMenu && !unhideColMenu.contains(e.target) && e.target !== colEyeBtn) {
-            unhideColMenu.classList.remove("show");
-        }
-        if (unhideRowMenu && !unhideRowMenu.contains(e.target) && e.target !== rowEyeBtn) {
-            unhideRowMenu.classList.remove("show");
-        }
-    });
-});
-
-
-
-
-
-
-
+//let selectedColIndexToHide = null;
+//let selectedRowToHide = null;
+//
+//document.addEventListener("DOMContentLoaded", () => {
+//    const mainTable = document.getElementById("mainTable");
+//
+//    // Column Menu Variables
+//    const colContextMenu = document.getElementById("colContextMenu");
+//    const hideColOption = document.getElementById("hideColOption");
+//    const colEyeBtn = document.getElementById("unhide_col_btn");
+//    const unhideColMenu = document.getElementById("unhide_col_menu");
+//
+//    // Row Menu Variables
+//    const rowContextMenu = document.getElementById("rowContextMenu");
+//    const hideRowOption = document.getElementById("hideRowOption");
+//    const rowEyeBtn = document.getElementById("unhide_row_btn");
+//    const unhideRowMenu = document.getElementById("unhide_row_menu");
+//
+//    if (mainTable) {
+//        // Right-Click Context Menu on HEADERS (Columns)
+//        mainTable.querySelector("thead").addEventListener("contextmenu", (e) => {
+//            const th = e.target.closest("th");
+//            if (!th) return;
+//
+//            e.preventDefault();
+//            selectedColIndexToHide = th.cellIndex;
+//
+//            if (colContextMenu) {
+//                const menuWidth = 140;
+//                const posX = (e.clientX + menuWidth > window.innerWidth) ? e.clientX - menuWidth : e.clientX;
+//                colContextMenu.style.left = `${posX}px`;
+//                colContextMenu.style.top = `${e.clientY}px`;
+//                colContextMenu.style.display = "block";
+//                if (rowContextMenu) rowContextMenu.style.display = "none";
+//            }
+//        });
+//
+//        // Right-Click Context Menu on ROW INDEX (Rows)
+//        mainTable.querySelector("tbody").addEventListener("contextmenu", (e) => {
+//            const td = e.target.closest("td.row-index");
+//            if (!td) return; // Only trigger if right-clicking the grey '#' index column
+//
+//            e.preventDefault();
+//            const tr = td.closest("tr");
+//            selectedRowToHide = { td: td, tr: tr };
+//
+//            if (rowContextMenu) {
+//                const menuWidth = 140;
+//                const posX = (e.clientX + menuWidth > window.innerWidth) ? e.clientX - menuWidth : e.clientX;
+//                rowContextMenu.style.left = `${posX}px`;
+//                rowContextMenu.style.top = `${e.clientY}px`;
+//                rowContextMenu.style.display = "block";
+//                if (colContextMenu) colContextMenu.style.display = "none";
+//            }
+//        });
+//    }
+//
+//    // Hide Column Action
+//    if (hideColOption) {
+//        hideColOption.addEventListener("click", () => {
+//            if (selectedColIndexToHide !== null) {
+//                hideColumn(selectedColIndexToHide);
+//                selectedColIndexToHide = null;
+//            }
+//            if (colContextMenu) colContextMenu.style.display = "none";
+//        });
+//    }
+//
+//    // Hide Row Action
+//    if (hideRowOption) {
+//        hideRowOption.addEventListener("click", () => {
+//            if (selectedRowToHide !== null) {
+//                hideRow(selectedRowToHide.td, selectedRowToHide.tr);
+//                selectedRowToHide = null;
+//            }
+//            if (rowContextMenu) rowContextMenu.style.display = "none";
+//        });
+//    }
+//
+//    // Toggle Column Eye Dropdown
+//    if (colEyeBtn && unhideColMenu) {
+//        colEyeBtn.addEventListener("click", (e) => {
+//            e.stopPropagation();
+//            if (unhideRowMenu) unhideRowMenu.classList.remove("show"); // Close row menu
+//            if (hiddenColumns.length > 0) {
+//                unhideColMenu.classList.toggle("show");
+//            }
+//        });
+//    }
+//
+//    // Toggle Row Eye Dropdown
+//    if (rowEyeBtn && unhideRowMenu) {
+//        rowEyeBtn.addEventListener("click", (e) => {
+//            e.stopPropagation();
+//            if (unhideColMenu) unhideColMenu.classList.remove("show"); // Close col menu
+//            if (hiddenRows.length > 0) {
+//                unhideRowMenu.classList.toggle("show");
+//            }
+//        });
+//    }
+//
+//    // Dismiss Menus on Outside Click
+//    document.addEventListener("click", (e) => {
+//        if (colContextMenu) colContextMenu.style.display = "none";
+//        if (rowContextMenu) rowContextMenu.style.display = "none";
+//
+//        if (unhideColMenu && !unhideColMenu.contains(e.target) && e.target !== colEyeBtn) {
+//            unhideColMenu.classList.remove("show");
+//        }
+//        if (unhideRowMenu && !unhideRowMenu.contains(e.target) && e.target !== rowEyeBtn) {
+//            unhideRowMenu.classList.remove("show");
+//        }
+//    });
+//});
 
 // 3. Warning Prompt Helper
     function showHiddenColumnsWarning() {

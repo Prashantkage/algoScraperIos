@@ -1,13 +1,26 @@
+const path = require('path');
+
 module.exports = {
   packagerConfig: {
-      // Keep asar enabled but cleanly unpack your main automation directories
-      asar: {
-          unpackDir: '{appium-runtime,node_modules/appium-xcuitest-driver}'
-      },
-      extraResource: [
-          "./appium-runtime"
-      ]
+    // Force an absolute path so Electron Forge cannot fail to find it
+    icon: path.resolve(__dirname, 'assets', 'algoScraper Logo'),
+
+    executableName: 'AlgoScraper IOS',
+    appBundleId: 'com.algoshack.algoscraperios',
+
+    extendInfo: {
+      CFBundleName: 'AlgoScraper IOS',
+      CFBundleDisplayName: 'AlgoScraper IOS'
     },
+
+    asar: {
+      unpackDir: '{appium-runtime,node_modules/appium-xcuitest-driver}'
+    },
+
+    extraResource: [
+      "./appium-runtime"
+    ]
+  },
   rebuildConfig: {},
   makers: [
     {
@@ -16,7 +29,7 @@ module.exports = {
     },
     {
       name: '@electron-forge/maker-zip',
-      platforms: ['darwin'],
+      config: {},
     },
     {
       name: '@electron-forge/maker-deb',
@@ -32,24 +45,5 @@ module.exports = {
       name: '@electron-forge/plugin-auto-unpack-natives',
       config: {},
     },
-//    {
-//      name: '@electron-forge/plugin-webpack',
-//      config: {
-//        mainConfig: './webpack.main.config.js',
-//        renderer: {
-//          config: './webpack.renderer.config.js',
-//          entryPoints: [
-//            {
-//              html: './src/index.html',
-//              js: './src/renderer.js',
-//              name: 'main_window',
-//              preload: {
-//                js: './src/preload.js',
-//              },
-//            },
-//          ],
-//        },
-//      },
-//    },
   ],
 };

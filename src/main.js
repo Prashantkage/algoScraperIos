@@ -3,6 +3,9 @@
     const path = require('path');
     const wd = require("selenium-webdriver");
     const { exec, spawn } = require('child_process');
+    // ADD THIS LINE HERE:
+    app.name = "AlgoScraper IOS";
+    app.setName("AlgoScraper IOS");
     const { Menu } = require('electron');
     var appPackage
     var deviceId;
@@ -159,29 +162,24 @@
     }
 
     async function ensureAppiumStarted() {
-
         const MAX_RETRIES = 3;
+        let lastError = "Unknown internal error during Appium initialization";
 
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-
             console.log(`Starting Appium (Attempt ${attempt}/${MAX_RETRIES})`);
-
-            updateLoadingMessage(
-                `Starting Automation Engine (${attempt}/${MAX_RETRIES})`
-            );
+            updateLoadingMessage(`Starting Automation Engine (${attempt}/${MAX_RETRIES})`);
 
             try {
-
                 await startAppium();
-
                 const running = await waitForAppium(20000);
-
                 if (running) {
-                    return true;
+                    return { success: true };
+                } else {
+                    lastError = "Appium process spawned but port 4723 did not respond within 20 seconds.";
                 }
-
             } catch (e) {
                 console.log("Appium start failed:", e);
+                lastError = e?.stack || e?.message || String(e);
             }
 
             if (appiumProcess) {
@@ -190,11 +188,9 @@
             }
 
             await new Promise(r => setTimeout(r, 2000));
-
         }
 
-        return false;
-
+        return { success: false, error: lastError };
     }
 
     async function checkDeviceConnected() {
@@ -222,24 +218,25 @@
     function createLoadingWindow() {
 
       loadingWindow = new BrowserWindow({
-        width: 400,
-        height: 250,
-        frame: false,
-        transparent: false,
-        backgroundColor: "#2d2d30",
-        resizable: false,
-        movable: false,
-        minimizable: false,
-        maximizable: false,
-        alwaysOnTop: true,
-        show: true,
-        skipTaskbar: true,
-        hasShadow: false,
-        webPreferences: {
-          nodeIntegration: true,
-          contextIsolation: false
-        }
-      });
+             width: 400,
+             height: 250,
+             frame: false,
+             transparent: false,
+             backgroundColor: "#2d2d30",
+             resizable: false,
+             movable: false,
+             minimizable: false,
+             maximizable: false,
+             alwaysOnTop: true,
+             show: true,
+             skipTaskbar: true,
+             hasShadow: false,
+             icon: path.join(__dirname, '..', 'assets', 'algoScraper Logo.png'), // <-- Added '..' here
+             webPreferences: {
+               nodeIntegration: true,
+               contextIsolation: false
+             }
+           });
 
       // Convert the local GIF to inline Base64 to bypass Chromium security restrictions on data: URLs
       let loaderSrc = "";
@@ -501,20 +498,16 @@
 
     }
 
-
-
-
-
-
     const createWindow = () => {
       // Create the browser window.
       mainWindow = new BrowserWindow({
         width: 1200,
         height: 900,
         show: false,
+        title: "AlgoScraper IOS",
+        icon: path.join(__dirname, '..', 'assets', 'algoScraper Logo.png'), // <-- Added '..' here
         webPreferences: {
                 nodeIntegration: true,
-    //             preload: path.join(__dirname, 'popup.js'),
                 contextIsolation: false,
                 enableRemoteModule: true,
              }
@@ -674,6 +667,11 @@
     //app.on('ready', createWindow);
     app.on('ready', async () => {
 
+    // Set macOS Dock Icon for local dev (npm start)
+        if (process.platform === 'darwin' && app.dock) {
+            app.dock.setIcon(path.join(__dirname, '..', 'assets', 'algoScraper Logo.png'));
+        }
+
         app.setAsDefaultProtocolClient("myapp");
 
         createLoadingWindow();
@@ -682,22 +680,58 @@
         await showSuccess("Prerequisites Checked", 400);
 
         console.log("CHECKING APPIUM");
-        await showStep("Checking Appium", 500);
+            await showStep("Checking Appium", 500);
 
-        let appiumRunning = await checkAppium();
-
-        if (appiumRunning) {
-            await showSuccess("Appium Running", 500);
-        } else {
-            console.log("Starting Appium...");
-            await showStep("Starting Automation Engine", 500);
-
-            // Kill any stuck process on port 4723 ONCE before starting
-            await killExistingAppium();
-            appiumRunning = await ensureAppiumStarted();
+            let appiumRunning = await checkAppium();
 
             if (appiumRunning) {
-                await showSuccess("Automation Engine Ready", 500);
+                await showSuccess("Appium Running", 500);
+            } else {
+                console.log("Starting Appium...");
+                await showStep("Starting Automation Engine", 500);
+
+                await killExistingAppium();
+                const bootResult = await ensureAppiumStarted();
+
+                if (bootResult && bootResult.success) {
+                    await showSuccess("Automation Engine Ready", 500);
+                } else {
+                    if (loadingWindow && !loadingWindow.isDestroyed()) {
+                        loadingWindow.destroy();
+                        loadingWindow = null;
+                    }
+
+                    dialog.showErrorBox(
+                        "Automation Engine Startup Failed",
+                        `AlgoScraper couldn't initialize Appium.\n\nError Log:\n${bootResult ? bootResult.error : "Unknown error"}\n\nPlease check system dependencies and restart.`
+                    );
+
+                    // Kill any spawned Appium background process before quitting
+                    if (appiumProcess) {
+                        appiumProcess.kill();
+                        appiumProcess = null;
+                    }
+
+                    app.quit();
+                    return;
+                }
+            }
+
+            console.log("CHECKING DEVICE");
+            await showStep("Checking Connected Device", 500);
+
+            let deviceConnected = false;
+            let deviceErrorStr = "No valid devices returned by xcrun.";
+            try {
+                deviceConnected = await checkDeviceConnected();
+            } catch (deviceError) {
+                console.error("Device detection caught an execution error:", deviceError);
+                deviceErrorStr = deviceError?.stack || deviceError?.message || String(deviceError);
+                deviceConnected = false;
+            }
+
+            if (deviceConnected) {
+                await showSuccess(`${deviceName} Ready`, 500);
             } else {
                 if (loadingWindow && !loadingWindow.isDestroyed()) {
                     loadingWindow.destroy();
@@ -705,43 +739,19 @@
                 }
 
                 dialog.showErrorBox(
-                    "Startup Failed",
-                    "AlgoScraper couldn't initialize its automation engine.\n\nPlease restart the application."
+                    "Device Connection Failed",
+                    `Please connect an iPhone or start an iOS Simulator.\n\nError Log:\n${deviceErrorStr}`
                 );
+
+                // Terminate Appium process and quit application completely
+                if (appiumProcess) {
+                    appiumProcess.kill();
+                    appiumProcess = null;
+                }
 
                 app.quit();
                 return;
             }
-        }
-
-        console.log("CHECKING DEVICE");
-        await showStep("Checking Connected Device", 500);
-
-        let deviceConnected = false;
-        try {
-            deviceConnected = await checkDeviceConnected();
-        } catch (deviceError) {
-            console.error("Device detection caught an execution error:", deviceError);
-            deviceConnected = false;
-        }
-
-        if (deviceConnected) {
-            await showSuccess(`${deviceName} Ready`, 500);
-        } else {
-            if (loadingWindow && !loadingWindow.isDestroyed()) {
-                loadingWindow.destroy();
-                loadingWindow = null;
-            }
-
-            dialog.showErrorBox(
-                "No iOS Device Found",
-                "Please connect an iPhone or start an iOS Simulator."
-            );
-
-            app.quit();
-            return;
-        }
-
         if (loadingWindow && !loadingWindow.isDestroyed()) {
             loadingWindow.destroy();
             loadingWindow = null;

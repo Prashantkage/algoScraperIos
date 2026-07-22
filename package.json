@@ -1,6 +1,6 @@
 {
-  "name": "algoscraper",
-  "productName": "algoScraper",
+  "name": "algoscraper-ios",
+  "productName": "AlgoScraper IOS",
   "version": "1.0.0",
   "description": "This algoScraper is used to scrape the XPath for Android App and IOS App",
   "main": "./src/main.js",
@@ -31,6 +31,9 @@
     "node-loader": "^2.0.0",
     "style-loader": "^3.3.4"
   },
+  "config": {
+    "forge": "forge.config.js"
+  },
   "dependencies": {
     "adbkit": "^2.0.17",
     "appium": "^2.0.1",
@@ -50,3 +53,5 @@
   },
   "type": "commonjs"
 }
+
+

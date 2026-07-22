@@ -154,7 +154,7 @@
     </div>
 
     <div class="split-div2">
-        <div class="container" style="height:512px; position:relative;">
+        <div class="container" style="height:504px; position:relative;">
 
             <!-- Screenshot Toolbar -->
             <div id="imageToolbarmain">
@@ -284,7 +284,7 @@
     </div>
 
     <!-- COLUMN Unhide Button -->
-    <div class="unhide-dropdown-wrapper custom-tooltip-wrapper" style="margin-left: 5px;">
+    <div class="unhide-dropdown-wrapper custom-tooltip-wrapper" style="margin-left: 5px; display: none !important;">
         <button id="unhide_col_btn" class="circular-eye-btn" disabled style="width: auto !important; min-width: unset; border-radius: 14px; padding: 0 10px; gap: 5px; display: inline-flex; align-items: center; justify-content: center;">
             <!-- Clean SVG Eye Icon -->
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -298,7 +298,7 @@
     </div>
 
     <!-- ROW Unhide Button -->
-    <div class="unhide-dropdown-wrapper custom-tooltip-wrapper" style="margin-left: 5px;">
+    <div class="unhide-dropdown-wrapper custom-tooltip-wrapper" style="margin-left: 5px; display: none !important;">
         <button id="unhide_row_btn" class="circular-eye-btn" disabled style="width: auto !important; min-width: unset; border-radius: 14px; padding: 0 10px; gap: 5px; display: inline-flex; align-items: center; justify-content: center;">
             <!-- Clean SVG Eye Icon -->
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -342,9 +342,19 @@
             <th id="nodeName pt-3-half" style="border-inline-color:black; text-align: center; width: 266px;">NODE NAME <div class="resizer"></div></th>
             <td class="fingerprint" style="display:none;">${dtControls[i].Fingerprint || ""}</td>
             <th id="appUrl" style="display:none;">APP URL</th>
-            <th id="page pt-3-half" style="border-inline-color:black; width: 50px; text-align: center;">Delete <div class="resizer"></div></th>
+            <th id="delete_header" style="border-inline-color:black; width: 50px; text-align: center; vertical-align: middle;">
+                <!-- Standard Detailed Trash Can Icon -->
+                <svg viewBox="0 0 448 512" fill="#d9534f" style="width: 15px; height: 16px; margin-top: 2px; cursor: default; -webkit-user-drag: none;">
+                    <path d="M135.2 17.7C140.6 6.8 151.7 0 163.8 0H284.2c12.1 0 23.2 6.8 28.6 17.7L320 32h96c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 96 0 81.7 0 64S14.3 32 32 32h96l7.2-14.3zM32 128H416V448c0 35.3-28.7 64-64 64H96c-35.3 0-64-28.7-64-64V128zm96 64c-8.8 0-16 7.2-16 16V432c0 8.8 7.2 16 16 16s16-7.2 16-16V208c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16V432c0 8.8 7.2 16 16 16s16-7.2 16-16V208c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16V432c0 8.8 7.2 16 16 16s16-7.2 16-16V208c0-8.8-7.2-16-16-16z"/>
+                </svg>
+
+                <!-- Hidden text so popup.js still knows this is the Delete column -->
+                <span style="display:none;">DELETE</span>
+
+                <div class="resizer"></div>
+            </th>
             <!-- Table Header Plus Icon pinned sticky on the right -->
-            <th id="add_empty_column" class="custom-tooltip-wrapper" style="width: 35px; min-width: 35px; text-align: center;">
+            <th id="add_empty_column" class="custom-tooltip-wrapper" style="width: 35px; min-width: 35px; text-align: center; display: none !important;">
                 <img src="icon/plus.png" style="width:16px; cursor:pointer; -webkit-user-drag: none;" />
                 <span class="custom-tooltip">Add Column</span>
             </th>
@@ -363,14 +373,24 @@
                 style="margin-left: 13px;font-size: 13px;font-weight: 500;">Okay</button>
     </div>
 </div>
-<div class="popup" id="launchErrorPopup" style="display: none;">
-    <p style="font-weight: bold;margin-top: 4px;">Not able to launch Application</p>
-    <p style="font-size: small;color: #828080;">Please provide correct capabilities inside fields or Check your Appium connection</p>
-    <div class="myname" style="margin-left: 6px;">
-        <button class="btn btn-primary no-button" id="okay_button"
-                style="margin-left: 13px;font-size: 13px;font-weight: 500;">Okay</button>
+<div class="popup" id="launchErrorPopup" style="display: none; height: auto; min-height: 220px; width: 440px; z-index: 9999;">
+    <p id="launchErrorTitle" style="font-weight: bold; margin-top: 15px; text-align: center; color: #d9534f; font-size: 15px;">
+        Application Launch Error
+    </p>
+    <p style="font-size: 11px; color: #828080; text-align: center; margin-bottom: 10px; padding: 0 10px;">
+        Review the actual error log details below:
+    </p>
+
+    <div id="launchErrorLog" style="margin: 0 15px 15px 15px; padding: 10px; background-color: #1e1e1e; color: #ff6b6b; font-family: monospace; font-size: 11px; text-align: left; max-height: 150px; overflow-y: auto; border-radius: 6px; border: 1px solid #444; white-space: pre-wrap; word-break: break-word;">
+        No log recorded.
+    </div>
+
+    <div class="myname" style="text-align: center; margin-bottom: 15px;">
+        <button class="btn btn-primary no-button" id="okay_button" style="font-size: 13px; font-weight: 500; width: 80px;">Okay</button>
     </div>
 </div>
+
+
 <div class="popup" id="SamePageNameError" style="display: none;">
     <p style="font-weight: bold;margin-top: 4px;">Page Name already used, please try scraping with different page name</p>
     <div class="myname" style="margin-left: 6px;">
