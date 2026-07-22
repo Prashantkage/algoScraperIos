@@ -97,16 +97,17 @@
 
     window.addEventListener("DOMContentLoaded", () => {
 
-        document.getElementById("split-div3").style.display = "none";
+            document.getElementById("split-div3").style.display = "none";
 
-        document.getElementById("tapBtn").style.background = "#4285F4";
-        document.getElementById("tapBtn").style.color = "#fff";
+            document.getElementById("tapBtn").style.background = "#4285F4";
+            document.getElementById("tapBtn").style.color = "#fff";
 
-        document.getElementById("touchBtn").style.background = "#fff";
-        document.getElementById("touchBtn").style.color = "#333";
+            document.getElementById("touchBtn").style.background = "#fff";
+            document.getElementById("touchBtn").style.color = "#333";
 
-        document.getElementById("changeTokenBtn").style.display = "none";
-    });
+            // Forces the button to stay hidden at startup
+            document.getElementById("changeTokenBtn").style.setProperty("display", "none", "important");
+        });
 
     ipcRenderer.on("launch-mode", (event, launchedFromProtocol) => {
             launchedViaProtocol = launchedFromProtocol;
@@ -3270,15 +3271,18 @@ function createAndAppendTable(dtControls) {
         console.log("Validation Result:", isValidJson);
 
         // Cryptographically and structurally sound token validation check
-        if (isValidJson && parsedData) {
+                if (isValidJson && parsedData) {
 
-            tokenInput.style.display = "none";
-            tokenStatus.style.display = "block";
-            document.getElementById("changeTokenBtn").style.display = "inline-block";
-            tokenStatus.innerHTML = "✅ Connected";
-            tokenStatus.style.backgroundColor = "#d4edda";
-            tokenStatus.style.border = "1px solid #c3e6cb";
-            tokenStatus.style.color = "#155724";
+                    tokenInput.style.display = "none";
+                    tokenStatus.style.display = "block";
+
+                    // Forces the button to become visible
+                    document.getElementById("changeTokenBtn").style.setProperty("display", "inline-flex", "important");
+
+                    tokenStatus.innerHTML = "✅ Connected";
+                    tokenStatus.style.backgroundColor = "#d4edda";
+                    tokenStatus.style.border = "1px solid #c3e6cb";
+                    tokenStatus.style.color = "#155724";
 
             // Save complete validated payload locally as a single clean stringified object
             localStorage.setItem("algoQAUser", JSON.stringify(parsedData));
@@ -3822,16 +3826,18 @@ function createAndAppendTable(dtControls) {
             localStorage.removeItem("algoQAUser");
 
             // Clear and restore input properties (using display instead of visibility)
-            tokenInput.value = "";
-            tokenInput.style.display = "inline-block";
-            tokenInput.disabled = false;
-            tokenInput.readOnly = false;
-            tokenInput.removeAttribute("disabled");
-            tokenInput.removeAttribute("readonly");
+                        tokenInput.value = "";
+                        tokenInput.style.display = "inline-block";
+                        tokenInput.disabled = false;
+                        tokenInput.readOnly = false;
+                        tokenInput.removeAttribute("disabled");
+                        tokenInput.removeAttribute("readonly");
 
-            // Hide connected labels and the change button itself
-            document.getElementById("tokenStatus").style.display = "none";
-            changeTokenBtn.style.display = "none";
+                        // Hide connected labels and the change button itself
+                        document.getElementById("tokenStatus").style.display = "none";
+
+                        // Forces the button to hide again
+                        changeTokenBtn.style.setProperty("display", "none", "important");
 
             // Define the component array requiring strict locking actions
             const lockButtons = ["Run", "Scrape", "scrapeUI", "reset", "algoQA"];
