@@ -1412,84 +1412,84 @@
 
 
     function downloadTableAsJSON(tableId) {
-            document.getElementById('sttus_bar_div').style.display = 'none';
+        document.getElementById('sttus_bar_div').style.display = 'none';
 
-            const now = new Date();
-            const dateTime = now.toISOString().split('T')[0] + 'T' + now.toTimeString().split(' ')[0];
+        const now = new Date();
+        const dateTime = now.toISOString().split('T')[0] + 'T' + now.toTimeString().split(' ')[0];
 
-            var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
-            var visibleHeaders = allHeaders.filter(th => window.getComputedStyle(th).display !== 'none');
-            var rows = document.querySelectorAll(`#${tableId} tr`);
-            var dashboardControls = [];
+        var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
+        var visibleHeaders = allHeaders.filter(th => window.getComputedStyle(th).display !== 'none');
+        var rows = document.querySelectorAll(`#${tableId} tr`);
+        var dashboardControls = [];
 
-            rows.forEach((row) => {
-                if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
+        rows.forEach((row) => {
+            if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
 
-                // Skip hidden rows
-                if (window.getComputedStyle(row).display === 'none') return;
+            // NEW: Skip hidden rows
+                        if (window.getComputedStyle(row).display === 'none') return;
 
-                var allCells = Array.from(row.querySelectorAll('td'));
-                var visibleCells = allCells.filter(cell => window.getComputedStyle(cell).display !== 'none');
-                if (visibleCells.length === 0) return;
+            var allCells = Array.from(row.querySelectorAll('td'));
+            var visibleCells = allCells.filter(cell => window.getComputedStyle(cell).display !== 'none');
+            if (visibleCells.length === 0) return;
 
-                var rowObj = {
-                    "CONTROL NAME": "",
-                    "CONTROL TYPE": "",
-                    "XPATH": "",
-                    "PAGE NAME": "",
-                    "IDENTIFICATION TYPE": "",
-                    "CONTROL VALUE": "",
-                    "FEATURE NAME": "",
-                    "NODE NAME": "",
-                    "FINGERPRINT": "",
-                    "APP URL": ""
-                };
-
-                visibleHeaders.forEach((th, idx) => {
-                    var cell = visibleCells[idx];
-                    if (!cell) return;
-
-                    var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
-                    var selectEl = cell.querySelector('select');
-                    var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
-
-                    if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
-                    else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
-                    else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
-                    else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
-                    else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
-                    else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
-                    else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
-                    else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
-                    else if (th.classList.contains('custom-editable-header')) {
-                        var colName = th.querySelector('span')?.innerText.trim() || thText;
-                        rowObj[colName] = val;
-                    }
-                });
-
-                // STRICT EXPORT RULE REMOVED HERE: We now push the row no matter what is filled inside
-                dashboardControls.push(rowObj);
-            });
-
-            var jsonContent = {
-                "isRecordscenario": false,
-                "dashboardControls": dashboardControls
+            var rowObj = {
+                "CONTROL NAME": "",
+                "CONTROL TYPE": "",
+                "XPATH": "",
+                "PAGE NAME": "",
+                "IDENTIFICATION TYPE": "",
+                "CONTROL VALUE": "",
+                "FEATURE NAME": "",
+                "NODE NAME": "",
+                "FINGERPRINT": "",
+                "APP URL": ""
             };
 
-            var blob = new Blob([JSON.stringify(jsonContent, null, 2)], { type: "application/json;charset=utf-8;" });
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
+            visibleHeaders.forEach((th, idx) => {
+                var cell = visibleCells[idx];
+                if (!cell) return;
 
-            var appSelect = document.getElementById('appname');
-            var appName = appSelect ? appSelect.options[appSelect.selectedIndex].text.trim() : "App";
+                var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                var selectEl = cell.querySelector('select');
+                var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
 
-            a.download = appName + "_" + dateTime + ".json";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
+                if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
+                else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
+                else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
+                else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
+                else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
+                else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
+                else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
+                else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
+                else if (th.classList.contains('custom-editable-header')) {
+                    var colName = th.querySelector('span')?.innerText.trim() || thText;
+                    rowObj[colName] = val;
+                }
+            });
+
+            if (!rowObj["CONTROL NAME"] && !rowObj["XPATH"]) return;
+            dashboardControls.push(rowObj);
+        });
+
+        var jsonContent = {
+            "isRecordscenario": false,
+            "dashboardControls": dashboardControls
+        };
+
+        var blob = new Blob([JSON.stringify(jsonContent, null, 2)], { type: "application/json;charset=utf-8;" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+
+        var appSelect = document.getElementById('appname');
+        var appName = appSelect ? appSelect.options[appSelect.selectedIndex].text.trim() : "App";
+
+        a.download = appName + "_" + dateTime + ".json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
 
     // actions to perform on clicking reset button
     document.getElementById("reset").addEventListener('click', async () => {
@@ -3354,106 +3354,106 @@ function createAndAppendTable(dtControls) {
             });
 
     async function sendTableDataToAPI(tableId) {
-            const userData = JSON.parse(localStorage.getItem("algoQAUser"));
-            if (!userData) {
-                alert("Token data not found");
-                return;
-            }
+        const userData = JSON.parse(localStorage.getItem("algoQAUser"));
+        if (!userData) {
+            alert("Token data not found");
+            return;
+        }
 
-            var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
-            var visibleHeaders = allHeaders.filter(th => window.getComputedStyle(th).display !== 'none');
-            var rows = document.querySelectorAll(`#${tableId} tr`);
-            var tableData = [];
+        var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
+        var visibleHeaders = allHeaders.filter(th => window.getComputedStyle(th).display !== 'none');
+        var rows = document.querySelectorAll(`#${tableId} tr`);
+        var tableData = [];
 
-            rows.forEach((row) => {
-                if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
+        rows.forEach((row) => {
+            if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
 
-                // Skip hidden rows
-                if (window.getComputedStyle(row).display === 'none') return;
+            // NEW: Skip hidden rows
+                        if (window.getComputedStyle(row).display === 'none') return;
 
-                var allCells = Array.from(row.querySelectorAll('td'));
-                var visibleCells = allCells.filter(cell => window.getComputedStyle(cell).display !== 'none');
-                if (visibleCells.length === 0) return;
+            var allCells = Array.from(row.querySelectorAll('td'));
+            var visibleCells = allCells.filter(cell => window.getComputedStyle(cell).display !== 'none');
+            if (visibleCells.length === 0) return;
 
-                var rowObj = {
-                    "CONTROL NAME": "",
-                    "CONTROL TYPE": "",
-                    "XPATH": "",
-                    "PAGE NAME": "",
-                    "IDENTIFICATION TYPE": "",
-                    "CONTROL VALUE": "",
-                    "FEATURE NAME": "",
-                    "NODE NAME": "",
-                    "FINGERPRINT": "",
-                    "APP URL": ""
-                };
-
-                visibleHeaders.forEach((th, idx) => {
-                    var cell = visibleCells[idx];
-                    if (!cell) return;
-
-                    var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
-                    var selectEl = cell.querySelector('select');
-                    var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
-
-                    if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
-                    else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
-                    else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
-                    else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
-                    else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
-                    else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
-                    else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
-                    else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
-                    else if (th.classList.contains('custom-editable-header')) {
-                        var colName = th.querySelector('span')?.innerText.trim() || thText;
-                        rowObj[colName] = val;
-                    }
-                });
-
-                // STRICT EXPORT RULE REMOVED HERE: We now push the row to AlgoQA no matter what is filled inside
-                tableData.push(rowObj);
-            });
-
-            if (tableData.length === 0) {
-                alert("No scraped data found");
-                return;
-            }
-
-            const payload = {
-                data: tableData,
-                userID: Number(userData.userID),
-                baseUrl: userData.baseUrl,
-                projectId: userData.project_id,
-                launchUrl: userData.launchUrl,
-                projectName: userData.project_name,
-                applicationTypeId: Number(userData.application_type_id),
-                applicationType: "Mobile"
+            var rowObj = {
+                "CONTROL NAME": "",
+                "CONTROL TYPE": "",
+                "XPATH": "",
+                "PAGE NAME": "",
+                "IDENTIFICATION TYPE": "",
+                "CONTROL VALUE": "",
+                "FEATURE NAME": "",
+                "NODE NAME": "",
+                "FINGERPRINT": "",
+                "APP URL": ""
             };
 
-            console.log("Payload:", payload);
+            visibleHeaders.forEach((th, idx) => {
+                var cell = visibleCells[idx];
+                if (!cell) return;
 
-            try {
-                const endpoint = userData.project_id ? "saveReScraperData" : "MobileAutomationScraperData";
-                const response = await fetch(`${userData.baseUrl}/project/${endpoint}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
+                var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                var selectEl = cell.querySelector('select');
+                var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
 
-                const result = await response.json();
-                if (!response.ok) throw new Error("API request failed");
+                if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
+                else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
+                else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
+                else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
+                else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
+                else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
+                else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
+                else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
+                else if (th.classList.contains('custom-editable-header')) {
+                    var colName = th.querySelector('span')?.innerText.trim() || thText;
+                    rowObj[colName] = val;
+                }
+            });
 
-                alert("Scraped data shared successfully to AlgoQA");
+            if (!rowObj["CONTROL NAME"] && !rowObj["XPATH"]) return;
+            tableData.push(rowObj);
+        });
 
-                if (driver) { try { await driver.quit(); } catch (err) {} }
-                const { exec } = require("child_process");
-                exec("xcrun simctl shutdown all", () => { ipcRenderer.send("close-app"); });
-
-            } catch (error) {
-                console.error("Error sending table data:", error);
-                showErrorPopup("Failed to share data to AlgoQA", error);
-            }
+        if (tableData.length === 0) {
+            alert("No scraped data found");
+            return;
         }
+
+        const payload = {
+            data: tableData,
+            userID: Number(userData.userID),
+            baseUrl: userData.baseUrl,
+            projectId: userData.project_id,
+            launchUrl: userData.launchUrl,
+            projectName: userData.project_name,
+            applicationTypeId: Number(userData.application_type_id),
+            applicationType: "Mobile"
+        };
+
+        console.log("Payload:", payload);
+
+        try {
+            const endpoint = userData.project_id ? "saveReScraperData" : "MobileAutomationScraperData";
+            const response = await fetch(`${userData.baseUrl}/project/${endpoint}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw new Error("API request failed");
+
+            alert("Scraped data shared successfully to AlgoQA");
+
+            if (driver) { try { await driver.quit(); } catch (err) {} }
+            const { exec } = require("child_process");
+            exec("xcrun simctl shutdown all", () => { ipcRenderer.send("close-app"); });
+
+        } catch (error) {
+                    console.error("Error sending table data:", error);
+                    showErrorPopup("Failed to share data to AlgoQA", error);
+                }
+            }
 
 
 
