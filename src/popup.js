@@ -1521,18 +1521,18 @@
         imgElement.remove();
       }
       const dummy = document.getElementById("dummyDevice");
-              if (dummy) {
-                  dummy.style.display = "block";
-                  dummy.innerHTML = `
-                      <div class="phone-welcome-overlay">
-                          <svg id="dummyIcon" class="info-svg" viewBox="0 0 24 24" fill="#4285F4" xmlns="http://www.w3.org/2000/svg" style="width: 45px; height: 45px; margin-bottom: 15px;">
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
-                          </svg>
-                          <p id="dummyMainText" style="color: #333;">Your page will load here once you select an app and click on "Launch Application".</p>
-                          <p id="dummyErrorText" style="display: none; color: #d9534f; font-size: 11px; margin-top: 12px; line-height: 1.4; padding: 0 10px; font-weight: 600; word-break: break-word;"></p>
-                      </div>
-                  `;
-              }
+      if (dummy) {
+          dummy.style.display = "block";
+          dummy.innerHTML = `
+              <div class="phone-welcome-overlay">
+                  <svg id="dummyIcon" class="info-svg" viewBox="0 0 24 24" fill="#4285F4" xmlns="http://www.w3.org/2000/svg" style="width: 45px; height: 45px; margin-bottom: 15px;">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                  </svg>
+                  <p id="dummyMainText" style="color: #333; padding: 0 10px;">Data cleared. Click the Refresh button (↻) in the toolbar to fetch the current device screen.</p>
+                  <p id="dummyErrorText" style="display: none; color: #d9534f; font-size: 11px; margin-top: 12px; line-height: 1.4; padding: 0 10px; font-weight: 600; word-break: break-word;"></p>
+              </div>
+          `;
+      }
       imgTagFlag = false;
       const ssElement = document.getElementById('ss');
       if (ssElement) {
@@ -4778,10 +4778,11 @@ function updateRowEyeButtonState() {
                     dummy.style.display = "block";
                     dummy.innerHTML = `
                         <div class="phone-welcome-overlay">
-                            <svg class="info-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <svg id="dummyIcon" class="info-svg" viewBox="0 0 24 24" fill="#4285F4" xmlns="http://www.w3.org/2000/svg" style="width: 45px; height: 45px; margin-bottom: 15px;">
                                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
                             </svg>
-                            <p>Your page will load here once you select an app and click on "Launch Application".</p>
+                            <p id="dummyMainText" style="color: #333; padding: 0 10px;">Data cleared. Click the Refresh button (↻) in the toolbar to fetch the current device screen.</p>
+                            <p id="dummyErrorText" style="display: none; color: #d9534f; font-size: 11px; margin-top: 12px; line-height: 1.4; padding: 0 10px; font-weight: 600; word-break: break-word;"></p>
                         </div>
                     `;
                 }
