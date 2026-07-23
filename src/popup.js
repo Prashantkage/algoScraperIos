@@ -1467,7 +1467,7 @@
                 }
             });
 
-            if (!rowObj["CONTROL NAME"] && !rowObj["XPATH"]) return;
+//            if (!rowObj["CONTROL NAME"] && !rowObj["XPATH"]) return;
             dashboardControls.push(rowObj);
         });
 
@@ -3410,7 +3410,7 @@ function createAndAppendTable(dtControls) {
                 }
             });
 
-            if (!rowObj["CONTROL NAME"] && !rowObj["XPATH"]) return;
+//            if (!rowObj["CONTROL NAME"] && !rowObj["XPATH"]) return;
             tableData.push(rowObj);
         });
 
@@ -3863,102 +3863,104 @@ function createAndAppendTable(dtControls) {
 
 
 
-    function generateUniqueXPath(node) {
-        if (!node || node.nodeType !== 1) return "";
+   //Xpath Generation
+   function generateUniqueXPath(node) {
+           if (!node || node.nodeType !== 1) return "";
 
-        const stopNodes = ["AppiumAUT", "XCUIElementTypeApplication", "hierarchy", "XCUIElementTypeWindow"];
-        if (stopNodes.includes(node.nodeName)) {
-            return `//${node.nodeName}`;
-        }
+           const stopNodes = ["AppiumAUT", "XCUIElementTypeApplication", "hierarchy", "XCUIElementTypeWindow"];
+           if (stopNodes.includes(node.nodeName)) {
+               return `//${node.nodeName}`;
+           }
 
-        // --- STRATEGY 1: Global Unique Attribute Match ---
-        // Prioritize clean, reliable attributes across Android and iOS
-        const attributes = ["name", "resource-id", "content-desc", "text", "value", "label"];
-        for (let attr of attributes) {
-            let val = node.getAttribute(attr);
-            if (val && val.trim() !== "") {
-                val = val.trim().replace(/"/g, '\\"'); // Escape quotes safely
-                let baseXpath = `//${node.nodeName}[@${attr}="${val}"]`;
+           // --- STRATEGY 1: Global Unique Attribute Match ---
+           // CHANGED: Removed "name" from this array to match the logic above
+           const attributes = ["label", "resource-id", "content-desc", "text", "value"];
 
-                if (isXPathUnique(baseXpath)) {
-                    return baseXpath;
-                }
-            }
-        }
+           for (let attr of attributes) {
+               let val = node.getAttribute(attr);
+               if (val && val.trim() !== "") {
+                   val = val.trim().replace(/"/g, '\\"'); // Escape quotes safely
+                   let baseXpath = `//${node.nodeName}[@${attr}="${val}"]`;
 
-        // --- STRATEGY 2: Find the Closest Unique Ancestor ---
-        // Instead of using global indices like (//Tag)[35], find a unique parent and build a relative path
-        let ancestor = node.parentNode;
-        let ancestorPath = "";
+                   if (isXPathUnique(baseXpath)) {
+                       return baseXpath;
+                   }
+               }
+           }
 
-        while (ancestor && ancestor.nodeType === 1 && !stopNodes.includes(ancestor.nodeName)) {
-            for (let attr of attributes) {
-                let val = ancestor.getAttribute(attr);
-                if (val && val.trim() !== "") {
-                    val = val.trim().replace(/"/g, '\\"');
-                    let testAncestorXpath = `//${ancestor.nodeName}[@${attr}="${val}"]`;
+           // --- STRATEGY 2: Find the Closest Unique Ancestor ---
+           // Instead of using global indices like (//Tag)[35], find a unique parent and build a relative path
+           let ancestor = node.parentNode;
+           let ancestorPath = "";
 
-                    if (isXPathUnique(testAncestorXpath)) {
-                        ancestorPath = testAncestorXpath;
-                        break;
-                    }
-                }
-            }
-            if (ancestorPath) break;
-            ancestor = ancestor.parentNode;
-        }
+           while (ancestor && ancestor.nodeType === 1 && !stopNodes.includes(ancestor.nodeName)) {
+               for (let attr of attributes) {
+                   let val = ancestor.getAttribute(attr);
+                   if (val && val.trim() !== "") {
+                       val = val.trim().replace(/"/g, '\\"');
+                       let testAncestorXpath = `//${ancestor.nodeName}[@${attr}="${val}"]`;
 
-        // If we found a unique container parent, pinpoint our element inside it
-        if (ancestorPath) {
-            let relativeXpath = `${ancestorPath}//${node.nodeName}`;
+                       if (isXPathUnique(testAncestorXpath)) {
+                           ancestorPath = testAncestorXpath;
+                           break;
+                       }
+                   }
+               }
+               if (ancestorPath) break;
+               ancestor = ancestor.parentNode;
+           }
 
-            // Check if it's unique inside that container
-            if (isXPathUnique(relativeXpath)) {
-                return relativeXpath;
-            }
+           // If we found a unique container parent, pinpoint our element inside it
+           if (ancestorPath) {
+               let relativeXpath = `${ancestorPath}//${node.nodeName}`;
 
-            // If duplicates exist inside the unique container, index just within this scope
-            let results = window.xmlDoc.evaluate(relativeXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-            for (let i = 0; i < results.snapshotLength; i++) {
-                if (results.snapshotItem(i) === node) {
-                    return `(${relativeXpath})[${i + 1}]`;
-                }
-            }
-        }
+               // Check if it's unique inside that container
+               if (isXPathUnique(relativeXpath)) {
+                   return relativeXpath;
+               }
 
-        // --- STRATEGY 3: Local Index Relative to Immediate Parent ---
-        // If no unique text or container is found, fall back to structural tag placement: Parent/Child[Index]
-        let parent = node.parentNode;
-        if (parent && parent.nodeType === 1 && !stopNodes.includes(parent.nodeName)) {
-            let siblings = parent.childNodes;
-            let sameTagIndex = 0;
-            let matchIndex = 1;
+               // If duplicates exist inside the unique container, index just within this scope
+               let results = window.xmlDoc.evaluate(relativeXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+               for (let i = 0; i < results.snapshotLength; i++) {
+                   if (results.snapshotItem(i) === node) {
+                       return `(${relativeXpath})[${i + 1}]`;
+                   }
+               }
+           }
 
-            for (let i = 0; i < siblings.length; i++) {
-                if (siblings[i].nodeType === 1 && siblings[i].nodeName === node.nodeName) {
-                    sameTagIndex++;
-                    if (siblings[i] === node) {
-                        matchIndex = sameTagIndex;
-                    }
-                }
-            }
+           // --- STRATEGY 3: Local Index Relative to Immediate Parent ---
+           // If no unique text or container is found, fall back to structural tag placement: Parent/Child[Index]
+           let parent = node.parentNode;
+           if (parent && parent.nodeType === 1 && !stopNodes.includes(parent.nodeName)) {
+               let siblings = parent.childNodes;
+               let sameTagIndex = 0;
+               let matchIndex = 1;
 
-            // Recursively build path for the parent structure
-            let parentXpath = generateUniqueXPath(parent);
-            return `${parentXpath}/${node.nodeName}[${matchIndex}]`;
-        }
+               for (let i = 0; i < siblings.length; i++) {
+                   if (siblings[i].nodeType === 1 && siblings[i].nodeName === node.nodeName) {
+                       sameTagIndex++;
+                       if (siblings[i] === node) {
+                           matchIndex = sameTagIndex;
+                       }
+                   }
+               }
 
-        // --- STRATEGY 4: Absolute Global Fallback ---
-        let fallbackXpath = `//${node.nodeName}`;
-        let globalResults = window.xmlDoc.evaluate(fallbackXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-        for (let i = 0; i < globalResults.snapshotLength; i++) {
-            if (globalResults.snapshotItem(i) === node) {
-                return `(${fallbackXpath})[${i + 1}]`;
-            }
-        }
+               // Recursively build path for the parent structure
+               let parentXpath = generateUniqueXPath(parent);
+               return `${parentXpath}/${node.nodeName}[${matchIndex}]`;
+           }
 
-        return fallbackXpath;
-    }
+           // --- STRATEGY 4: Absolute Global Fallback ---
+           let fallbackXpath = `//${node.nodeName}`;
+           let globalResults = window.xmlDoc.evaluate(fallbackXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+           for (let i = 0; i < globalResults.snapshotLength; i++) {
+               if (globalResults.snapshotItem(i) === node) {
+                   return `(${fallbackXpath})[${i + 1}]`;
+               }
+           }
+
+           return fallbackXpath;
+       }
 
     // Helper utility to check absolute uniqueness of a generated path string
     function isXPathUnique(xpath) {
@@ -3971,9 +3973,8 @@ function createAndAppendTable(dtControls) {
     }
 
 
-
-
-    function getAllPossibleXPaths(node) {
+//get all possible Xpaths
+function getAllPossibleXPaths(node) {
         if (!node || node.nodeType !== 1) return [];
 
         let candidates = [];
@@ -3984,7 +3985,8 @@ function createAndAppendTable(dtControls) {
             return [`//${tagName}`];
         }
 
-        const attributes = ["name", "resource-id", "content-desc", "text", "label", "value"];
+        // CHANGED: Removed "name" from this array so it will never generate an XPath using @name
+        const attributes = ["label", "resource-id", "content-desc", "text", "value"];
 
         // 1. EXACT DIRECT ATTRIBUTES ONLY (No Contains, No Parents)
         for (let attr of attributes) {
@@ -4032,7 +4034,6 @@ function createAndAppendTable(dtControls) {
         // Return strict matches, or standard tag fallback
         return candidates.length > 0 ? candidates : [`//${tagName}`];
     }
-
 
 
 
@@ -4622,7 +4623,7 @@ function updateRowEyeButtonState() {
     });
 
     // Encapsulated Reset Function
-        function executeResetAction() {
+    function executeResetAction() {
             try {
                 // 1. Safely hide status bars and errors
                 const statusBar = document.getElementById('sttus_bar_div');
@@ -4754,15 +4755,16 @@ function updateRowEyeButtonState() {
 
 
 
+
+// Get Professional control name
 function generateProfessionalControlName(node) {
     if (!node) return "unknown_control";
 
     // 1. Get exact text or ID
-    let rawName = node.getAttribute("name") ||
-                  node.getAttribute("content-desc") ||
-                  node.getAttribute("label") ||
+    let rawName = node.getAttribute("label") ||
                   node.getAttribute("text") ||
                   node.getAttribute("value") ||
+                  node.getAttribute("content-desc") ||
                   "";
 
     if (!rawName.trim()) {
@@ -4791,12 +4793,22 @@ function generateProfessionalControlName(node) {
         return `${prefix}${cleanTag}`;
     }
 
-    // 4. Sanitize (Letters, numbers, underscores only)
-    let cleanName = rawName.replace(/[^a-zA-Z0-9 ]/g, "").trim().replace(/\s+/g, "_");
+    // 4. Smart Sanitize and Format
+    // Remove special characters but keep spaces to detect word boundaries
+    let cleanText = rawName.replace(/[^a-zA-Z0-9 ]/g, "").trim();
 
-    // Cap length to keep table clean
-    if (cleanName.length > 25) {
-        cleanName = cleanName.substring(0, 25);
+    // Split the text into an array of words
+    let words = cleanText.split(/\s+/).filter(w => w.length > 0);
+
+    // Keep only the first 3 meaningful words so the name doesn't get infinitely long
+    let selectedWords = words.slice(0, 3);
+
+    // Join the words with underscores
+    let cleanName = selectedWords.join("_");
+
+    // Failsafe: If someone has an incredibly long single word without spaces, cap it safely
+    if (cleanName.length > 40) {
+        cleanName = cleanName.substring(0, 40).replace(/_+$/, ""); // Cap and remove trailing underscores if any
     }
 
     // Prevent starting with a number
