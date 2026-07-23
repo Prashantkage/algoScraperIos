@@ -95,6 +95,29 @@
         }
     );
 
+    // 1. Create a dedicated ResizeObserver for the table container
+    const tableContainerObserver = new ResizeObserver(() => {
+        // requestAnimationFrame ensures this runs smoothly alongside browser repaints
+        requestAnimationFrame(adjustEmptyRows);
+    });
+
+    window.addEventListener("DOMContentLoaded", () => {
+        const tableContainer = document.getElementById('table-container');
+
+        if (tableContainer) {
+            // 2. Attach the observer. Any time the container changes size
+            // (including when display goes from 'none' to 'block'), it will auto-adjust rows.
+            tableContainerObserver.observe(tableContainer);
+            tableContainer.style.display = "block";
+        }
+
+        // 3. Use a slight timeout on initial load to guarantee CSS files have fully applied
+        setTimeout(() => {
+            renderDefaultExcelGrid();
+            initResizableTable();
+        }, 50);
+    });
+
     window.addEventListener("DOMContentLoaded", () => {
             document.getElementById("split-div3").style.display = "none";
 
@@ -128,50 +151,75 @@
             }
         });
 
-    ipcRenderer.on("launch-mode", (event, launchedFromProtocol) => {
-            launchedViaProtocol = launchedFromProtocol;
+    // 1. Unified function to handle UI state safely
+    function applyLaunchModeState() {
+        const tokenInput = document.getElementById("tokenInput");
+        const changeTokenBtn = document.getElementById("changeTokenBtn");
+        const tokenStatus = document.getElementById("tokenStatus");
 
-            const tokenInput = document.getElementById("tokenInput");
-            const changeTokenBtn = document.getElementById("changeTokenBtn");
-            const tokenStatus = document.getElementById("tokenStatus");
+        if (launchedViaProtocol) {
+            // DEEP LINK MODE: Hide all token controls completely
+            if (tokenInput) tokenInput.style.setProperty("display", "none", "important");
+            if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
+            if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
 
-            if (launchedViaProtocol) {
-                // DEEP LINK MODE: Hide all token controls completely
-                if (tokenInput) tokenInput.style.setProperty("display", "none", "important");
-                if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
-                if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
-
-                document.getElementById("Run").disabled = false;
-                document.getElementById("Run").style.backgroundColor = "#4285F4";
-                document.getElementById("Scrape").disabled = true;
-                document.getElementById("Scrape").style.backgroundColor = "#B6B6B4";
-                document.getElementById("download").disabled = true;
-                document.getElementById("download").style.backgroundColor = "#B6B6B4";
-                document.getElementById("reset").disabled = true;
-                document.getElementById("reset").style.backgroundColor = "#B6B6B4";
-                document.getElementById("scrapeUI").disabled = true;
-                document.getElementById("scrapeUI").style.backgroundColor = "#B6B6B4";
-                document.getElementById("algoQA").disabled = true;
-                document.getElementById("algoQA").style.backgroundColor = "#B6B6B4";
-
-            } else {
-                // NORMAL MODE: Enforce strict disconnected state. Do not reconnect automatically.
-                if (tokenInput) {
-                    tokenInput.style.setProperty("display", "inline-block", "important");
-                    tokenInput.value = "";
-                    tokenInput.disabled = false;
-                    tokenInput.readOnly = false;
-                }
-                if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
-                if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
-
-                const runBtn = document.getElementById("Run");
-                if (runBtn) {
-                    runBtn.disabled = true;
-                    runBtn.style.backgroundColor = "#B6B6B4";
-                }
+            document.getElementById("Run").disabled = false;
+            document.getElementById("Run").style.backgroundColor = "#4285F4";
+            document.getElementById("Scrape").disabled = true;
+            document.getElementById("Scrape").style.backgroundColor = "#B6B6B4";
+            document.getElementById("download").disabled = true;
+            document.getElementById("download").style.backgroundColor = "#B6B6B4";
+            document.getElementById("reset").disabled = true;
+            document.getElementById("reset").style.backgroundColor = "#B6B6B4";
+            document.getElementById("scrapeUI").disabled = true;
+            document.getElementById("scrapeUI").style.backgroundColor = "#B6B6B4";
+            document.getElementById("algoQA").disabled = true;
+            document.getElementById("algoQA").style.backgroundColor = "#B6B6B4";
+        } else {
+            // NORMAL MODE: Enforce strict disconnected state.
+            if (tokenInput) {
+                tokenInput.style.setProperty("display", "inline-block", "important");
+                tokenInput.value = "";
+                tokenInput.disabled = false;
+                tokenInput.readOnly = false;
             }
-        });
+            if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "none", "important");
+            if (tokenStatus) tokenStatus.style.setProperty("display", "none", "important");
+
+            const runBtn = document.getElementById("Run");
+            if (runBtn) {
+                runBtn.disabled = true;
+                runBtn.style.backgroundColor = "#B6B6B4";
+            }
+        }
+    }
+
+    // 2. Handle incoming IPC from main process
+    ipcRenderer.on("launch-mode", (event, launchedFromProtocol) => {
+        launchedViaProtocol = launchedFromProtocol;
+
+        // If DOM is already loaded (e.g., app was already open), apply changes immediately
+        if (document.readyState === "interactive" || document.readyState === "complete") {
+            applyLaunchModeState();
+        }
+    });
+
+    // 3. Handle initial DOM load
+    window.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("split-div3").style.display = "none";
+
+        document.getElementById("tapBtn").style.background = "#4285F4";
+        document.getElementById("tapBtn").style.color = "#fff";
+
+        document.getElementById("touchBtn").style.background = "#fff";
+        document.getElementById("touchBtn").style.color = "#333";
+
+        // ALWAYS clear past session on a fresh app launch so it never auto-connects
+        localStorage.removeItem("algoQAUser");
+
+        // Apply the correct state (this fixes the cold boot race condition)
+        applyLaunchModeState();
+    });
 
     const CryptoJS = require("crypto-js");
 
@@ -2005,7 +2053,7 @@ async function checkAppForegroundState() {
                                 <svg id="dummyIcon" class="info-svg" viewBox="0 0 24 24" fill="#d9534f" xmlns="http://www.w3.org/2000/svg" style="width: 40px; height: 40px; margin-bottom: 12px;">
                                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
                                 </svg>
-                                <p id="dummyMainText" style="color: #d9534f; padding: 0 10px; font-weight: 600; font-size: 13px; margin-bottom: 5px; line-height: 1.4;">The application session was interrupted.<br>Ensure the app is in the foreground and click 'Launch Application' to reconnect.</p>
+                                <p id="dummyMainText" style="color: #d9534f; padding: 0 10px; font-weight: 600; font-size: 13px; margin-bottom: 5px; line-height: 1.4;">App session interrupted.<br>Please ensure the app is active, then click 'Launch Application' to reconnect.</p>
                                 <p id="dummyErrorText" style="display: block; color: #d9534f; font-size: 10px; margin-top: 8px; line-height: 1.2; padding: 0 10px; word-break: break-word; opacity: 0.8;">*${readableError}</p>
                             </div>
                         `;
@@ -2118,7 +2166,7 @@ async function checkAppForegroundState() {
                         <svg id="dummyIcon" class="info-svg" viewBox="0 0 24 24" fill="#d9534f" xmlns="http://www.w3.org/2000/svg" style="width: 45px; height: 45px; margin-bottom: 15px;">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
                         </svg>
-                        <p id="dummyMainText" style="color: #d9534f; padding: 0 10px; font-weight: 600; font-size: 13px; margin-bottom: 5px; line-height: 1.4;">The application session was interrupted.<br>Ensure the app is in the foreground and click 'Launch Application' to reconnect.</p>
+                        <p id="dummyMainText" style="color: #d9534f; padding: 0 10px; font-weight: 600; font-size: 13px; margin-bottom: 5px; line-height: 1.4;">App session interrupted.<br>Please ensure the app is active, then click 'Launch Application' to reconnect.</p>
                         <p id="dummyErrorText" style="display: block; color: #d9534f; font-size: 11px; margin-top: 12px; line-height: 1.4; padding: 0 10px; font-weight: 600; word-break: break-word;">*Error: ${readableError}</p>
                     </div>
                 `;
@@ -3848,7 +3896,7 @@ function createAndAppendTable(dtControls) {
                             <svg id="dummyIcon" class="info-svg" viewBox="0 0 24 24" fill="#d9534f" xmlns="http://www.w3.org/2000/svg" style="width: 40px; height: 40px; margin-bottom: 12px;">
                                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
                             </svg>
-                            <p id="dummyMainText" style="color: #d9534f; padding: 0 10px; font-weight: 600; font-size: 13px; margin-bottom: 5px; line-height: 1.4;">The application session was interrupted.<br>Ensure the app is in the foreground and click 'Launch Application' to reconnect.</p>
+                            <p id="dummyMainText" style="color: #d9534f; padding: 0 10px; font-weight: 600; font-size: 13px; margin-bottom: 5px; line-height: 1.4;">App session interrupted.<br>Please ensure the app is active, then click 'Launch Application' to reconnect.</p>
                             <p id="dummyErrorText" style="display: block; color: #d9534f; font-size: 10px; margin-top: 8px; line-height: 1.2; padding: 0 10px; word-break: break-word; opacity: 0.8;">*${readableError}</p>
                         </div>
                     `;
@@ -4454,11 +4502,12 @@ function getAllPossibleXPaths(node) {
             const container = document.getElementById('table-container');
             const tbody = document.getElementById('myTable');
 
-            if (!container || !tbody || container.style.display === "none") return;
+            // Prevent execution if the container is hidden or layout hasn't rendered yet
+            if (!container || !tbody || container.style.display === "none" || container.clientHeight === 0) return;
 
             const headerRow = document.querySelector('#mainTable thead tr');
             const headerHeight = headerRow ? headerRow.clientHeight : 32;
-            const rowHeight = 28; // Based on your CSS configuration
+            const rowHeight = 28; // Ensure this exactly matches your CSS tr height
 
             // Calculate exactly how many rows fit inside the window right now
             const availableHeight = container.clientHeight - headerHeight;
@@ -4466,7 +4515,10 @@ function getAllPossibleXPaths(node) {
 
             let currentRows = Array.from(tbody.querySelectorAll('tr'));
             let emptyRows = Array.from(tbody.querySelectorAll('tr.empty-excel-row'));
-            let dataRowCount = currentRows.length - emptyRows.length;
+
+            // Ignore dynamic rows like "no results found" from the data count
+            let errorRows = tbody.querySelectorAll('.no-results-row').length;
+            let dataRowCount = currentRows.length - emptyRows.length - errorRows;
 
             let desiredEmptyRows = targetRowCount - dataRowCount;
             if (desiredEmptyRows < 0) desiredEmptyRows = 0;
@@ -5095,7 +5147,7 @@ function displayScreenshotError(err) {
         dummyMainText.style.fontWeight = "600";
         dummyMainText.style.fontSize = "13px";
         dummyMainText.style.lineHeight = "1.4";
-        dummyMainText.innerHTML = "The application session was interrupted.<br>Ensure the app is in the foreground and click 'Launch Application' to reconnect.";
+        dummyMainText.innerHTML = "App session interrupted.<br>Please ensure the app is active, then click 'Launch Application' to reconnect.";
 
         // Show the actual parsed error below it (subtle and smaller)
         dummyErrorText.style.display = "block";
