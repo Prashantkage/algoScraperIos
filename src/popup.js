@@ -506,202 +506,210 @@
     }
 
 
+
+
+
+
     async function loadFirstScreen() {
+        try {
+            await driver.sleep(2000);
 
-        await driver.sleep(2000);
+            const image =
+                await driver.takeScreenshot();
 
-        const image =
-            await driver.takeScreenshot();
+            const homeDirectory =
+                require("os").homedir();
 
-        const homeDirectory =
-            require("os").homedir();
+            folderPath =
+                path.join(
+                    homeDirectory,
+                    "algoScraperScreenShot"
+                );
 
-        folderPath =
-            path.join(
-                homeDirectory,
-                "algoScraperScreenShot"
+            if (!fs.existsSync(folderPath)) {
+
+                fs.mkdirSync(
+                    folderPath,
+                    { recursive: true }
+                );
+            }
+
+            require("fs").writeFileSync(
+                `${folderPath}/image0.png`,
+                image,
+                "base64"
             );
 
-        if (!fs.existsSync(folderPath)) {
+            const dummy =
+                document.getElementById("dummyDevice");
 
-            fs.mkdirSync(
-                folderPath,
-                { recursive: true }
-            );
-        }
+            if (dummy) {
 
-        require("fs").writeFileSync(
-            `${folderPath}/image0.png`,
-            image,
-            "base64"
-        );
+                dummy.style.display = "none";
 
-        const dummy =
-            document.getElementById("dummyDevice");
+            }
 
-        if (dummy) {
+            let img =
+                document.getElementById("screenshot");
 
-            dummy.style.display = "none";
+            if (!img) {
 
-        }
+                img =
+                    document.createElement("img");
 
-        let img =
-            document.getElementById("screenshot");
+                img.id = "screenshot";
+                enableImageDragging(img);
 
-        if (!img) {
+                img.onmousemove = function (e) {
 
-            img =
-                document.createElement("img");
+                    previewElement(e);
 
-            img.id = "screenshot";
-            enableImageDragging(img);
+                };
 
-            img.onmousemove = function (e) {
+                img.onmouseleave = function () {
 
-                previewElement(e);
+                    showElementHover = false;
 
-            };
+                    lastXPath = "";
 
-            img.onmouseleave = function () {
+                    clearTimeout(hoverTimer);
 
-                showElementHover = false;
+                    clearOverlay();
 
-                lastXPath = "";
+                };
 
-                clearTimeout(hoverTimer);
+                let deviceSwipeStartX = 0;
+                let deviceSwipeStartY = 0;
+                let isDeviceSwiping = false;
 
-                clearOverlay();
+                img.onmousedown = function (e) {
+                    if (tapMode || zoomLevel > 1) return; // Ignore if in scrape mode or zoomed
+                    deviceSwipeStartX = e.clientX;
+                    deviceSwipeStartY = e.clientY;
+                    isDeviceSwiping = false;
+                };
 
-            };
+                img.onmouseup = async function (e) {
+                    if (tapMode || zoomLevel > 1) return;
 
-            img.onclick = async function (e) {
+                    const diffX = e.clientX - deviceSwipeStartX;
+                    const diffY = e.clientY - deviceSwipeStartY;
+                    const distance = Math.sqrt(diffX * diffX + diffY * diffY);
 
-                if (hasDragged) {
+                    // If dragged more than 15 pixels, treat it as a scroll
+                    if (distance > 15) {
+                        isDeviceSwiping = true;
+
+                        const rect = img.getBoundingClientRect();
+                        const appNode = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
+                        const appWidth = parseFloat(appNode.getAttribute("width"));
+                        const appHeight = parseFloat(appNode.getAttribute("height"));
+                        const scaleX = appWidth / rect.width;
+                        const scaleY = appHeight / rect.height;
+
+                        const startX = Math.round((deviceSwipeStartX - rect.left) * scaleX);
+                        const startY = Math.round((deviceSwipeStartY - rect.top) * scaleY);
+                        const endX = Math.round((e.clientX - rect.left) * scaleX);
+                        const endY = Math.round((e.clientY - rect.top) * scaleY);
+
+                        await performSwipe(startX, startY, endX, endY);
+                    }
+                };
+
+                img.onclick = async function (e) {
+                    if (hasDragged) return;
+
+                    if (!tapMode) {
+                        if (isDeviceSwiping) return; // Prevent tapping if we just finished scrolling
+
+                        const rect = img.getBoundingClientRect();
+                        const appNode = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
+                        const appWidth = parseFloat(appNode.getAttribute("width"));
+                        const appHeight = parseFloat(appNode.getAttribute("height"));
+                        const scaleX = appWidth / rect.width;
+                        const scaleY = appHeight / rect.height;
+                        const x = Math.round((e.clientX - rect.left) * scaleX);
+                        const y = Math.round((e.clientY - rect.top) * scaleY);
+
+                        await performTouch(x, y);
                         return;
                     }
 
-                if (!tapMode) {
+                    const rect = img.getBoundingClientRect();
+                    const appNode = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
+                    const appWidth = parseFloat(appNode.getAttribute("width"));
+                    const appHeight = parseFloat(appNode.getAttribute("height"));
+                    const scaleX = appWidth / rect.width;
+                    const scaleY = appHeight / rect.height;
+                    const clickX = (e.clientX - rect.left) * scaleX;
+                    const clickY = (e.clientY - rect.top) * scaleY;
 
-                    const rect =
-                        img.getBoundingClientRect();
+                    findIOSLocator(clickX, clickY);
+                };
 
-                    const appNode =
-                        window.xmlDoc.getElementsByTagName(
-                            "XCUIElementTypeApplication"
-                        )[0];
+                document
+                    .getElementById("image-container")
+                    .appendChild(img);
 
-                    const appWidth =
-                        parseFloat(appNode.getAttribute("width"));
+                imgTagFlag = true;
+            }
 
-                    const appHeight =
-                        parseFloat(appNode.getAttribute("height"));
+            rotation = 0;
+            zoomLevel = 1;
 
-                    const scaleX =
-                        appWidth / rect.width;
+            img.src =
+                `${folderPath}/image0.png?${Date.now()}`;
 
-                    const scaleY =
-                        appHeight / rect.height;
+            img.style.width =
+                BASE_WIDTH + "px";
 
-                    const x =
-                        Math.round(
-                            (e.clientX - rect.left) * scaleX
-                        );
+            img.style.height =
+                BASE_HEIGHT + "px";
 
-                    const y =
-                        Math.round(
-                            (e.clientY - rect.top) * scaleY
-                        );
+            img.style.maxWidth =
+                "none";
 
-                    await performTouch(x, y);
+            img.style.maxHeight =
+                "none";
 
-                    return;
-                }
+            img.style.objectFit =
+                "unset";
 
-                const rect =
-                    img.getBoundingClientRect();
+            img.style.display =
+                "block";
 
-                const appNode =
-                    window.xmlDoc.getElementsByTagName(
-                        "XCUIElementTypeApplication"
-                    )[0];
+            img.style.margin =
+                "0 auto";
 
-                const appWidth =
-                    parseFloat(appNode.getAttribute("width"));
+            img.style.transform =
+                "scale(1) rotate(0deg)";
 
-                const appHeight =
-                    parseFloat(appNode.getAttribute("height"));
+            // Load XML so hover/tap/show element work immediately
 
-                const scaleX =
-                    appWidth / rect.width;
+            const pageSource =
+                await driver.getPageSource();
 
-                const scaleY =
-                    appHeight / rect.height;
+            const parser =
+                new DOMParser();
 
-                const clickX =
-                    (e.clientX - rect.left) * scaleX;
-
-                const clickY =
-                    (e.clientY - rect.top) * scaleY;
-
-                findIOSLocator(
-                    clickX,
-                    clickY
+            window.xmlDoc =
+                parser.parseFromString(
+                    pageSource,
+                    "text/xml"
                 );
 
-            };
-
-            document
-                .getElementById("image-container")
-                .appendChild(img);
-
-            imgTagFlag = true;
+        } catch (error) {
+            console.error("Screenshot capture failed:", error);
+            // Call the new UI error handler instead of crashing
+            displayScreenshotError(error);
         }
-
-        rotation = 0;
-        zoomLevel = 1;
-
-        img.src =
-            `${folderPath}/image0.png?${Date.now()}`;
-
-        img.style.width =
-            BASE_WIDTH + "px";
-
-        img.style.height =
-            BASE_HEIGHT + "px";
-
-        img.style.maxWidth =
-            "none";
-
-        img.style.maxHeight =
-            "none";
-
-        img.style.objectFit =
-            "unset";
-
-        img.style.display =
-            "block";
-
-        img.style.margin =
-            "0 auto";
-
-        img.style.transform =
-            "scale(1) rotate(0deg)";
-
-        // Load XML so hover/tap/show element work immediately
-
-        const pageSource =
-            await driver.getPageSource();
-
-        const parser =
-            new DOMParser();
-
-        window.xmlDoc =
-            parser.parseFromString(
-                pageSource,
-                "text/xml"
-            );
-
     }
+
+
+
+
+
+
 
     // action to perfom on clicking scrape button
     document.getElementById("Scrape").addEventListener('click', async () => {
@@ -1517,10 +1525,11 @@
                   dummy.style.display = "block";
                   dummy.innerHTML = `
                       <div class="phone-welcome-overlay">
-                          <svg class="info-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <svg id="dummyIcon" class="info-svg" viewBox="0 0 24 24" fill="#4285F4" xmlns="http://www.w3.org/2000/svg" style="width: 45px; height: 45px; margin-bottom: 15px;">
                               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
                           </svg>
-                          <p>Your page will load here once you select an app and click on "Launch Application".</p>
+                          <p id="dummyMainText" style="color: #333;">Your page will load here once you select an app and click on "Launch Application".</p>
+                          <p id="dummyErrorText" style="display: none; color: #d9534f; font-size: 11px; margin-top: 12px; line-height: 1.4; padding: 0 10px; font-weight: 600; word-break: break-word;"></p>
                       </div>
                   `;
               }
@@ -1893,92 +1902,173 @@
       prestart();
     })
 
-    async function performTouch(x, y) {
 
-        if (touchInProgress) {
-            return;
-        }
+    //Perform touch action for device connected
+        async function performTouch(x, y) {
 
-        touchInProgress = true;
+            if (touchInProgress) {
+                return;
+            }
 
-        const container = document.getElementById("image-container");
-        const globalOverlay = document.getElementById("overlay");
-        const appRunningPopup = document.getElementById("AppRunningPopup");
+            touchInProgress = true;
 
-        // 1. Force the global full-page layouts to stay hidden
-        if (globalOverlay) globalOverlay.style.display = "none";
-        if (appRunningPopup) appRunningPopup.style.display = "none";
+            const container = document.getElementById("image-container");
+            const globalOverlay = document.getElementById("overlay");
+            const appRunningPopup = document.getElementById("AppRunningPopup");
 
-        // 2. Safely build and attach the localized loader overlay element
-        let localLoader = document.getElementById("localTouchLoader");
-        if (!localLoader && container) {
-            localLoader = document.createElement("div");
-            localLoader.id = "localTouchLoader";
-            localLoader.innerHTML = `
-                <div class="local-blur-overlay">
-                    <img src="icon/load-8510_256.gif" style="height: 60px; width: 60px; max-width:none; max-height:none;"/>
-                </div>
-            `;
-            container.appendChild(localLoader);
-        }
+            // 1. Force the global full-page layouts to stay hidden
+            if (globalOverlay) globalOverlay.style.display = "none";
+            if (appRunningPopup) appRunningPopup.style.display = "none";
 
-        if (localLoader) localLoader.style.display = "block";
+            // 2. Safely build and attach the localized loader overlay element
+            let localLoader = document.getElementById("localTouchLoader");
+            if (!localLoader && container) {
+                localLoader = document.createElement("div");
+                localLoader.id = "localTouchLoader";
+                localLoader.innerHTML = `
+                    <div class="local-blur-overlay">
+                        <img src="icon/load-8510_256.gif" style="height: 60px; width: 60px; max-width:none; max-height:none;"/>
+                    </div>
+                `;
+                container.appendChild(localLoader);
+            }
 
-        try {
+            if (localLoader) localLoader.style.display = "block";
 
-            console.log("Touch:", x, y);
+            try {
 
-            await driver.executeScript(
-                "mobile: tap",
-                {
-                    x: x,
-                    y: y
+                console.log("Touch:", x, y);
+
+                await driver.executeScript(
+                    "mobile: tap",
+                    {
+                        x: x,
+                        y: y
+                    }
+                );
+
+                console.log("Touch Success");
+
+                // CHANGED: Increased from 300 to 1500. This gives page transitions and popups
+                // enough time to fully animate and settle before taking the screenshot.
+                await driver.sleep(1500);
+
+                const image = await driver.takeScreenshot();
+
+                require("fs").writeFileSync(
+                    `${folderPath}/image0.png`,
+                    image,
+                    "base64"
+                );
+
+                const screenshot = document.getElementById("screenshot");
+
+                if (screenshot) {
+
+                    screenshot.src = `${folderPath}/image0.png?${Date.now()}`;
+
+                    await new Promise(resolve => {
+                        screenshot.onload = resolve;
+                        screenshot.onerror = resolve;
+                    });
+
                 }
-            );
 
-            console.log("Touch Success");
+                const pageSource = await driver.getPageSource();
+                const parser = new DOMParser();
+                window.xmlDoc = parser.parseFromString(pageSource, "text/xml");
 
-            await driver.sleep(300);
+                clearOverlay();
 
-            const image = await driver.takeScreenshot();
-
-            require("fs").writeFileSync(
-                `${folderPath}/image0.png`,
-                image,
-                "base64"
-            );
-
-            const screenshot = document.getElementById("screenshot");
-
-            if (screenshot) {
-
-                screenshot.src = `${folderPath}/image0.png?${Date.now()}`;
-
-                await new Promise(resolve => {
-                    screenshot.onload = resolve;
-                    screenshot.onerror = resolve;
-                });
-
+            } catch (err) {
+                        console.error("Touch Error:", err);
+                        showErrorPopup("Action Failed: Tap Element", err);
+                    } finally {
+                // 3. Dismount the localized loader view cleanly
+                const targetLoader = document.getElementById("localTouchLoader");
+                if (targetLoader) {
+                    targetLoader.style.display = "none";
+                }
+                touchInProgress = false;
             }
-
-            const pageSource = await driver.getPageSource();
-            const parser = new DOMParser();
-            window.xmlDoc = parser.parseFromString(pageSource, "text/xml");
-
-            clearOverlay();
-
-        } catch (err) {
-                    console.error("Touch Error:", err);
-                    showErrorPopup("Action Failed: Tap Element", err);
-                } finally {
-            // 3. Dismount the localized loader view cleanly
-            const targetLoader = document.getElementById("localTouchLoader");
-            if (targetLoader) {
-                targetLoader.style.display = "none";
-            }
-            touchInProgress = false;
         }
-    }
+
+    //Perform swipe action on connected device
+        async function performSwipe(startX, startY, endX, endY) {
+            if (touchInProgress) return;
+            touchInProgress = true;
+
+            const container = document.getElementById("image-container");
+            const globalOverlay = document.getElementById("overlay");
+            const appRunningPopup = document.getElementById("AppRunningPopup");
+
+            // Force the global full-page layouts to stay hidden
+            if (globalOverlay) globalOverlay.style.display = "none";
+            if (appRunningPopup) appRunningPopup.style.display = "none";
+
+            // Show localized loader
+            let localLoader = document.getElementById("localTouchLoader");
+            if (!localLoader && container) {
+                localLoader = document.createElement("div");
+                localLoader.id = "localTouchLoader";
+                localLoader.innerHTML = `
+                    <div class="local-blur-overlay">
+                        <img src="icon/load-8510_256.gif" style="height: 60px; width: 60px; max-width:none; max-height:none;"/>
+                    </div>
+                `;
+                container.appendChild(localLoader);
+            }
+            if (localLoader) localLoader.style.display = "block";
+
+            try {
+                console.log("Swipe from:", startX, startY, "to", endX, endY);
+                var plateformName = document.getElementById('platformname');
+                var plateformOption = plateformName.options[plateformName.selectedIndex].text;
+
+                if (plateformOption === 'Android') {
+                    const actions = driver.actions({ async: true });
+                    await actions.move({ x: startX, y: startY, duration: 0 })
+                                 .press()
+                                 .move({ x: endX, y: endY, duration: 600 })
+                                 .release()
+                                 .perform();
+                } else {
+                    await driver.executeScript("mobile: dragFromToForDuration", {
+                        fromX: startX,
+                        fromY: startY,
+                        toX: endX,
+                        toY: endY,
+                        duration: 0.6
+                    });
+                }
+
+                // CHANGED: Increased from 600 to 2000. Momentum scrolling takes longer to fully stop
+                // than a simple tap transition. This ensures the list is completely still.
+                await driver.sleep(2000);
+
+                const image = await driver.takeScreenshot();
+                require("fs").writeFileSync(`${folderPath}/image0.png`, image, "base64");
+
+                const screenshot = document.getElementById("screenshot");
+                if (screenshot) {
+                    screenshot.src = `${folderPath}/image0.png?${Date.now()}`;
+                    await new Promise(resolve => { screenshot.onload = resolve; screenshot.onerror = resolve; });
+                }
+
+                const pageSource = await driver.getPageSource();
+                const parser = new DOMParser();
+                window.xmlDoc = parser.parseFromString(pageSource, "text/xml");
+                clearOverlay();
+
+            } catch (err) {
+                console.error("Swipe Error:", err);
+                showErrorPopup("Action Failed: Swipe/Scroll", err);
+            } finally {
+                const targetLoader = document.getElementById("localTouchLoader");
+                if (targetLoader) targetLoader.style.display = "none";
+                touchInProgress = false;
+            }
+        }
 
     function previewElement(e){
 
@@ -3541,34 +3631,73 @@ function createAndAppendTable(dtControls) {
                     clearOverlay();
                 };
 
-                screenshot.onclick = async function (e) {
-                    if (hasDragged) return;
+                let deviceSwipeStartX = 0;
+                                let deviceSwipeStartY = 0;
+                                let isDeviceSwiping = false;
 
-                    if (!tapMode) {
-                        const rect = screenshot.getBoundingClientRect();
-                        const appNode = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
-                        const appWidth = parseFloat(appNode.getAttribute("width"));
-                        const appHeight = parseFloat(appNode.getAttribute("height"));
-                        const scaleX = appWidth / rect.width;
-                        const scaleY = appHeight / rect.height;
-                        const x = Math.round((e.clientX - rect.left) * scaleX);
-                        const y = Math.round((e.clientY - rect.top) * scaleY);
+                                screenshot.onmousedown = function (e) {
+                                    if (tapMode || zoomLevel > 1) return;
+                                    deviceSwipeStartX = e.clientX;
+                                    deviceSwipeStartY = e.clientY;
+                                    isDeviceSwiping = false;
+                                };
 
-                        await performTouch(x, y);
-                        return;
-                    }
+                                screenshot.onmouseup = async function (e) {
+                                    if (tapMode || zoomLevel > 1) return;
 
-                    const rect = screenshot.getBoundingClientRect();
-                    const appNode = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
-                    const appWidth = parseFloat(appNode.getAttribute("width"));
-                    const appHeight = parseFloat(appNode.getAttribute("height"));
-                    const scaleX = appWidth / rect.width;
-                    const scaleY = appHeight / rect.height;
-                    const clickX = (e.clientX - rect.left) * scaleX;
-                    const clickY = (e.clientY - rect.top) * scaleY;
+                                    const diffX = e.clientX - deviceSwipeStartX;
+                                    const diffY = e.clientY - deviceSwipeStartY;
+                                    const distance = Math.sqrt(diffX * diffX + diffY * diffY);
 
-                    findIOSLocator(clickX, clickY);
-                };
+                                    if (distance > 15) {
+                                        isDeviceSwiping = true;
+
+                                        const rect = screenshot.getBoundingClientRect();
+                                        const appNode = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
+                                        const appWidth = parseFloat(appNode.getAttribute("width"));
+                                        const appHeight = parseFloat(appNode.getAttribute("height"));
+                                        const scaleX = appWidth / rect.width;
+                                        const scaleY = appHeight / rect.height;
+
+                                        const startX = Math.round((deviceSwipeStartX - rect.left) * scaleX);
+                                        const startY = Math.round((deviceSwipeStartY - rect.top) * scaleY);
+                                        const endX = Math.round((e.clientX - rect.left) * scaleX);
+                                        const endY = Math.round((e.clientY - rect.top) * scaleY);
+
+                                        await performSwipe(startX, startY, endX, endY);
+                                    }
+                                };
+
+                                screenshot.onclick = async function (e) {
+                                    if (hasDragged) return;
+
+                                    if (!tapMode) {
+                                        if (isDeviceSwiping) return;
+
+                                        const rect = screenshot.getBoundingClientRect();
+                                        const appNode = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
+                                        const appWidth = parseFloat(appNode.getAttribute("width"));
+                                        const appHeight = parseFloat(appNode.getAttribute("height"));
+                                        const scaleX = appWidth / rect.width;
+                                        const scaleY = appHeight / rect.height;
+                                        const x = Math.round((e.clientX - rect.left) * scaleX);
+                                        const y = Math.round((e.clientY - rect.top) * scaleY);
+
+                                        await performTouch(x, y);
+                                        return;
+                                    }
+
+                                    const rect = screenshot.getBoundingClientRect();
+                                    const appNode = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
+                                    const appWidth = parseFloat(appNode.getAttribute("width"));
+                                    const appHeight = parseFloat(appNode.getAttribute("height"));
+                                    const scaleX = appWidth / rect.width;
+                                    const scaleY = appHeight / rect.height;
+                                    const clickX = (e.clientX - rect.left) * scaleX;
+                                    const clickY = (e.clientY - rect.top) * scaleY;
+
+                                    findIOSLocator(clickX, clickY);
+                                };
 
                 // Put it back inside the placeholder container area
                 container.appendChild(screenshot);
@@ -4817,6 +4946,45 @@ function generateProfessionalControlName(node) {
     }
 
     return `${prefix}${cleanName}`;
+}
+
+
+function displayScreenshotError(err) {
+    // 1. Safely extract just the first line of the error message to avoid giant logs
+    let readableError = "An unknown error occurred while capturing the screen.";
+    if (err && err.message) {
+        readableError = err.message.split('\n')[0].substring(0, 150);
+    } else if (typeof err === 'string') {
+        readableError = err.substring(0, 150);
+    }
+
+    // 2. Target the UI elements
+    const dummy = document.getElementById("dummyDevice");
+    const dummyIcon = document.getElementById("dummyIcon");
+    const dummyMainText = document.getElementById("dummyMainText");
+    const dummyErrorText = document.getElementById("dummyErrorText");
+    const screenshotImg = document.getElementById("screenshot");
+
+    // 3. Hide the main screenshot if it exists, show the placeholder
+    if (screenshotImg) screenshotImg.style.display = "none";
+
+    if (dummy && dummyIcon && dummyMainText && dummyErrorText) {
+        dummy.style.display = "block";
+
+        // Change to Error State (Red)
+        dummyIcon.setAttribute("fill", "#d9534f");
+        dummyMainText.textContent = "Failed to capture the device screen.";
+        dummyMainText.style.color = "#d9534f";
+
+        // Show the actual parsed error
+        dummyErrorText.style.display = "block";
+        dummyErrorText.textContent = `*Error: ${readableError}`;
+    }
+
+    // 4. Force hide any stuck loading spinners
+    document.getElementById('overlay').style.display = 'none';
+    const targetLoader = document.getElementById("localTouchLoader");
+    if (targetLoader) targetLoader.style.display = "none";
 }
 
 
