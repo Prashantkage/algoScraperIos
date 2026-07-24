@@ -1806,7 +1806,7 @@
                         } else if (thText.includes('CONTROL NAME')) {
                             rowHtml += `<td class="cn pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
                         } else if (thText.includes('CONTROL TYPE')) {
-                            rowHtml += `<td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                            rowHtml += `<td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
                         } else if (thText.includes('CONTROL ID')) {
                             rowHtml += `<td class="xpath pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
                         } else if (thText.includes('PAGE NAME')) {
@@ -1886,65 +1886,68 @@
 
 
     async function onShowElementHover(e) {
-        const xpathCell = e.target.closest(".xpath");
+            const xpathCell = e.target.closest(".xpath");
 
-        if (!xpathCell) {
-            showElementHover = false;
-            lastXPath = "";
-            clearTimeout(hoverTimer);
-            clearOverlay();
-            return;
-        }
-
-        const selectEl = xpathCell.querySelector("select");
-        const xpath = selectEl ? selectEl.value.trim() : xpathCell.innerText.trim();
-
-        if (!xpath) {
-            showElementHover = false;
-            lastXPath = "";
-            clearTimeout(hoverTimer);
-            clearOverlay();
-            return;
-        }
-
-        if (xpath.startsWith("COORDINATE(")) {
-            const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
-            if (match) {
-                const x = parseInt(match[1], 10);
-                const y = parseInt(match[2], 10);
-                drawShowElementMarker({
-                    x: x - 8,
-                    y: y - 8,
-                    width: 16,
-                    height: 16
-                });
+            if (!xpathCell) {
+                onShowElementLeave(e);
+                return;
             }
-            return;
-        }
 
-        if (xpath === lastXPath) return;
+            const selectEl = xpathCell.querySelector("select");
+            const xpath = selectEl ? selectEl.value.trim() : xpathCell.innerText.trim();
 
-        lastXPath = xpath;
-        clearTimeout(hoverTimer);
-
-        hoverTimer = setTimeout(async () => {
-            showElementHover = true;
-            try {
-                const element = await driver.findElement(By.xpath(xpath));
-                const rect = await element.getRect();
-                drawShowElementMarker(rect);
-            } catch {
-                clearOverlay();
+            if (!xpath) {
+                onShowElementLeave(e);
+                return;
             }
-        }, 80);
-    }
+
+            if (xpath === lastXPath) return;
+
+            lastXPath = xpath;
+            clearTimeout(hoverTimer);
+
+            hoverRequestId++; // Invalidate previous requests
+            const currentRequestId = hoverRequestId;
+
+            // IMMEDIATELY clear overlay to prevent confusion between rows
+            clearOverlay();
+
+            if (xpath.startsWith("COORDINATE(")) {
+                const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
+                if (match) {
+                    const x = parseInt(match[1], 10);
+                    const y = parseInt(match[2], 10);
+                    drawCoordinateHoverMarker(x, y);
+                }
+                return;
+            }
+
+            hoverTimer = setTimeout(async () => {
+                if (currentRequestId !== hoverRequestId) return;
+
+                showElementHover = true;
+                try {
+                    const element = await driver.findElement(By.xpath(xpath));
+                    const rect = await element.getRect();
+
+                    if (currentRequestId === hoverRequestId) {
+                        drawShowElementMarker(rect);
+                    }
+                } catch {
+                    if (currentRequestId === hoverRequestId) {
+                        clearOverlay();
+                    }
+                }
+            }, 80);
+        }
 
     function onShowElementLeave(e) {
-        showElementHover = false;
-        lastXPath = "";
-        clearTimeout(hoverTimer);
-        clearOverlay();
-    }
+            showElementHover = false;
+            lastXPath = "";
+            hoverRequestId++; // MAGIC FIX: Instantly kills any pending Appium drawings!
+            clearTimeout(hoverTimer);
+            clearOverlay();
+        }
 
     document.getElementById("platformname").addEventListener('change', async () => {
       prestart();
@@ -2409,7 +2412,17 @@ async function checkAppForegroundState() {
                    } else if (thText.includes('CONTROL NAME')) {
                        rowHtml += `<td class="cn pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
                    } else if (thText.includes('CONTROL TYPE')) {
-                       rowHtml += `<td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
+                       // 1. Define available Control Types
+                                       const allControlTypes = [
+                                           "TextBox", "Button", "RadioButton", "CheckBox", "Link",
+                                           "DropDownList", "Image", "TextArea", "FileUpload", "Label",
+                                           "Page", "AnchorTag", "Mouse", "Scroll", "Window",
+                                           "NewTab", "Parent"
+                                       ];
+                       let ctSelectOptionsHtml = allControlTypes.map(type => `<option value="${type}">${type}</option>`).join('');
+                       let controlTypeCellHtml = `<select class="xpath-dropdown" style="width: 100%; border: none; background: transparent; font-size: 11px; font-weight: 600;"><option value="" disabled selected hidden>Controls</option>${ctSelectOptionsHtml}</select>`;
+
+                       rowHtml += `<td class="ct pt-3-half" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-color: black; text-align: center; ${displayStyle}">${controlTypeCellHtml}</td>`;
                    } else if (thText.includes('CONTROL ID')) {
                        rowHtml += `<td class="xpath pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
                    } else if (thText.includes('PAGE NAME')) {
@@ -2598,11 +2611,31 @@ function createAndAppendTable(dtControls) {
 
         td_id = i;
 
-        let rowDataMap = {
-            "#": "",
-            "CONTROL NAME": dtControls[i].ControlName || "",
-            "CONTROL TYPE": dtControls[i].ControlType || "",
-            "CONTROL ID": controlIdCellHtml,
+                // 1. Define available Control Types (Comprehensive & Alphabetical) All Control Types
+                   const allControlTypes = [
+                                             "TextBox", "Button", "RadioButton", "CheckBox", "Link",
+                                             "DropDownList", "Image", "TextArea", "FileUpload", "Label",
+                                             "Page", "AnchorTag", "Mouse", "Scroll", "Window",
+                                             "NewTab", "Parent"
+                                                      ];
+
+
+                let currentControlType = dtControls[i].ControlType || "";
+
+                // 2. Ensure current type is in the list, then build options
+                let optionsList = [...new Set([currentControlType, ...allControlTypes])].filter(Boolean);
+                let ctSelectOptionsHtml = optionsList.map(type =>
+                    `<option value="${type}" ${type === currentControlType ? 'selected' : ''}>${type}</option>`
+                ).join('');
+
+                // 3. Create the Dropdown HTML
+                let controlTypeCellHtml = `<select class="xpath-dropdown" style="width: 100%; border: none; background: transparent; font-size: 11px; font-weight: 600;">${ctSelectOptionsHtml}</select>`;
+
+                let rowDataMap = {
+                    "#": "",
+                    "CONTROL NAME": dtControls[i].ControlName || "",
+                    "CONTROL TYPE": controlTypeCellHtml, // Use dropdown HTML
+                    "CONTROL ID": controlIdCellHtml,
             "PAGE NAME": pageName,
             "IDENTIFICATION TYPE": "",
             "CONTROL VALUE": "",
@@ -2632,7 +2665,7 @@ function createAndAppendTable(dtControls) {
             } else if (thText.includes('CONTROL NAME')) {
                 rowHtml += `<td class="cn pt-3-half" id="cn_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">${rowDataMap["CONTROL NAME"]}</td>`;
             } else if (thText.includes('CONTROL TYPE')) {
-                rowHtml += `<td class="ct pt-3-half" id="ct_${td_id}" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">${rowDataMap["CONTROL TYPE"]}</td>`;
+                            rowHtml += `<td class="ct pt-3-half" id="ct_${td_id}" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-color: black; text-align: center; ${displayStyle}">${rowDataMap["CONTROL TYPE"]}</td>`;
             } else if (thText.includes('CONTROL ID')) {
                 rowHtml += `<td class="xpath pt-3-half" id="xpath_${td_id}" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-color: black; text-align: center; ${displayStyle}">${rowDataMap["CONTROL ID"]}</td>`;
             } else if (thText.includes('PAGE NAME')) {
@@ -2672,20 +2705,36 @@ function createAndAppendTable(dtControls) {
 
     // Handler for when user selects a different option in the dropdown
     async function onDropdownChange(selectElement) {
-        lastXPath = ""; // Reset cached xpath
-        clearOverlay();
-
-        const xpath = selectElement.value.trim();
-        if (!xpath) return;
-
-        try {
-            const element = await driver.findElement(By.xpath(xpath));
-            const rect = await element.getRect();
-            drawShowElementMarker(rect);
-        } catch {
+            // Kill any pending hover operations triggered while navigating the dropdown menu
+            clearTimeout(hoverTimer);
+            hoverRequestId++;
             clearOverlay();
+
+            const xpath = selectElement.value.trim();
+
+            // Set lastXPath so that resting the mouse on the select doesn't immediately re-trigger
+            lastXPath = xpath;
+
+            if (!xpath) return;
+
+            if (xpath.startsWith("COORDINATE(")) {
+                const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
+                if (match) {
+                    const x = parseInt(match[1], 10);
+                    const y = parseInt(match[2], 10);
+                    drawCoordinateHoverMarker(x, y);
+                }
+                return;
+            }
+
+            try {
+                const element = await driver.findElement(By.xpath(xpath));
+                const rect = await element.getRect();
+                drawShowElementMarker(rect);
+            } catch {
+                clearOverlay();
+            }
         }
-    }
 
     function initResizableTable() {
         const resizers = document.querySelectorAll('#mainTable .resizer');
@@ -4265,190 +4314,206 @@ function createAndAppendTable(dtControls) {
     }
 
 
-//get all possible Xpaths
+
+// Get All Possible XPaths
 function getAllPossibleXPaths(node) {
-        if (!node || node.nodeType !== 1) return [];
+    if (!node || node.nodeType !== 1) return [];
 
-        let candidates = [];
-        const tagName = node.nodeName;
+    let candidates = [];
+    const tagName = node.nodeName;
 
-        // Outer root wrappers that should NEVER be targeted
-        if (tagName === "AppiumAUT" || tagName === "XCUIElementTypeApplication" || tagName === "XCUIElementTypeWindow") {
-            return [`//${tagName}`];
-        }
-
-        // CHANGED: Removed "name" from this array so it will never generate an XPath using @name
-        const attributes = ["label", "resource-id", "content-desc", "text", "value"];
-
-        // 1. EXACT DIRECT ATTRIBUTES ONLY (No Contains, No Parents)
-        for (let attr of attributes) {
-            let val = node.getAttribute(attr);
-            if (val && val.trim() !== "") {
-                // Strip quotes to prevent XPath syntax breaks
-                let cleanVal = val.trim().replace(/"/g, '');
-                let xpath = `//${tagName}[@${attr}="${cleanVal}"]`;
-                if (!candidates.includes(xpath)) {
-                    candidates.push(xpath);
-                }
-            }
-        }
-
-        // 2. EXACT GLOBAL INDEX MATCH ONLY
-        let fallbackXpath = `//${tagName}`;
-        let globalResults = window.xmlDoc.evaluate(fallbackXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-        for (let i = 0; i < globalResults.snapshotLength; i++) {
-            if (globalResults.snapshotItem(i) === node) {
-                let indexedXpath = `(${fallbackXpath})[${i + 1}]`;
-                if (!candidates.includes(indexedXpath)) {
-                    candidates.push(indexedXpath);
-                }
-                break; // Found our exact node index, stop looking
-            }
-        }
-
-        // 3. EXACT COORDINATE (Only for unclickable elements like 'Other' or 'View')
-        if (tagName === "XCUIElementTypeOther" || tagName === "Other" || tagName === "android.view.View") {
-            let x = parseFloat(node.getAttribute("x"));
-            let y = parseFloat(node.getAttribute("y"));
-            let width = parseFloat(node.getAttribute("width"));
-            let height = parseFloat(node.getAttribute("height"));
-
-            if (!isNaN(x) && !isNaN(y) && !isNaN(width) && !isNaN(height) && width > 0 && height > 0) {
-                let centerX = Math.round(x + (width / 2));
-                let centerY = Math.round(y + (height / 2));
-                let coordXPath = `COORDINATE(${centerX},${centerY})`;
-                if (!candidates.includes(coordXPath)) {
-                    candidates.push(coordXPath);
-                }
-            }
-        }
-
-        // Return strict matches, or standard tag fallback
-        return candidates.length > 0 ? candidates : [`//${tagName}`];
+    // Outer root wrappers that should NEVER be targeted
+    if (tagName === "AppiumAUT" || tagName === "XCUIElementTypeApplication" || tagName === "XCUIElementTypeWindow") {
+        return [`//${tagName}`];
     }
 
+    // 1. ALWAYS calculate the center coordinate for the element
+    let x = parseFloat(node.getAttribute("x"));
+    let y = parseFloat(node.getAttribute("y"));
+    let width = parseFloat(node.getAttribute("width"));
+    let height = parseFloat(node.getAttribute("height"));
+
+    let coordXPath = null;
+    if (!isNaN(x) && !isNaN(y) && !isNaN(width) && !isNaN(height) && width > 0 && height > 0) {
+        let centerX = Math.round(x + (width / 2));
+        let centerY = Math.round(y + (height / 2));
+        coordXPath = `COORDINATE(${centerX},${centerY})`;
+    }
+
+    // 2. FORCE COORDINATES ONLY FOR GENERIC CONTAINERS
+    if (tagName === "XCUIElementTypeOther" || tagName === "Other" || tagName === "android.view.View") {
+        return coordXPath ? [coordXPath] : [];
+    }
+
+    const attributes = ["label", "resource-id", "content-desc", "text", "value"];
+
+    // 3. EXACT DIRECT ATTRIBUTES ONLY (No Contains, No Parents)
+    for (let attr of attributes) {
+        let val = node.getAttribute(attr);
+        if (val && val.trim() !== "") {
+            // Strip quotes to prevent XPath syntax breaks
+            let cleanVal = val.trim().replace(/"/g, '');
+            let xpath = `//${tagName}[@${attr}="${cleanVal}"]`;
+            if (!candidates.includes(xpath)) {
+                candidates.push(xpath);
+            }
+        }
+    }
+
+    // 4. EXACT GLOBAL INDEX MATCH ONLY
+    let fallbackXpath = `//${tagName}`;
+    let globalResults = window.xmlDoc.evaluate(fallbackXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (let i = 0; i < globalResults.snapshotLength; i++) {
+        if (globalResults.snapshotItem(i) === node) {
+            let indexedXpath = `(${fallbackXpath})[${i + 1}]`;
+            if (!candidates.includes(indexedXpath)) {
+                candidates.push(indexedXpath);
+            }
+            break;
+        }
+    }
+
+    // 5. APPEND COORDINATE TO EVERY ELEMENT'S LIST
+    if (coordXPath && !candidates.includes(coordXPath)) {
+        candidates.push(coordXPath);
+    }
+
+    // Return strict matches, or standard tag fallback
+    return candidates.length > 0 ? candidates : [`//${tagName}`];
+}
 
 
 
 
 
+
+    //finding xpath
     async function findIOSLocator(clickX, clickY) {
 
-            const pageName = document.getElementById("pagename_searchbox").value.trim();
+                const pageName = document.getElementById("pagename_searchbox").value.trim();
 
-            if (pageName === "") {
-                document.getElementById("pagename_searchbox").style.borderColor = "red";
-                alert("Please enter Page Name.");
-                return;
-            }
-
-            const nodes = window.xmlDoc.getElementsByTagName("*");
-            let matchedNode = null;
-            let smallestArea = Number.MAX_VALUE;
-
-            // Root elements that should never be selected as specific controls
-            const ignoreTypes = [
-                "AppiumAUT",
-                "XCUIElementTypeApplication",
-                "XCUIElementTypeWindow",
-                "hierarchy"
-            ];
-
-            for (let i = 0; i < nodes.length; i++) {
-                const node = nodes[i];
-                const x = parseFloat(node.getAttribute("x"));
-                const y = parseFloat(node.getAttribute("y"));
-                const width = parseFloat(node.getAttribute("width"));
-                const height = parseFloat(node.getAttribute("height"));
-
-                if (isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) {
-                    continue;
+                if (pageName === "") {
+                    document.getElementById("pagename_searchbox").style.borderColor = "red";
+                    alert("Please enter Page Name.");
+                    return;
                 }
 
-                if (width <= 0 || height <= 0) continue;
+                const nodes = window.xmlDoc.getElementsByTagName("*");
+                let matchedNode = null;
+                let smallestArea = Number.MAX_VALUE;
 
-                // Check if click coordinates fall inside this element's bounding box
-                if (clickX >= x && clickX <= (x + width) && clickY >= y && clickY <= (y + height)) {
+                // Root elements that should never be selected as specific controls
+                const ignoreTypes = [
+                    "AppiumAUT",
+                    "XCUIElementTypeApplication",
+                    "XCUIElementTypeWindow",
+                    "hierarchy",
+                    "XCUIElementTypeOther", // <-- Added to prevent clicking generic wrappers
+                    "android.view.View"     // <-- Added for Android parity
+                ];
 
-                    if (ignoreTypes.includes(node.nodeName)) {
+                for (let i = 0; i < nodes.length; i++) {
+                    const node = nodes[i];
+                    const x = parseFloat(node.getAttribute("x"));
+                    const y = parseFloat(node.getAttribute("y"));
+                    const width = parseFloat(node.getAttribute("width"));
+                    const height = parseFloat(node.getAttribute("height"));
+
+                    if (isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) {
                         continue;
                     }
 
-                    const area = width * height;
+                    if (width <= 0 || height <= 0) continue;
 
-                    // STRICT RULE: The absolute smallest node under the cursor wins.
-                    // Using <= ensures if a child has the exact same size as its parent, the child wins.
-                    if (area <= smallestArea) {
-                        smallestArea = area;
-                        matchedNode = node;
+                    // Check if click coordinates fall inside this element's bounding box
+                    if (clickX >= x && clickX <= (x + width) && clickY >= y && clickY <= (y + height)) {
+
+                        if (ignoreTypes.includes(node.nodeName)) {
+                            continue;
+                        }
+
+                        const area = width * height;
+
+                        // STRICT RULE: The absolute smallest node under the cursor wins.
+                        if (area <= smallestArea) {
+                            smallestArea = area;
+                            matchedNode = node;
+                        }
                     }
                 }
-            }
 
-            if (!matchedNode) {
+                // If no specific valid element is found, output the EXACT click coordinates
+                if (!matchedNode) {
+                    createAndAppendTable([
+                        {
+                            ControlName: `coord_${Math.round(clickX)}_${Math.round(clickY)}`,
+                            ControlType: "Coordinate",
+                            ControlId: [`COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`]
+                        }
+                    ]);
+                    return;
+                }
+
+                // 1. Generate Clean Variable Name from the exact matched node
+                let controlName = generateProfessionalControlName(matchedNode);
+
+                // 2. Fetch STRICT XPaths (No parents, no loose matches)
+                let allXPaths = getAllPossibleXPaths(matchedNode);
+
                 createAndAppendTable([
                     {
-                        ControlName: `coord_${Math.round(clickX)}_${Math.round(clickY)}`,
-                        ControlType: "Coordinate",
-                        ControlId: [`COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`]
+                        ControlName: controlName,
+                        ControlType: matchedNode.nodeName.replace("XCUIElementType", "").replace("android.widget.", ""),
+                        ControlId: allXPaths,
+                        Fingerprint: new XMLSerializer().serializeToString(matchedNode)
                     }
                 ]);
-                return;
             }
 
-            // 1. Generate Clean Variable Name from the exact matched node
-            let controlName = generateProfessionalControlName(matchedNode);
 
-            // 2. Fetch STRICT XPaths (No parents, no loose matches)
-            let allXPaths = getAllPossibleXPaths(matchedNode);
+   // Dedicated handler for option hover events
+     async function onOptionHover(xpath) {
+             if (!xpath || xpath === lastXPath) return;
 
-            createAndAppendTable([
-                {
-                    ControlName: controlName,
-                    ControlType: matchedNode.nodeName.replace("XCUIElementType", "").replace("android.widget.", ""),
-                    ControlId: allXPaths,
-                    Fingerprint: new XMLSerializer().serializeToString(matchedNode)
-                }
-            ]);
-        }
+             lastXPath = xpath;
+             clearTimeout(hoverTimer);
 
+             hoverRequestId++;
+             const currentRequestId = hoverRequestId;
 
-    // Dedicated handler for option hover events
-    async function onOptionHover(xpath) {
-        if (!xpath || xpath === lastXPath) return;
+             // IMMEDIATELY clear overlay
+             clearOverlay();
 
-        lastXPath = xpath;
-        clearTimeout(hoverTimer);
+             if (xpath.startsWith("COORDINATE(")) {
+                 const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
+                 if (match) {
+                     const x = parseInt(match[1], 10);
+                     const y = parseInt(match[2], 10);
+                     drawCoordinateHoverMarker(x, y);
+                 }
+                 return;
+             }
 
-        hoverTimer = setTimeout(async () => {
-            showElementHover = true;
-            try {
-                const element = await driver.findElement(By.xpath(xpath));
-                const rect = await element.getRect();
-                drawShowElementMarker(rect);
-            } catch (err) {
-                clearOverlay();
-            }
-        }, 60);
-    }
+             hoverTimer = setTimeout(async () => {
+                 if (currentRequestId !== hoverRequestId) return;
 
-    // Handler for when user selects a different option in the dropdown
-    async function onDropdownChange(selectElement) {
-        lastXPath = "";
-        clearOverlay();
+                 showElementHover = true;
 
-        const xpath = selectElement.value.trim();
-        if (!xpath) return;
+                 try {
+                     const element = await driver.findElement(By.xpath(xpath));
+                     const rect = await element.getRect();
 
-        try {
-            const element = await driver.findElement(By.xpath(xpath));
-            const rect = await element.getRect();
-            drawShowElementMarker(rect);
-        } catch {
-            clearOverlay();
-        }
-    }
-
+                     // CRITICAL FIX: Only draw if this is STILL the active hover session
+                     if (currentRequestId === hoverRequestId) {
+                         drawShowElementMarker(rect);
+                     }
+                 } catch (err) {
+                     if (currentRequestId === hoverRequestId) {
+                         clearOverlay();
+                     }
+                 }
+             }, 60);
+         }
 
     function updateRowNumbers() {
         const rows = document.querySelectorAll("#myTable tr");
@@ -4483,6 +4548,12 @@ function getAllPossibleXPaths(node) {
                     rowHtml += `<td class="add-col-cell" style="${displayStyle}">&nbsp;</td>`;
                 } else if (th.classList.contains('custom-editable-header')) {
                     rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
+                }
+
+                //if we want control type dropdown arrives on default row we can change code here
+
+                else if (thText.includes('CONTROL TYPE')) {
+                    rowHtml += `<td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
                 } else if (thText.includes('CONTROL ID')) {
                     rowHtml += `<td class="xpath pt-3-half" style="border-color: black; text-align: center; ${displayStyle}"></td>`;
                 } else if (thText.includes('APP URL') || th.id === 'appUrl') {
@@ -5184,3 +5255,42 @@ function displayScreenshotError(err) {
     const divStatusBar = document.getElementById("div_status_bar");
     if (divStatusBar) divStatusBar.style.display = "none";
 }
+
+//Draw line after hover
+function drawCoordinateHoverMarker(x, y) {
+        clearOverlay();
+        const overlay = document.getElementById("overlayContainer");
+        const img = document.getElementById("screenshot");
+        if (!overlay || !img || !window.xmlDoc) return;
+
+        const app = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
+        if (!app) return;
+
+        const appWidth = parseFloat(app.getAttribute("width"));
+        const appHeight = parseFloat(app.getAttribute("height"));
+
+        const imgRect = img.getBoundingClientRect();
+        const overlayRect = overlay.getBoundingClientRect();
+
+        const scaleX = imgRect.width / appWidth;
+        const scaleY = imgRect.height / appHeight;
+
+        // Calculate absolute position scaled to screen
+        const left = imgRect.left - overlayRect.left + (x * scaleX);
+        const top = imgRect.top - overlayRect.top + (y * scaleY);
+
+        const box = document.createElement("div");
+        box.style.position = "absolute";
+
+        // Create a 20x20 dashed box centered perfectly on the coordinate point
+        box.style.left = (left - 10) + "px";
+        box.style.top = (top - 10) + "px";
+        box.style.width = "20px";
+        box.style.height = "20px";
+        box.style.border = "2px dashed blue";
+        box.style.boxSizing = "border-box";
+        box.style.pointerEvents = "none";
+        box.style.zIndex = "9999";
+
+        overlay.appendChild(box);
+    }
