@@ -386,30 +386,7 @@
               }
           }
 
-          if (plateformOption === 'Android') {
-            if (appName.trim() === '') document.getElementById('appname').style.borderColor = 'red';
-            if (deviceName.trim() === '') document.getElementById('devicename').style.borderColor = 'red';
-            if (udidName.trim() === '') document.getElementById('udid').style.borderColor = 'red';
-            if (appPackage.trim() === '') document.getElementById('apppackage').style.borderColor = 'red';
-            if (appActivity.trim() === '') document.getElementById('appactivity').style.borderColor = 'red';
-            if (appiumURL.trim() === '') document.getElementById('appiumurl').style.borderColor = 'red';
-            if (automationName.trim() === '') document.getElementById('automationName').style.borderColor = 'red';
 
-            if (appName.trim() != '' && deviceName.trim() != '' && udidName.trim() != '' && appPackage.trim() != '' && appActivity.trim() != '' && appiumURL.trim() != '' && automationName.trim() != '') {
-              document.getElementById('platformname').disabled = true;
-
-              triggerScreenshotLoader(); // Show loading in screenshot area
-
-              ipcRenderer.send('appPackage', appPackage);
-              initialData = [];
-              initialData.push(plateformOption, deviceName, appPackage, appActivity, appiumURL, udidName, automationName);
-              if (process.platform !== 'darwin') {
-                startApp(initialData);
-              } else {
-                launchApp(initialData)
-              }
-            }
-          } else if (plateformOption === 'IOS') {
             if (appName.trim() === '') document.getElementById('appname').style.borderColor = 'red';
             if (deviceName.trim() === '') document.getElementById('devicename').style.borderColor = 'red';
             if (udidName.trim() === '') document.getElementById('udid').style.borderColor = 'red';
@@ -433,24 +410,12 @@
               document.getElementById("automationName").disabled = true;
               document.getElementById("bundleID").disabled = true;
             }
-          }
+
         });
 
 
     async function startApp(initialData) {
-        var Androide_desiredCaps = {
-            platformName: initialData[0],
-            "appium:options": {
-                deviceName: initialData[1],
-                udid: initialData[5],
-                appPackage: initialData[2],
-                appActivity: initialData[3],
-                automationName: initialData[6],
-                newCommandTimeout: 3000,
-                autoGrantPermissions: true,
-                noReset: true
-            }
-        };
+
 
         var IOS_desiredCaps = {
             platformName: initialData[0],
@@ -466,44 +431,10 @@
                 newCommandTimeout: 500000
             }
         };
-
-        try {
-            if (initialData[0] === 'Android') {
-                console.log("STEP 1");
-                driver = await new wd.Builder()
-                    .usingServer(initialData[4])
-                    .withCapabilities(Androide_desiredCaps) // Fixed typo from your code
-                    .forBrowser("")
-                    .build();
-                console.log("STEP 2 - SESSION CREATED");
-            }
-
-            document.getElementById('Scrape').disabled = false;
-            document.getElementById('Scrape').style.backgroundColor = '#4285F4';
-            document.getElementById('Run').disabled = true;
-            document.getElementById('Run').style.backgroundColor = '#B6B6B4';
-            document.getElementById('AppRunningPopup').style.display = 'none';
-            document.getElementById('overlay').style.display = 'none';
-
-        } catch (error) {
-            console.error("startApp error:", error);
-            showErrorPopup("Failed to Start App", error);
-        }
     }
 
 
     async function launchApp(initialData) {
-        var darwin_Androide_desiredCaps = {
-            platformName: initialData[0],
-            "appium:options": {
-                deviceName: initialData[1],
-                appPackage: initialData[2],
-                appActivity: initialData[3],
-                newCommandTimeout: 3000,
-                automationName: initialData[6],
-                noReset: true
-            }
-        };
         var darwin_IOS_desiredCaps = {
             platformName: initialData[0],
             "appium:options": {
@@ -520,15 +451,9 @@
         };
 
         try {
-            if (initialData[0] === 'Android') {
-                driver = await new wd.Builder().usingServer(initialData[4]).withCapabilities(darwin_Androide_desiredCaps).forBrowser("").build();
-                console.log("Android Driver Session Established. Activating application package...");
-                await driver.executeScript("mobile: activateApp", { appId: initialData[2] });
-            } else if (initialData[0] === 'IOS') {
                 driver = await new wd.Builder().usingServer(initialData[4]).withCapabilities(darwin_IOS_desiredCaps).forBrowser("").build();
                 console.log("iOS Driver Session Established. Activating application bundle...");
                 await driver.executeScript("mobile: activateApp", { bundleId: initialData[6] });
-            }
         } catch (error) {
             console.error("Failed to initialize driver session:", error);
             showErrorPopup("Appium Driver Initialization Failed", error);
@@ -813,20 +738,6 @@
           document.getElementById('reset').disabled = true;
           document.getElementById('download').style.backgroundColor = '#B6B6B4';
           document.getElementById('download').disabled = true;
-          if (plateformOption === 'Android') {
-            await driver.takeScreenshot().then(
-              function (image) {
-                if (!fs.existsSync(systemAppData)) {
-                  fs.mkdirSync(systemAppData, { recursive: true });
-                }
-                require('fs').writeFileSync(path.join(systemAppData, `image${counter}.png`), image, 'base64');
-              },
-
-            );
-            await addImage()
-          }
-
-          else if (plateformOption === 'IOS') {
             const homeDirectory = require('os').homedir();
             folderPath = path.join(homeDirectory, 'algoScraperScreenShot');
             try {
@@ -834,7 +745,7 @@
                 fs.mkdirSync(folderPath);
               }
             } catch (err) {
-            }
+
 
             const image = await driver.takeScreenshot();
             require('fs').writeFileSync(`${folderPath}/image${counter}.png`, image, 'base64');
@@ -850,12 +761,7 @@
             var plateformOption = plateformName.options[plateformName.selectedIndex].text;
             if (imgTagFlag === false) {
               let img = document.createElement('img');
-              if (plateformOption === 'Android') {
-                img.src = path.join(systemAppData, `image${counter}.png?${new Date().getTime()}`);
-              }
-              else if (plateformOption === 'IOS') {
                 img.src = `${folderPath}/image${counter}.png?${new Date().getTime()}`;
-              }
             img.id = 'screenshot'
             enableImageDragging(img);
             rotation = 0;
@@ -970,12 +876,7 @@
 
               ss.style.transform =
                   "scale(1) rotate(0deg)";
-              if (plateformOption === 'Android') {
-                ss.src = path.join(systemAppData, `image${counter}.png`);
-              }
-              else if (plateformOption === 'IOS') {
                 ss.src = `${folderPath}/image${counter}.png?${new Date().getTime()}`;
-              }
              ss.style.width = BASE_WIDTH + "px";
              ss.style.height = BASE_HEIGHT + "px";
              ss.style.maxWidth = "none";
@@ -1006,213 +907,6 @@
             return nodes;
           }
 
-
-          if (plateformOption === 'Android') {
-
-            let listOfTags = [];
-
-            function addTag(tag) {
-              listOfTags.push(tag);
-            }
-
-            addTag("android.widget.TextView");
-            addTag("android.view.View");
-            addTag("android.widget.ImageButton");
-            addTag("android.widget.Button");
-            addTag("android.widget.EditText");
-            addTag("android.widget.ImageView");
-            addTag("android.widget.Button");
-            addTag("android.widget.EditText");
-            addTag("android.view.ViewGroup");
-            addTag("android.widget.Image");
-            addTag("android.widget.ToggleButton");
-            addTag("android.widget.RadioButton");
-
-            var xmlNodes = [];
-
-            listOfTags.forEach(function (stringTag) {
-              var getElements = xmlDoc.getElementsByTagName(stringTag);
-              for (var i = 0; i < getElements.length; i++) {
-                xmlNodes.push(getElements[i]);
-              }
-            });
-
-
-            for (var i = 0; i < xmlNodes.length; i++) {
-              var node = xmlNodes[i];
-
-
-              if (node.nodeName !== "hierarchy" && node.nodeName !== "android.widget.FrameLayout"
-                && !node.nodeName.includes("LinearLayout") && !node.nodeName.includes("DrawerLayout")
-                && !node.nodeName.includes("RecyclerView") && !node.nodeName.includes("RelativeLayout")
-                && node.nodeName !== "" && node.nodeName !== null) {
-                var controlName = "";
-                var CN_Value = "";
-                var controlType = node.nodeName;
-                var controlIdentificationType = "XPath";
-                var controlId = "";
-                var xpath = "";
-
-                if (node.nodeName === "android.view.View") {
-                  controlType = "Label";
-                } else if (node.nodeName === "android.view.ViewGroup" || node.nodeName === "android.widget.Image" || node.nodeName === "android.widget.TextView") {
-                  controlType = "Link";
-                } else if (node.nodeName === "android.widget.ImageButton" || node.nodeName === "android.widget.Button" || node.nodeName === "android.widget.ToggleButton") {
-                  controlType = "Button";
-                } else if (node.nodeName === "android.widget.EditText") {
-                  controlType = "TextBox";
-                } else if (node.nodeName === "android.widget.ImageView") {
-                  controlType = "Image";
-                } else if (node.nodeName === "android.widget.RadioButton") {
-                  controlType = "RadioButton";
-                }
-                try {
-                  if (node.getAttribute("text") !== null && node.getAttribute("text").trim() !== "") {
-                    controlName = node.getAttribute("text").trim();
-                    controlName = controlName.substring(0, Math.min(20, controlName.length));
-                    controlName = checkForSingleQuote(controlName);
-                    CN_Value = controlName.replace(/[^a-zA-Z0-9 ,]/g, "").trimStart();
-                    controlName = controlName.replace(/[^a-zA-Z0-9 ]/g, "").trimStart()
-                    controlId = "//" + node.nodeName + "[@text='" + CN_Value + "']";
-                    if (controlIdList.includes(controlId)) {
-                      controlIdList.push(controlId);
-                      var CNcount = 0;
-                      var CN_ID = controlId;
-                      for (var k = 0; k < controlIdList.length; k++) {
-                        if (CN_ID === controlIdList[k])
-                          CNcount++;
-                      }
-                      xpath = "(" + controlId + ")[" + CNcount + "]";
-                    }
-                    else {
-                      controlIdList.push(controlId);
-                      xpath = controlId;
-                    }
-                  } else if (node.getAttribute("content-desc") !== null) {
-                    controlName = node.getAttribute("content-desc").trim();
-                    controlId = "//" + node.nodeName + "[@content-desc='" + controlName + "']";
-                    if (controlIdList.includes(controlId)) {
-                      controlIdList.push(controlId);
-                      var CNcount = 0;
-                      var CN_ID = controlId;
-                      for (var k = 0; k < controlIdList.length; k++) {
-                        if (CN_ID === controlIdList[k])
-                          CNcount++;
-                      }
-                      xpath = "(" + controlId + ")[" + CNcount + "]";
-                    }
-                    else {
-                      controlIdList.push(controlId);
-                      xpath = controlId;
-                    }
-                  } else if (node.getAttribute("resource-id") !== null) {
-                    controlId = "//" + node.nodeName + "[@resource-id='" + node.getAttribute("resource-id").trim() + "']";
-                    controlIdentificationType = "ID";
-                    var controlNameList = node.getAttribute("resource-id").split(new RegExp("id/", "i"));
-                    if (controlNameList.length > 1 && controlName === "") {
-                      controlName = controlNameList[1];
-                    }
-                    if (controlIdList.includes(controlId)) {
-                      controlIdList.push(controlId);
-                      var CNcount = 0;
-                      var CN_ID = controlId;
-                      for (var k = 0; k < controlIdList.length; k++) {
-                        if (CN_ID === controlIdList[k])
-                          CNcount++;
-                      }
-                      xpath = "(" + controlId + ")[" + CNcount + "]";
-                    }
-                    else {
-                      controlIdList.push(controlId);
-                      xpath = controlId;
-                    }
-                  } else if (node.getAttribute("class") !== null) {
-                    controlName = node.getAttribute("class").trim();
-                    controlId = "//" + node.nodeName + "[@class='" + controlName + "']";
-                    if (controlIdList.includes(controlId)) {
-                      controlIdList.push(controlId);
-                      var CNcount = 0;
-                      var CN_ID = controlId;
-                      for (var k = 0; k < controlIdList.length; k++) {
-                        if (CN_ID === controlIdList[k])
-                          CNcount++;
-                      }
-                      xpath = "(" + controlId + ")[" + CNcount + "]";
-                    }
-                    else {
-                      controlIdList.push(controlId);
-                      xpath = controlId;
-                    }
-                  } else {
-                    controlId = "//" + node.nodeName;
-                    if (controlIdList.includes(controlId)) {
-                      controlIdList.push(controlId);
-                      var CNcount = 0;
-                      var CN_ID = controlId;
-                      for (var k = 0; k < controlIdList.length; k++) {
-                        if (CN_ID === controlIdList[k])
-                          CNcount++;
-                      }
-                      xpath = "(" + controlId + ")[" + CNcount + "]";
-                    }
-                    else {
-                      controlIdList.push(controlId);
-                      xpath = controlId;
-                    }
-                  }
-                } catch (err) {
-                  console.log("Error :", err);
-                  controlId = "//" + node.nodeName;
-                  controlName = node.nodeName;
-                }
-                if (controlName === "") {
-                  controlName = node.nodeName;
-                }
-
-                if (controlName !== "") {
-                  controlName = controlName.substring(0, Math.min(40, controlName.length));
-                  controlName = controlName.replace(/[^a-zA-Z0-9 ]/g, "").trimStart()
-                  if (/^\d/.test(controlName)) {
-                    controlName = `NUM_` + controlName;
-                  }
-                  if (controlName !== "") {
-                    var count = 0;
-
-                    // to remove dulpicates from page
-                    if (!controlNameLists.includes(controlName)) {
-                      controlNameLists.push(controlName);
-                    }
-                    else {
-                      controlNameLists.push(controlName)
-                      if (controlNameLists.includes(controlName)) {
-                        CNcount = 0;
-                        var CN = controlName;
-                        for (var m = 0; m < controlNameLists.length; m++) {
-                          if (CN === controlNameLists[m])
-                            CNcount++;
-                        }
-                        controlName = controlName + "_" + (CNcount);
-
-                      }
-                    }
-                    CNcount = 0;
-                    dtControls.push({
-                        ControlName: controlName,
-                        ControlType: controlType,
-                        ControlId: xpath,
-                        Fingerprint: new XMLSerializer().serializeToString(node)
-                    });
-                  }
-                }
-
-              }
-            }
-
-
-            // Function to create and append the HTML table
-            dtControls = [];
-          }
-          if (plateformOption === 'IOS') {
             let listOfTags = [];
 
             function addTag(tag) {
@@ -1365,35 +1059,42 @@
                   }
 
                   // to remove dulpicates from page
-                  if (!controlNameLists.includes(controlName)) {
-                    controlNameLists.push(controlName);
-                  }
-                  else {
-                    controlNameLists.push(controlName)
-                    if (controlNameLists.includes(controlName)) {
-                      var CNcount = 0;
-                      var CN = controlName;
-                      for (var j = 0; j < controlNameLists.length; j++) {
-                        if (CN === controlNameLists[j])
-                          CNcount++;
-                      }
-                      controlName = controlName + "_" + (CNcount);
+                                    if (!controlNameLists.includes(controlName)) {
+                                      controlNameLists.push(controlName);
+                                    }
+                                    else {
+                                      controlNameLists.push(controlName)
+                                      if (controlNameLists.includes(controlName)) {
+                                        var CNcount = 0;
+                                        var CN = controlName;
+                                        for (var j = 0; j < controlNameLists.length; j++) {
+                                          if (CN === controlNameLists[j])
+                                            CNcount++;
+                                        }
+                                        controlName = controlName + "_" + (CNcount);
 
-                    }
-                  }
+                                      }
+                                    }
 
-                  dtControls.push({
-                      ControlName: controlName,
-                      ControlType: controlType,
-                      ControlId: xpath,
-                      Fingerprint: new XMLSerializer().serializeToString(node)
-                  });
-                }
+                                    // NEW: Extract the input value if the element is a text/search field
+                                    let controlValue = "";
+                                    if (["XCUIElementTypeTextField", "XCUIElementTypeSecureTextField", "XCUIElementTypeSearchField", "XCUIElementTypeTextView"].includes(node.nodeName)) {
+                                        controlValue = node.getAttribute("value") || "";
+                                    }
 
-              }
-            }
+                                    dtControls.push({
+                                        ControlName: controlName,
+                                        ControlType: controlType,
+                                        ControlId: xpath,
+                                        ControlValue: controlValue, // Added this to pass the value
+                                        Fingerprint: new XMLSerializer().serializeToString(node)
+                                    });
+                                  }
+
+                                }
+                              }
             dtControls = [];
-          }
+
           document.getElementById('div_status_bar').style.display = 'none';
           showElementHover = false;
           hoverRequestId++;
@@ -1609,12 +1310,7 @@
       document.getElementById('table-container').style.display = "none"
       var plateformName = document.getElementById('platformname');
       var plateformOption = plateformName.options[plateformName.selectedIndex].text;
-      if (plateformOption === 'Android') {
-        deletePngFile(systemAppData)
-      }
-      else if (plateformOption === 'IOS') {
         deletePngFile(folderPath)
-      }
       async function deletePngFile(folderPath) {
         fs.readdir(folderPath, (err, files) => {
           if (err) {
@@ -2276,14 +1972,6 @@ async function checkAppForegroundState() {
             var plateformName = document.getElementById('platformname');
             var plateformOption = plateformName.options[plateformName.selectedIndex].text;
 
-            if (plateformOption === 'Android') {
-                const actions = driver.actions({ async: true });
-                await actions.move({ x: startX, y: startY, duration: 0 })
-                             .press()
-                             .move({ x: endX, y: endY, duration: 600 })
-                             .release()
-                             .perform();
-            } else {
                 await driver.executeScript("mobile: dragFromToForDuration", {
                     fromX: startX,
                     fromY: startY,
@@ -2291,7 +1979,6 @@ async function checkAppForegroundState() {
                     toY: endY,
                     duration: 0.6
                 });
-            }
 
             await driver.sleep(2000);
 
@@ -2537,7 +2224,6 @@ async function checkAppForegroundState() {
     function prestart() {
       var plateformName = document.getElementById('platformname');
       var plateformOption = plateformName.options[plateformName.selectedIndex].text;
-      if (plateformOption === 'IOS') {
         document.getElementById('pfVersion').style.display = "block"
         document.getElementById('automatione_name').style.display = "block"
         // document.getElementById('orgID').style.display = "block"
@@ -2546,19 +2232,6 @@ async function checkAppForegroundState() {
         document.getElementById('appPkg').style.display = "none"
         document.getElementById('appActvty').style.display = "none"
         document.getElementById('automatione_name').style.display = "block"
-
-      }
-      if (plateformOption === 'Android') {
-        document.getElementById('pfVersion').style.display = "none"
-        // document.getElementById('automatione_name').style.display = "none"
-        // document.getElementById('orgID').style.display = "none"
-        // document.getElementById('signingID').style.display = "none"
-        document.getElementById('bndlID').style.display = "none"
-        document.getElementById('appPkg').style.display = "block"
-        document.getElementById('appActvty').style.display = "block"
-        document.getElementById('automatione_name').style.display = "block"
-
-      }
     }
 
    // 1. Add Row Handler (Inserts 1 new row at top, pushing default rows down without replacing them)
@@ -2735,12 +2408,6 @@ async function checkAppForegroundState() {
     document.getElementById("bundleID").addEventListener('click', async () => {
       document.getElementById("bundleID").style.borderColor = ''
     })
-    document.getElementById("apppackage").addEventListener('click', async () => {
-      document.getElementById("apppackage").style.borderColor = ''
-    })
-    document.getElementById("appactivity").addEventListener('click', async () => {
-      document.getElementById("appactivity").style.borderColor = ''
-    })
     document.getElementById("appiumurl").addEventListener('click', async () => {
       document.getElementById("appiumurl").style.borderColor = ''
     })
@@ -2812,19 +2479,19 @@ function createAndAppendTable(dtControls) {
                 let controlTypeCellHtml = `<select class="xpath-dropdown" style="width: 100%; border: none; background: transparent; font-size: 11px; font-weight: 600;">${ctSelectOptionsHtml}</select>`;
 
                 let rowDataMap = {
-                    "#": "",
-                    "CONTROL NAME": dtControls[i].ControlName || "",
-                    "CONTROL TYPE": controlTypeCellHtml, // Use dropdown HTML
-                    "CONTROL ID": controlIdCellHtml,
-            "PAGE NAME": pageName,
-            "IDENTIFICATION TYPE": "",
-            "CONTROL VALUE": "",
-            "FEATURE NAME": pageName,
-            "NODE NAME": pageName,
-            "DELETE": `<img src="icon/icons8-delete_red.svg" id="del_${td_id}" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; overflow: hidden; cursor: pointer; -webkit-user-drag: none; display:inline-block;">`,
-            "FINGERPRINT": (dtControls[i].Fingerprint || "").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
-            "APP URL": ""
-        };
+                                    "#": "",
+                                    "CONTROL NAME": dtControls[i].ControlName || "",
+                                    "CONTROL TYPE": controlTypeCellHtml, // Use dropdown HTML
+                                    "CONTROL ID": controlIdCellHtml,
+                            "PAGE NAME": pageName,
+                            "IDENTIFICATION TYPE": "",
+                            "CONTROL VALUE": dtControls[i].ControlValue || "", // UPDATED to catch the passed value
+                            "FEATURE NAME": pageName,
+                            "NODE NAME": pageName,
+                            "DELETE": `<img src="icon/icons8-delete_red.svg" id="del_${td_id}" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; overflow: hidden; cursor: pointer; -webkit-user-drag: none; display:inline-block;">`,
+                            "FINGERPRINT": (dtControls[i].Fingerprint || "").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+                            "APP URL": ""
+                        };
 
         var rowHtml = "";
 
@@ -3541,21 +3208,9 @@ function createAndAppendTable(dtControls) {
           const el = await driver.findElement(By.xpath(innerText));
           const data = await el.takeScreenshot();
           const screenshot = Buffer.from(data, "base64");
-          if (plateformOption === "Android") {
-            fs.writeFileSync(
-              path.join(systemAppData, `ss_${count}.png`),
-              screenshot
-            );
-          } else if (plateformOption === "IOS") {
             fs.writeFileSync(`${folderPath}/ss_${count}.png`, screenshot);
-          }
-
           let img = document.createElement("img");
-          if (plateformOption === "Android") {
-            img.src = path.join(systemAppData, `ss_${count}.png`);
-          } else if (plateformOption === "IOS") {
             img.src = `${folderPath}/ss_${count}.png`;
-          }
           img.id = "ss";
           style.maxWidth = "100%";
           style.maxHeight = "100%";
@@ -3612,20 +3267,27 @@ function createAndAppendTable(dtControls) {
                     continue;
 
                 // 1. Generate clean, professional variable name (e.g., btn_Login)
-                let controlName = generateProfessionalControlName(node);
+                                let controlName = generateProfessionalControlName(node);
 
-                // 2. Fetch STRICT exact-match XPaths only
-                let allXPaths = getAllPossibleXPaths(node);
+                                // 2. Fetch STRICT exact-match XPaths only
+                                let allXPaths = getAllPossibleXPaths(node);
 
-                dtControls.push({
-                    ControlName: controlName,
-                    ControlType: node.nodeName.replace("XCUIElementType", "").replace("android.widget.", ""),
-                    ControlId: allXPaths,
-                    Fingerprint: new XMLSerializer().serializeToString(node)
-                });
-            }
+                                // NEW: Extract the input value if the element is a text/search field
+                                let controlValue = "";
+                                if (["XCUIElementTypeTextField", "XCUIElementTypeSecureTextField", "XCUIElementTypeSearchField", "XCUIElementTypeTextView"].includes(node.nodeName)) {
+                                    controlValue = node.getAttribute("value") || "";
+                                }
 
-            const pageName = document.getElementById("pagename_searchbox").value.trim();
+                                dtControls.push({
+                                    ControlName: controlName,
+                                    ControlType: node.nodeName.replace("XCUIElementType", "").replace("android.widget.", ""),
+                                    ControlId: allXPaths,
+                                    ControlValue: controlValue, // Added this to pass the value
+                                    Fingerprint: new XMLSerializer().serializeToString(node)
+                                });
+                            }
+
+                            const pageName = document.getElementById("pagename_searchbox").value.trim();
 
             if(pageName === ""){
                 document.getElementById("pagename_searchbox").style.borderColor = "red";
@@ -4471,7 +4133,8 @@ function getAllPossibleXPaths(node) {
         return [`//${tagName}`];
     }
 
-    // 1. Calculate Coordinate
+    // 1. Calculate Coordinate (COMMENTED OUT)
+    /*
     let x = parseFloat(node.getAttribute("x"));
     let y = parseFloat(node.getAttribute("y"));
     let width = parseFloat(node.getAttribute("width"));
@@ -4483,6 +4146,7 @@ function getAllPossibleXPaths(node) {
         let centerY = Math.round(y + (height / 2));
         coordXPath = `COORDINATE(${centerX},${centerY})`;
     }
+    */
 
     const isGeneric = (tagName === "XCUIElementTypeOther" || tagName === "Other" || tagName === "android.view.View");
 
@@ -4514,7 +4178,8 @@ function getAllPossibleXPaths(node) {
         }
     }
 
-    // 4. Ensure coordinates are always in the list
+    // 4. Ensure coordinates are always in the list (COMMENTED OUT)
+    /*
     if (coordXPath && !candidates.includes(coordXPath)) {
         if (isGeneric) {
             // For "Other" elements, prioritize the Coordinate at the top of the dropdown
@@ -4524,6 +4189,7 @@ function getAllPossibleXPaths(node) {
             candidates.push(coordXPath);
         }
     }
+    */
 
     return candidates.length > 0 ? candidates : [`//${tagName}`];
 }
@@ -4622,21 +4288,28 @@ function getAllPossibleXPaths(node) {
             }
 
             // 1. Generate Clean Variable Name & Type normally
-            let controlName = generateProfessionalControlName(matchedNode);
-            let controlType = matchedNode.nodeName.replace("XCUIElementType", "").replace("android.widget.", "");
+                        let controlName = generateProfessionalControlName(matchedNode);
+                        let controlType = matchedNode.nodeName.replace("XCUIElementType", "").replace("android.widget.", "");
 
-            // 2. Fetch XPaths
-            let allXPaths = getAllPossibleXPaths(matchedNode);
+                        // 2. Fetch XPaths
+                        let allXPaths = getAllPossibleXPaths(matchedNode);
 
-            createAndAppendTable([
-                {
-                    ControlName: controlName,
-                    ControlType: controlType,
-                    ControlId: allXPaths,
-                    Fingerprint: new XMLSerializer().serializeToString(matchedNode)
-                }
-            ]);
-        }
+                        // NEW: Extract the input value if the element is a text/search field
+                        let controlValue = "";
+                        if (["XCUIElementTypeTextField", "XCUIElementTypeSecureTextField", "XCUIElementTypeSearchField", "XCUIElementTypeTextView"].includes(matchedNode.nodeName)) {
+                            controlValue = matchedNode.getAttribute("value") || "";
+                        }
+
+                        createAndAppendTable([
+                            {
+                                ControlName: controlName,
+                                ControlType: controlType,
+                                ControlId: allXPaths,
+                                ControlValue: controlValue, // Added this to pass the value
+                                Fingerprint: new XMLSerializer().serializeToString(matchedNode)
+                            }
+                        ]);
+                    }
 
     function updateRowNumbers() {
         const rows = document.querySelectorAll("#myTable tr");
@@ -5191,11 +4864,7 @@ function updateRowEyeButtonState() {
                 var plateformName = document.getElementById('platformname');
                 if (plateformName && plateformName.options.length > 0) {
                     var plateformOption = plateformName.options[plateformName.selectedIndex].text;
-                    if (plateformOption === 'Android') {
-                        safelyDeletePngs(systemAppData);
-                    } else if (plateformOption === 'IOS') {
                         safelyDeletePngs(folderPath);
-                    }
                 }
 
                 // 7. Reset Input Fields
@@ -5267,7 +4936,8 @@ function generateProfessionalControlName(node) {
 
     rawName = rawName.trim();
 
-    // 2. Identify UI Type for Prefix
+    // 2. Identify UI Type for Prefix (COMMENTED OUT)
+    /*
     let prefix = "elm_";
     const tag = node.nodeName.toLowerCase();
 
@@ -5277,11 +4947,14 @@ function generateProfessionalControlName(node) {
     else if (tag.includes("statictext") || tag.includes("textview") || tag.includes("label")) prefix = "lbl_";
     else if (tag.includes("checkbox") || tag.includes("toggle") || tag.includes("switch") || tag.includes("radio")) prefix = "chk_";
     else if (tag.includes("cell")) prefix = "cell_";
+    */
 
     // 3. Fallback if no readable text
     if (!rawName) {
         let cleanTag = node.nodeName.replace("XCUIElementType", "").replace("android.widget.", "").replace("android.view.", "");
-        return `${prefix}${cleanTag}`;
+
+        // return `${prefix}${cleanTag}`; // COMMENTED OUT
+        return cleanTag;
     }
 
     // 4. Smart Sanitize and Format
@@ -5307,7 +4980,8 @@ function generateProfessionalControlName(node) {
         cleanName = "num_" + cleanName;
     }
 
-    return `${prefix}${cleanName}`;
+    // return `${prefix}${cleanName}`; // COMMENTED OUT
+    return cleanName;
 }
 
 
