@@ -1912,6 +1912,14 @@
             // IMMEDIATELY clear overlay to prevent confusion between rows
             clearOverlay();
 
+            if (xpath.startsWith("SWIPE(")) {
+                const match = xpath.match(/SWIPE\((\d+),(\d+),(\d+),(\d+)\)/);
+                if (match) {
+                    drawSwipeHoverMarker(parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10), parseInt(match[4], 10));
+                }
+                return;
+            }
+
             if (xpath.startsWith("COORDINATE(")) {
                 const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
                 if (match) {
@@ -1939,6 +1947,99 @@
                     }
                 }
             }, 80);
+        }
+
+        // Dedicated handler for option hover events
+        async function onOptionHover(xpath) {
+            if (!xpath || xpath === lastXPath) return;
+
+            lastXPath = xpath;
+            clearTimeout(hoverTimer);
+
+            hoverRequestId++;
+            const currentRequestId = hoverRequestId;
+
+            // IMMEDIATELY clear overlay
+            clearOverlay();
+
+            if (xpath.startsWith("SWIPE(")) {
+                const match = xpath.match(/SWIPE\((\d+),(\d+),(\d+),(\d+)\)/);
+                if (match) {
+                    drawSwipeHoverMarker(parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10), parseInt(match[4], 10));
+                }
+                return;
+            }
+
+            if (xpath.startsWith("COORDINATE(")) {
+                const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
+                if (match) {
+                    const x = parseInt(match[1], 10);
+                    const y = parseInt(match[2], 10);
+                    drawCoordinateHoverMarker(x, y);
+                }
+                return;
+            }
+
+            hoverTimer = setTimeout(async () => {
+                if (currentRequestId !== hoverRequestId) return;
+
+                showElementHover = true;
+
+                try {
+                    const element = await driver.findElement(By.xpath(xpath));
+                    const rect = await element.getRect();
+
+                    // CRITICAL FIX: Only draw if this is STILL the active hover session
+                    if (currentRequestId === hoverRequestId) {
+                        drawShowElementMarker(rect);
+                    }
+                } catch (err) {
+                    if (currentRequestId === hoverRequestId) {
+                        clearOverlay();
+                    }
+                }
+            }, 60);
+        }
+
+        // Handler for when user selects a different option in the dropdown
+        async function onDropdownChange(selectElement) {
+            // Kill any pending hover operations triggered while navigating the dropdown menu
+            clearTimeout(hoverTimer);
+            hoverRequestId++;
+            clearOverlay();
+
+            const xpath = selectElement.value.trim();
+
+            // Set lastXPath so that resting the mouse on the select doesn't immediately re-trigger
+            lastXPath = xpath;
+
+            if (!xpath) return;
+
+            if (xpath.startsWith("SWIPE(")) {
+                const match = xpath.match(/SWIPE\((\d+),(\d+),(\d+),(\d+)\)/);
+                if (match) {
+                    drawSwipeHoverMarker(parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10), parseInt(match[4], 10));
+                }
+                return;
+            }
+
+            if (xpath.startsWith("COORDINATE(")) {
+                const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
+                if (match) {
+                    const x = parseInt(match[1], 10);
+                    const y = parseInt(match[2], 10);
+                    drawCoordinateHoverMarker(x, y);
+                }
+                return;
+            }
+
+            try {
+                const element = await driver.findElement(By.xpath(xpath));
+                const rect = await element.getRect();
+                drawShowElementMarker(rect);
+            } catch {
+                clearOverlay();
+            }
         }
 
     function onShowElementLeave(e) {
@@ -2090,6 +2191,15 @@ async function checkAppForegroundState() {
 //Perform swipe action on connected device
     async function performSwipe(startX, startY, endX, endY) {
         if (touchInProgress) return;
+
+        // --- 1. Enforce Page Name Validation Before Swiping ---
+        const pageName = document.getElementById("pagename_searchbox").value.trim();
+        if (pageName === "") {
+            document.getElementById("pagename_searchbox").style.borderColor = "red";
+            alert("Please enter Page Name before attempting to scroll.");
+            return; // Abort the swipe entirely
+        }
+
         touchInProgress = true;
 
         const container = document.getElementById("image-container");
@@ -2112,9 +2222,55 @@ async function checkAppForegroundState() {
         }
         if (localLoader) localLoader.style.display = "block";
 
+        // --- NEW: Bulletproof Screen State Comparison ---
+        function getPageStructureState(xmlDocument) {
+            if (!xmlDocument) return "";
+            let state = [];
+            const nodes = xmlDocument.getElementsByTagName("*");
+
+            for (let i = 0; i < nodes.length; i++) {
+                let n = nodes[i];
+                let nodeName = n.nodeName;
+
+                // STRICT FILTER: Ignore transient UI elements that falsely trigger state changes
+                if (nodeName.includes("StatusBar") || nodeName.includes("ScrollBar") || nodeName.includes("ActivityIndicator") || nodeName === "XCUIElementTypeWindow") {
+                    continue;
+                }
+
+                // Extract real text content
+                let text = n.getAttribute("label") || n.getAttribute("text") || n.getAttribute("value") || n.getAttribute("name") || "";
+                text = text.trim();
+
+                // Skip empty tags and clock/battery text
+                if (text === "" || /^\d{1,2}:\d{2}/.test(text) || text.includes("battery")) {
+                    continue;
+                }
+
+                let y = parseFloat(n.getAttribute("y"));
+
+                // Fallback for Android bounds
+                if (isNaN(y)) {
+                    let bounds = n.getAttribute("bounds");
+                    if (bounds) {
+                        let match = bounds.match(/\[(\d+),(\d+)\]/);
+                        if (match) y = parseInt(match[2], 10);
+                    }
+                }
+
+                if (!isNaN(y)) {
+                    // Group elements by Text + rough Y position (rounded to nearest 10px to ignore 1px micro-jitters)
+                    state.push(`${text}_${Math.round(y/10)*10}`);
+                }
+            }
+            return state.join("|");
+        }
+
         try {
-            // ---> NEW CHECK: Verifies app is actually in foreground <---
+            // ---> Verifies app is actually in foreground <---
             await checkAppForegroundState();
+
+            // 2. Capture the exact text & layout state BEFORE swiping
+            const preSwipeState = getPageStructureState(window.xmlDoc);
 
             console.log("Swipe from:", startX, startY, "to", endX, endY);
             var plateformName = document.getElementById('platformname');
@@ -2152,6 +2308,30 @@ async function checkAppForegroundState() {
             const parser = new DOMParser();
             window.xmlDoc = parser.parseFromString(pageSource, "text/xml");
             clearOverlay();
+
+            // 3. Capture the exact text & layout state AFTER swiping
+            const postSwipeState = getPageStructureState(window.xmlDoc);
+
+            // 4. Compare States. If identical, the screen just bounced and nothing changed.
+            if (preSwipeState === postSwipeState) {
+                alert("No extra scrollable elements found on this page, or end of page reached.");
+                return; // Do NOT store the XPath in the table
+            }
+
+            // 5. Record the Scroll Action in the Table ONLY if a successful scroll occurred
+            let rootXPath = plateformOption === 'IOS' ? "//XCUIElementTypeApplication" : "//hierarchy";
+
+            createAndAppendTable([
+                {
+                    ControlName: `act_Scroll_${Math.round(startX)}_${Math.round(startY)}`,
+                    ControlType: "Scroll",
+                    ControlId: [
+                        `SWIPE(${Math.round(startX)},${Math.round(startY)},${Math.round(endX)},${Math.round(endY)})`,
+                        rootXPath
+                    ],
+                    Fingerprint: "<Action Type=\"Scroll\" />"
+                }
+            ]);
 
         } catch (err) {
             console.error("Swipe Error:", err);
@@ -2700,41 +2880,6 @@ function createAndAppendTable(dtControls) {
     updateRowNumbers();
     initResizableTable();
 }
-
-
-
-    // Handler for when user selects a different option in the dropdown
-    async function onDropdownChange(selectElement) {
-            // Kill any pending hover operations triggered while navigating the dropdown menu
-            clearTimeout(hoverTimer);
-            hoverRequestId++;
-            clearOverlay();
-
-            const xpath = selectElement.value.trim();
-
-            // Set lastXPath so that resting the mouse on the select doesn't immediately re-trigger
-            lastXPath = xpath;
-
-            if (!xpath) return;
-
-            if (xpath.startsWith("COORDINATE(")) {
-                const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
-                if (match) {
-                    const x = parseInt(match[1], 10);
-                    const y = parseInt(match[2], 10);
-                    drawCoordinateHoverMarker(x, y);
-                }
-                return;
-            }
-
-            try {
-                const element = await driver.findElement(By.xpath(xpath));
-                const rect = await element.getRect();
-                drawShowElementMarker(rect);
-            } catch {
-                clearOverlay();
-            }
-        }
 
     function initResizableTable() {
         const resizers = document.querySelectorAll('#mainTable .resizer');
@@ -4322,12 +4467,11 @@ function getAllPossibleXPaths(node) {
     let candidates = [];
     const tagName = node.nodeName;
 
-    // Outer root wrappers that should NEVER be targeted
-    if (tagName === "AppiumAUT" || tagName === "XCUIElementTypeApplication" || tagName === "XCUIElementTypeWindow") {
+    if (tagName === "AppiumAUT" || tagName === "XCUIElementTypeApplication" || tagName === "XCUIElementTypeWindow" || tagName === "hierarchy") {
         return [`//${tagName}`];
     }
 
-    // 1. ALWAYS calculate the center coordinate for the element
+    // 1. Calculate Coordinate
     let x = parseFloat(node.getAttribute("x"));
     let y = parseFloat(node.getAttribute("y"));
     let width = parseFloat(node.getAttribute("width"));
@@ -4340,18 +4484,13 @@ function getAllPossibleXPaths(node) {
         coordXPath = `COORDINATE(${centerX},${centerY})`;
     }
 
-    // 2. FORCE COORDINATES ONLY FOR GENERIC CONTAINERS
-    if (tagName === "XCUIElementTypeOther" || tagName === "Other" || tagName === "android.view.View") {
-        return coordXPath ? [coordXPath] : [];
-    }
+    const isGeneric = (tagName === "XCUIElementTypeOther" || tagName === "Other" || tagName === "android.view.View");
 
+    // 2. ALWAYS extract useful attributes (like [@label="HZ"])
     const attributes = ["label", "resource-id", "content-desc", "text", "value"];
-
-    // 3. EXACT DIRECT ATTRIBUTES ONLY (No Contains, No Parents)
     for (let attr of attributes) {
         let val = node.getAttribute(attr);
         if (val && val.trim() !== "") {
-            // Strip quotes to prevent XPath syntax breaks
             let cleanVal = val.trim().replace(/"/g, '');
             let xpath = `//${tagName}[@${attr}="${cleanVal}"]`;
             if (!candidates.includes(xpath)) {
@@ -4360,25 +4499,32 @@ function getAllPossibleXPaths(node) {
         }
     }
 
-    // 4. EXACT GLOBAL INDEX MATCH ONLY
-    let fallbackXpath = `//${tagName}`;
-    let globalResults = window.xmlDoc.evaluate(fallbackXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    for (let i = 0; i < globalResults.snapshotLength; i++) {
-        if (globalResults.snapshotItem(i) === node) {
-            let indexedXpath = `(${fallbackXpath})[${i + 1}]`;
-            if (!candidates.includes(indexedXpath)) {
-                candidates.push(indexedXpath);
+    // 3. ONLY process the blind index [1], [2] fallback if the element IS NOT a generic tag
+    if (!isGeneric) {
+        let fallbackXpath = `//${tagName}`;
+        let globalResults = window.xmlDoc.evaluate(fallbackXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        for (let i = 0; i < globalResults.snapshotLength; i++) {
+            if (globalResults.snapshotItem(i) === node) {
+                let indexedXpath = `(${fallbackXpath})[${i + 1}]`;
+                if (!candidates.includes(indexedXpath)) {
+                    candidates.push(indexedXpath);
+                }
+                break;
             }
-            break;
         }
     }
 
-    // 5. APPEND COORDINATE TO EVERY ELEMENT'S LIST
+    // 4. Ensure coordinates are always in the list
     if (coordXPath && !candidates.includes(coordXPath)) {
-        candidates.push(coordXPath);
+        if (isGeneric) {
+            // For "Other" elements, prioritize the Coordinate at the top of the dropdown
+            candidates.unshift(coordXPath);
+        } else {
+            // For standard buttons/text, put Coordinate at the bottom
+            candidates.push(coordXPath);
+        }
     }
 
-    // Return strict matches, or standard tag fallback
     return candidates.length > 0 ? candidates : [`//${tagName}`];
 }
 
@@ -4390,130 +4536,107 @@ function getAllPossibleXPaths(node) {
     //finding xpath
     async function findIOSLocator(clickX, clickY) {
 
-                const pageName = document.getElementById("pagename_searchbox").value.trim();
+            const pageName = document.getElementById("pagename_searchbox").value.trim();
 
-                if (pageName === "") {
-                    document.getElementById("pagename_searchbox").style.borderColor = "red";
-                    alert("Please enter Page Name.");
-                    return;
+            if (pageName === "") {
+                document.getElementById("pagename_searchbox").style.borderColor = "red";
+                alert("Please enter Page Name.");
+                return;
+            }
+
+            const nodes = window.xmlDoc.getElementsByTagName("*");
+            let matchedNode = null;
+            let smallestArea = Number.MAX_VALUE;
+            let bestScore = -1;
+
+            const rootTypes = [
+                "AppiumAUT",
+                "XCUIElementTypeApplication",
+                "XCUIElementTypeWindow",
+                "hierarchy"
+            ];
+
+            function getElementScore(node) {
+                const tag = node.nodeName;
+                if (tag.includes("Button") || tag.includes("TextField") || tag.includes("SearchField") || tag.includes("StaticText") || tag.includes("TextView")) {
+                    return 10;
+                }
+                if (tag.includes("Image") || tag.includes("Icon")) {
+                    return 8;
+                }
+                if (tag.includes("Cell")) {
+                    return 5;
+                }
+                if (tag.includes("Other") || tag.includes("View")) {
+                    const hasText = node.getAttribute("label") || node.getAttribute("name") || node.getAttribute("value") || node.getAttribute("content-desc");
+                    return hasText ? 4 : 2;
+                }
+                return 1;
+            }
+
+            for (let i = 0; i < nodes.length; i++) {
+                const node = nodes[i];
+
+                if (rootTypes.includes(node.nodeName)) {
+                    continue;
                 }
 
-                const nodes = window.xmlDoc.getElementsByTagName("*");
-                let matchedNode = null;
-                let smallestArea = Number.MAX_VALUE;
+                const x = parseFloat(node.getAttribute("x"));
+                const y = parseFloat(node.getAttribute("y"));
+                const width = parseFloat(node.getAttribute("width"));
+                const height = parseFloat(node.getAttribute("height"));
 
-                // Root elements that should never be selected as specific controls
-                const ignoreTypes = [
-                    "AppiumAUT",
-                    "XCUIElementTypeApplication",
-                    "XCUIElementTypeWindow",
-                    "hierarchy",
-                    "XCUIElementTypeOther", // <-- Added to prevent clicking generic wrappers
-                    "android.view.View"     // <-- Added for Android parity
-                ];
+                if (isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) {
+                    continue;
+                }
 
-                for (let i = 0; i < nodes.length; i++) {
-                    const node = nodes[i];
-                    const x = parseFloat(node.getAttribute("x"));
-                    const y = parseFloat(node.getAttribute("y"));
-                    const width = parseFloat(node.getAttribute("width"));
-                    const height = parseFloat(node.getAttribute("height"));
+                if (width <= 0 || height <= 0) continue;
 
-                    if (isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) {
-                        continue;
-                    }
+                if (clickX >= x && clickX <= (x + width) && clickY >= y && clickY <= (y + height)) {
 
-                    if (width <= 0 || height <= 0) continue;
+                    const area = width * height;
+                    const score = getElementScore(node);
 
-                    // Check if click coordinates fall inside this element's bounding box
-                    if (clickX >= x && clickX <= (x + width) && clickY >= y && clickY <= (y + height)) {
-
-                        if (ignoreTypes.includes(node.nodeName)) {
-                            continue;
-                        }
-
-                        const area = width * height;
-
-                        // STRICT RULE: The absolute smallest node under the cursor wins.
-                        if (area <= smallestArea) {
-                            smallestArea = area;
+                    if (area < smallestArea) {
+                        smallestArea = area;
+                        bestScore = score;
+                        matchedNode = node;
+                    } else if (area === smallestArea) {
+                        if (score > bestScore) {
+                            bestScore = score;
                             matchedNode = node;
                         }
                     }
                 }
-
-                // If no specific valid element is found, output the EXACT click coordinates
-                if (!matchedNode) {
-                    createAndAppendTable([
-                        {
-                            ControlName: `coord_${Math.round(clickX)}_${Math.round(clickY)}`,
-                            ControlType: "Coordinate",
-                            ControlId: [`COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`]
-                        }
-                    ]);
-                    return;
-                }
-
-                // 1. Generate Clean Variable Name from the exact matched node
-                let controlName = generateProfessionalControlName(matchedNode);
-
-                // 2. Fetch STRICT XPaths (No parents, no loose matches)
-                let allXPaths = getAllPossibleXPaths(matchedNode);
-
-                createAndAppendTable([
-                    {
-                        ControlName: controlName,
-                        ControlType: matchedNode.nodeName.replace("XCUIElementType", "").replace("android.widget.", ""),
-                        ControlId: allXPaths,
-                        Fingerprint: new XMLSerializer().serializeToString(matchedNode)
-                    }
-                ]);
             }
 
+            if (!matchedNode) {
+                createAndAppendTable([
+                    {
+                        ControlName: `coord_${Math.round(clickX)}_${Math.round(clickY)}`,
+                        ControlType: "Coordinate",
+                        ControlId: [`COORDINATE(${Math.round(clickX)},${Math.round(clickY)})`]
+                    }
+                ]);
+                return;
+            }
 
-   // Dedicated handler for option hover events
-     async function onOptionHover(xpath) {
-             if (!xpath || xpath === lastXPath) return;
+            // 1. Generate Clean Variable Name & Type normally
+            let controlName = generateProfessionalControlName(matchedNode);
+            let controlType = matchedNode.nodeName.replace("XCUIElementType", "").replace("android.widget.", "");
 
-             lastXPath = xpath;
-             clearTimeout(hoverTimer);
+            // 2. Fetch XPaths
+            let allXPaths = getAllPossibleXPaths(matchedNode);
 
-             hoverRequestId++;
-             const currentRequestId = hoverRequestId;
-
-             // IMMEDIATELY clear overlay
-             clearOverlay();
-
-             if (xpath.startsWith("COORDINATE(")) {
-                 const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
-                 if (match) {
-                     const x = parseInt(match[1], 10);
-                     const y = parseInt(match[2], 10);
-                     drawCoordinateHoverMarker(x, y);
-                 }
-                 return;
-             }
-
-             hoverTimer = setTimeout(async () => {
-                 if (currentRequestId !== hoverRequestId) return;
-
-                 showElementHover = true;
-
-                 try {
-                     const element = await driver.findElement(By.xpath(xpath));
-                     const rect = await element.getRect();
-
-                     // CRITICAL FIX: Only draw if this is STILL the active hover session
-                     if (currentRequestId === hoverRequestId) {
-                         drawShowElementMarker(rect);
-                     }
-                 } catch (err) {
-                     if (currentRequestId === hoverRequestId) {
-                         clearOverlay();
-                     }
-                 }
-             }, 60);
-         }
+            createAndAppendTable([
+                {
+                    ControlName: controlName,
+                    ControlType: controlType,
+                    ControlId: allXPaths,
+                    Fingerprint: new XMLSerializer().serializeToString(matchedNode)
+                }
+            ]);
+        }
 
     function updateRowNumbers() {
         const rows = document.querySelectorAll("#myTable tr");
@@ -5294,3 +5417,85 @@ function drawCoordinateHoverMarker(x, y) {
 
         overlay.appendChild(box);
     }
+
+
+// Draw Arrow after hover for SWIPE actions
+function drawSwipeHoverMarker(startX, startY, endX, endY) {
+    clearOverlay();
+    const overlay = document.getElementById("overlayContainer");
+    const img = document.getElementById("screenshot");
+    if (!overlay || !img || !window.xmlDoc) return;
+
+    const app = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
+    if (!app) return;
+
+    const appWidth = parseFloat(app.getAttribute("width"));
+    const appHeight = parseFloat(app.getAttribute("height"));
+
+    const imgRect = img.getBoundingClientRect();
+    const overlayRect = overlay.getBoundingClientRect();
+
+    const scaleX = imgRect.width / appWidth;
+    const scaleY = imgRect.height / appHeight;
+
+    // Calculate absolute positions scaled to screen
+    const leftOffset = imgRect.left - overlayRect.left;
+    const topOffset = imgRect.top - overlayRect.top;
+
+    const sx = leftOffset + (startX * scaleX);
+    const sy = topOffset + (startY * scaleY);
+    const ex = leftOffset + (endX * scaleX);
+    const ey = topOffset + (endY * scaleY);
+
+    // Create SVG Canvas
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.style.position = "absolute";
+    svg.style.left = "0px";
+    svg.style.top = "0px";
+    svg.style.width = "100%";
+    svg.style.height = "100%";
+    svg.style.pointerEvents = "none";
+    svg.style.zIndex = "9999";
+
+    // Create arrowhead marker (Updated to Blue)
+    const defs = document.createElementNS(svgNS, "defs");
+    const marker = document.createElementNS(svgNS, "marker");
+    marker.setAttribute("id", "arrowhead");
+    marker.setAttribute("markerWidth", "10");
+    marker.setAttribute("markerHeight", "7");
+    marker.setAttribute("refX", "9");
+    marker.setAttribute("refY", "3.5");
+    marker.setAttribute("orient", "auto");
+
+    const polygon = document.createElementNS(svgNS, "polygon");
+    polygon.setAttribute("points", "0 0, 10 3.5, 0 7");
+    polygon.setAttribute("fill", "blue"); // Changed from red to blue
+
+    marker.appendChild(polygon);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    // Create connecting line (dashed arrow)
+    const line = document.createElementNS(svgNS, "line");
+    line.setAttribute("x1", sx);
+    line.setAttribute("y1", sy);
+    line.setAttribute("x2", ex);
+    line.setAttribute("y2", ey);
+    line.setAttribute("stroke", "blue"); // Changed from red to blue
+    line.setAttribute("stroke-width", "2"); // Made the line thinner
+    line.setAttribute("stroke-dasharray", "5,5"); // Dashed look
+    line.setAttribute("marker-end", "url(#arrowhead)");
+
+    // Create start dot
+    const startDot = document.createElementNS(svgNS, "circle");
+    startDot.setAttribute("cx", sx);
+    startDot.setAttribute("cy", sy);
+    startDot.setAttribute("r", "4"); // Reduced dot size slightly to match thinner line
+    startDot.setAttribute("fill", "blue");
+
+    svg.appendChild(line);
+    svg.appendChild(startDot);
+
+    overlay.appendChild(svg);
+}

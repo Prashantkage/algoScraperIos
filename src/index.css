@@ -327,26 +327,28 @@ th .resizer:hover {
     border: 1px solid #d0d4dc !important; /* Soft spreadsheet gray lines */
 }
 
-/* Excel Style Column Header Cells */
 /* Excel Style Blue Column Header Cells with Bold Black Text */
 #mainTable th {
     position: sticky;
-    top: 0;
-    background-color: #4285F4 !important; /* Primary action layout blue color configuration */
-    color: #000000 !important;            /* High-contrast bold black text */
+    top: -1px !important; /* CRITICAL FIX: Pulls header up to hide the hairline scroll bleed gap */
+    background-color: #4285F4 !important;
+    color: #000000 !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     font-size: 11px;
-    font-weight: 700 !important;          /* Hard bold text weighting override */
-    height: 28px;                         /* Structured compact row density profile */
-    padding: 6px 10px 6px 8px !important; /* Balanced cell padding metrics */
-    text-align: center;                   /* Centered header alignment layout */
+    font-weight: 700 !important;
+    height: 28px;
+    padding: 6px 10px 6px 8px !important;
+    text-align: center;
     vertical-align: middle;
     user-select: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     box-sizing: border-box;
-    z-index: 20;                          /* Ensures headers stay stacked correctly above body content when scrolling */
+    z-index: 50 !important; /* CRITICAL FIX: Raised z-index to aggressively overlay dropdowns & inputs */
+
+    /* CRITICAL FIX: Casts a solid border-colored shadow to seal any border-collapse gaps */
+    box-shadow: 0 1px 0 #d0d4dc, 0 -1px 0 #4285F4 !important;
 }
 
 /* Spreadsheet Body Data Cells */
@@ -742,13 +744,6 @@ th .resizer:hover {
     text-overflow: ellipsis;
     max-width: 0;
     box-sizing: border-box;
-}
-
-/* --- REPLACE WITH THIS ENHANCED SPACING --- */
-#mainTable th {
-    height: 32px !important;              /* Comfortable header height */
-    padding: 6px 12px !important;
-    line-height: 20px !important;
 }
 
 #mainTable td {
