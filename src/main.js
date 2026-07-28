@@ -479,19 +479,20 @@
     }
 
     const createWindow = () => {
-      // Create the browser window.
+      // Create the browser window in maximized mode from the start
       mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 900,
         show: false,
         title: "AlgoScraper IOS",
-        icon: path.join(__dirname, '..', 'assets', 'algoScraper Logo.png'), // <-- Added '..' here
+        icon: path.join(__dirname, '..', 'assets', 'algoScraper Logo.png'),
         webPreferences: {
-                nodeIntegration: true,
-                contextIsolation: false,
-                enableRemoteModule: true,
-             }
+            nodeIntegration: true,
+            contextIsolation: false,
+            enableRemoteModule: true,
+        }
       });
+
+      // Immediately maximize the window configuration context
+      mainWindow.maximize();
 
       Menu.setApplicationMenu(null);
       const template = [
@@ -530,13 +531,11 @@
       ];
       const menu = Menu.buildFromTemplate(template);
       Menu.setApplicationMenu(menu);
-      // and load the index.html of the app.
-     mainWindow.loadFile('./src/index.html');
 
-     mainWindow.maximize();
+      // Load the index.html of the app.
+      mainWindow.loadFile('./src/index.html');
 
-     mainWindow.once("ready-to-show", () => {
-
+      mainWindow.once("ready-to-show", () => {
         mainWindow.show();
         mainWindow.focus();
 
@@ -544,11 +543,7 @@
            "launch-mode",
            launchedFromProtocol
         );
-
-     });
-
-      // Open the DevTools.
-    //  mainWindow.webContents.openDevTools();
+      });
     };
 
     // By = wd.By,

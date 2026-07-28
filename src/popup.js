@@ -45,6 +45,7 @@
     let hoverTimer = null;
     let lastXPath = "";
 
+
     function showErrorPopup(title, error) {
         const titleElem = document.getElementById('launchErrorTitle');
         const logElem = document.getElementById('launchErrorLog');
@@ -705,7 +706,7 @@
 
           document.getElementById('pagename_searchbox').style.borderColor = 'red';
 
-          alert("Please enter Page Name before scraping.");
+          showCustomAlert("Missing Information", "Please enter Page Name before scraping.");
 
           return;
       }
@@ -1146,6 +1147,7 @@
 
 
     let pendingExportAction = null;
+    let rowToDelete = null;
 
        // Helper to check if table actually contains user data
            function hasValidTableData(tableId) {
@@ -1163,7 +1165,7 @@
 
         document.getElementById("download").addEventListener('click', async () => {
                   if (!tableCreated || !hasValidTableData('myTable')) {
-                      alert("No scraped data found to download.");
+                      showCustomAlert("Export Failed", "No scraped data found to download.");
                       return;
                   }
 
@@ -1258,9 +1260,17 @@
 
     // actions to perform on clicking reset button
     document.getElementById("reset").addEventListener('click', async () => {
-      document.getElementById('confirmationPopup').style.display = 'block'
-      document.getElementById('overlay').style.display = 'block';
-    });
+            // ADD THESE TWO LINES:
+            document.getElementById('back_btn').style.display = 'inline-block';
+            document.getElementById('okay_btn').innerText = 'Confirm';
+
+            document.getElementById('popup_title').innerText = "Confirm Reset";
+            document.getElementById('popup_main_text').innerHTML = "Do you really want to reset?";
+            document.getElementById('popup_sub_text').innerText = "You will not be able to recover the data!";
+
+            document.getElementById('confirmationPopup').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        });
 
     document.getElementById("okay_btn").addEventListener('click', async () => {
       document.getElementById('confirmationPopup').style.display = 'none'
@@ -1478,120 +1488,90 @@
 
     async function onTableClick(e) {
 
-            // 1. DELETE ROW HANDLER
-            if (e.target.classList.contains("deleteBtn")) {
-                const targetRow = e.target.closest("tr");
-                if (targetRow) {
-                    targetRow.remove(); // Removes the exact clicked row
+        // 1. DELETE ROW HANDLER
+        if (e.target.classList.contains("deleteBtn")) {
+            const targetRow = e.target.closest("tr");
+            if (!targetRow) return;
+
+            // A. Extract Control Name and Page Name dynamically from the row
+            const cnCell = targetRow.querySelector(".cn");
+            const pageCell = targetRow.querySelector(".page");
+
+            // Grab the text, or fallback if the field is empty
+            let controlName = cnCell && cnCell.innerText.trim() !== "" ? cnCell.innerText.trim() : null;
+            let pageName = pageCell && pageCell.innerText.trim() !== "" ? pageCell.innerText.trim() : "this page";
+
+            // B. Format the text according to the situation
+            let mainText = controlName
+                ? `Are you sure you want to delete<br>"${controlName}"?`
+                : `Are you sure you want to delete this row?`;
+
+            let subText = `It will be removed from "${pageName}".`;
+
+            // C. Inject text into the modal
+                    document.getElementById('back_btn').style.display = 'inline-block'; // ADD THIS
+                    document.getElementById('okay_btn').innerText = 'Confirm';          // ADD THIS
+
+                    document.getElementById('popup_title').innerText = "Confirm Deletion";
+                    document.getElementById('popup_main_text').innerHTML = mainText;
+                    document.getElementById('popup_sub_text').innerText = subText;
+
+            // D. Set action state and store the row reference
+            pendingExportAction = "deleteRow";
+            rowToDelete = targetRow;
+
+            // E. Show the popup
+            document.getElementById('confirmationPopup').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+
+            return; // Stop execution here. Wait for user to click Confirm or Cancel.
+        }
+
+        // 2. SHOW ELEMENT HANDLER
+        if (e.target.id && e.target.id.startsWith("info_")) {
+            document.getElementById("split-div3").style.display = "block";
+            const row = e.target.closest("tr");
+            const xpath = row.querySelector(".xpath").innerText.trim();
+
+            if (xpath.startsWith("COORDINATE(")) {
+                const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
+                if (match) {
+                    const x = parseInt(match[1]);
+                    const y = parseInt(match[2]);
+                    showCoordinateMarker(x, y);
+                    return;
                 }
-
-                // Update sequential numbering (# 1, 2, 3...)
-                updateRowNumbers();
-
-                applyPagination();
-
-                const tbody = document.getElementById('myTable');
-
-                // Replenish a blank placeholder row ONLY if TOTAL rows in table drop below 5
-                if (tbody && tbody.querySelectorAll('tr').length < 5) {
-                    const row = document.createElement('tr');
-                    row.className = "empty-excel-row";
-
-                    // FIX: Match header map dynamically so indices never misalign
-                    var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr > *'));
-                    var rowHtml = "";
-
-                    allHeaders.forEach((th) => {
-                        var thText = (th.textContent || th.innerText || '').replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
-                        var isHidden = window.getComputedStyle(th).display === 'none';
-                        var displayStyle = isHidden ? 'display: none !important;' : '';
-
-                        if (th.classList.contains('excel-header-corner')) {
-                            rowHtml += `<td class="row-index" style="${displayStyle}"></td>`;
-                        } else if (th.id === 'add_empty_column') {
-                            rowHtml += `<td class="add-col-cell" style="${displayStyle}">&nbsp;</td>`;
-                        } else if (th.classList.contains('custom-editable-header')) {
-                            rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
-                        } else if (thText.includes('CONTROL NAME')) {
-                            rowHtml += `<td class="cn pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                        } else if (thText.includes('CONTROL TYPE')) {
-                            rowHtml += `<td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
-                        } else if (thText.includes('CONTROL ID')) {
-                            rowHtml += `<td class="xpath pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                        } else if (thText.includes('PAGE NAME')) {
-                            rowHtml += `<td class="page pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                        } else if (thText.includes('IDENTIFICATION TYPE')) {
-                            rowHtml += `<td class="identificationType pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                        } else if (thText.includes('CONTROL VALUE')) {
-                            rowHtml += `<td class="controlValue pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                        } else if (thText.includes('FEATURE NAME')) {
-                            rowHtml += `<td class="featureName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                        } else if (thText.includes('NODE NAME')) {
-                            rowHtml += `<td class="nodeName pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
-                        } else if (th.classList.contains('fingerprint')) {
-                            rowHtml += `<td class="fingerprint" style="display:none;"></td>`;
-                        } else if (th.id === 'appUrl' || thText.includes('APP URL')) {
-                            rowHtml += `<td class="appUrl" style="display:none;"></td>`;
-                        } else if (thText.includes('DELETE') || th.innerText.includes('Delete')) {
-                            // FIX: Changed display:inline-block to display:none here so auto-refilled rows do not show the trash can
-                            rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}"><img src="icon/icons8-delete_red.svg" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; display:none;"></td>`;
-                        } else {
-                            rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
-                        }
-                    });
-
-                    row.innerHTML = rowHtml;
-                    tbody.appendChild(row);
-                    updateRowNumbers();
-                }
-                return;
             }
 
-            // 2. SHOW ELEMENT HANDLER
-            if (e.target.id && e.target.id.startsWith("info_")) {
+            try {
                 document.getElementById("split-div3").style.display = "block";
-                const row = e.target.closest("tr");
-                const xpath = row.querySelector(".xpath").innerText.trim();
+                document.getElementById("image-container_ss").style.display = "flex";
+                document.getElementById("image-container_ss").style.justifyContent = "center";
+                document.getElementById("image-container_ss").style.alignItems = "center";
+                document.getElementById("image-container_ss").innerHTML = "";
 
-                if (xpath.startsWith("COORDINATE(")) {
-                    const match = xpath.match(/COORDINATE\((\d+),(\d+)\)/);
-                    if (match) {
-                        const x = parseInt(match[1]);
-                        const y = parseInt(match[2]);
-                        showCoordinateMarker(x, y);
-                        return;
-                    }
+                const el = await driver.findElement(By.xpath(xpath));
+                const image = await el.takeScreenshot();
+
+                let ss = document.getElementById("ss");
+                if (!ss) {
+                    ss = document.createElement("img");
+                    ss.id = "ss";
+                    ss.style.width = "280px";
+                    ss.style.height = "520px";
+                    ss.style.objectFit = "contain";
+                    document.getElementById("image-container_ss").appendChild(ss);
                 }
 
-                try {
-                    document.getElementById("split-div3").style.display = "block";
-                    document.getElementById("image-container_ss").style.display = "flex";
-                    document.getElementById("image-container_ss").style.justifyContent = "center";
-                    document.getElementById("image-container_ss").style.alignItems = "center";
-                    document.getElementById("image-container_ss").innerHTML = "";
-
-                    const el = await driver.findElement(By.xpath(xpath));
-                    const image = await el.takeScreenshot();
-
-                    let ss = document.getElementById("ss");
-                    if (!ss) {
-                        ss = document.createElement("img");
-                        ss.id = "ss";
-                        ss.style.width = "280px";
-                        ss.style.height = "520px";
-                        ss.style.objectFit = "contain";
-                        document.getElementById("image-container_ss").appendChild(ss);
-                    }
-
-                    ss.src = "data:image/png;base64," + image;
-                    showElementHover = false;
-                    clearOverlay();
-                } catch (err) {
-                                    console.error("Show Element Error:", err);
-                                    showErrorPopup("Unable to locate element", err);
-                                }
-                            }
-                        }
+                ss.src = "data:image/png;base64," + image;
+                showElementHover = false;
+                clearOverlay();
+            } catch (err) {
+                console.error("Show Element Error:", err);
+                showErrorPopup("Unable to locate element", err);
+            }
+        }
+    }
 
 
     async function onShowElementHover(e) {
@@ -1898,185 +1878,194 @@ async function checkAppForegroundState() {
 
 
 //Perform swipe action on connected device
-    async function performSwipe(startX, startY, endX, endY) {
-        if (touchInProgress) return;
+async function performSwipe(startX, startY, endX, endY) {
+    if (touchInProgress) return;
+    touchInProgress = true; // Lock interactions instantly
 
-        // --- 1. Enforce Page Name Validation Before Swiping ---
+    // 1. ABSOLUTE FIRST THING: Turn on the loader immediately! No checks, no waits.
+    const container = document.getElementById("image-container");
+    const globalOverlay = document.getElementById("overlay");
+    const appRunningPopup = document.getElementById("AppRunningPopup");
+
+    if (globalOverlay) globalOverlay.style.display = "none";
+    if (appRunningPopup) appRunningPopup.style.display = "none";
+
+    let localLoader = document.getElementById("localTouchLoader");
+    if (!localLoader && container) {
+        localLoader = document.createElement("div");
+        localLoader.id = "localTouchLoader";
+        localLoader.innerHTML = `
+            <div class="local-blur-overlay">
+                <img src="icon/load-8510_256.gif" style="height: 60px; width: 60px; max-width:none; max-height:none;"/>
+            </div>
+        `;
+        container.appendChild(localLoader);
+    }
+
+    if (localLoader) {
+        localLoader.style.display = "block";
+    }
+
+    // ---> CRITICAL FIX: Stop Javascript for 50ms so the browser has time to physically draw the spinning GIF on the screen! <---
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // --- Bulletproof Screen State Comparison ---
+    function getPageStructureState(xmlDocument) {
+        if (!xmlDocument) return "";
+        let state = [];
+        const nodes = xmlDocument.getElementsByTagName("*");
+
+        for (let i = 0; i < nodes.length; i++) {
+            let n = nodes[i];
+            let nodeName = n.nodeName;
+
+            // STRICT FILTER: Ignore transient UI elements that falsely trigger state changes
+            if (nodeName.includes("StatusBar") || nodeName.includes("ScrollBar") || nodeName.includes("ActivityIndicator") || nodeName === "XCUIElementTypeWindow") {
+                continue;
+            }
+
+            // Extract real text content
+            let text = n.getAttribute("label") || n.getAttribute("text") || n.getAttribute("value") || n.getAttribute("name") || "";
+            text = text.trim();
+
+            // Skip empty tags and clock/battery text
+            if (text === "" || /^\d{1,2}:\d{2}/.test(text) || text.includes("battery")) {
+                continue;
+            }
+
+            let y = parseFloat(n.getAttribute("y"));
+
+            // Fallback for Android bounds
+            if (isNaN(y)) {
+                let bounds = n.getAttribute("bounds");
+                if (bounds) {
+                    let match = bounds.match(/\[(\d+),(\d+)\]/);
+                    if (match) y = parseInt(match[2], 10);
+                }
+            }
+
+            if (!isNaN(y)) {
+                // Group elements by Text + rough Y position (rounded to nearest 10px to ignore 1px micro-jitters)
+                state.push(`${text}_${Math.round(y/10)*10}`);
+            }
+        }
+        return state.join("|");
+    }
+
+    try {
+        // 2. NOW check the Page Name. (The loader is already spinning on screen!)
         const pageName = document.getElementById("pagename_searchbox").value.trim();
         if (pageName === "") {
             document.getElementById("pagename_searchbox").style.borderColor = "red";
-            alert("Please enter Page Name before attempting to scroll.");
-            return; // Abort the swipe entirely
+            showCustomAlert("Missing Information", "Please enter Page Name before attempting to scroll.", "warning");
+            return; // Exit! The loader stays visible behind the alert until 'Okay' is clicked.
         }
 
-        touchInProgress = true;
+        // ---> Verifies app is actually in foreground <---
+        await checkAppForegroundState();
 
-        const container = document.getElementById("image-container");
-        const globalOverlay = document.getElementById("overlay");
-        const appRunningPopup = document.getElementById("AppRunningPopup");
+        // 3. Capture the exact text & layout state BEFORE swiping
+        const preSwipeState = getPageStructureState(window.xmlDoc);
 
-        if (globalOverlay) globalOverlay.style.display = "none";
-        if (appRunningPopup) appRunningPopup.style.display = "none";
+        console.log("Swipe from:", startX, startY, "to", endX, endY);
+        var plateformName = document.getElementById('platformname');
+        var plateformOption = plateformName.options[plateformName.selectedIndex].text;
 
-        let localLoader = document.getElementById("localTouchLoader");
-        if (!localLoader && container) {
-            localLoader = document.createElement("div");
-            localLoader.id = "localTouchLoader";
-            localLoader.innerHTML = `
-                <div class="local-blur-overlay">
-                    <img src="icon/load-8510_256.gif" style="height: 60px; width: 60px; max-width:none; max-height:none;"/>
+        await driver.executeScript("mobile: dragFromToForDuration", {
+            fromX: startX,
+            fromY: startY,
+            toX: endX,
+            toY: endY,
+            duration: 0.6
+        });
+
+        await driver.sleep(2000);
+
+        const image = await driver.takeScreenshot();
+        require("fs").writeFileSync(`${folderPath}/image0.png`, image, "base64");
+
+        const screenshot = document.getElementById("screenshot");
+        if (screenshot) {
+            screenshot.src = `${folderPath}/image0.png?${Date.now()}`;
+            await new Promise(resolve => { screenshot.onload = resolve; screenshot.onerror = resolve; });
+        }
+
+        const pageSource = await driver.getPageSource();
+        const parser = new DOMParser();
+        window.xmlDoc = parser.parseFromString(pageSource, "text/xml");
+        clearOverlay();
+
+        // 4. Capture the exact text & layout state AFTER swiping
+        const postSwipeState = getPageStructureState(window.xmlDoc);
+
+        // 5. Compare States. If identical, the screen just bounced and nothing changed.
+        if (preSwipeState === postSwipeState) {
+            showCustomAlert("Scroll Complete", "No extra scrollable elements found on this page, or end of page reached.", "info");
+            return; // Exit! The loader stays visible behind the alert until 'Okay' is clicked.
+        }
+
+        // 6. Record the Scroll Action in the Table ONLY if a successful scroll occurred
+        let rootXPath = plateformOption === 'IOS' ? "//XCUIElementTypeApplication" : "//hierarchy";
+
+        createAndAppendTable([
+            {
+                ControlName: `act_Scroll_${Math.round(startX)}_${Math.round(startY)}`,
+                ControlType: "Scroll",
+                ControlId: [
+                    `SWIPE(${Math.round(startX)},${Math.round(startY)},${Math.round(endX)},${Math.round(endY)})`,
+                    rootXPath
+                ],
+                Fingerprint: "<Action Type=\"Scroll\" />"
+            }
+        ]);
+
+    } catch (err) {
+        console.error("Swipe Error:", err);
+
+        let readableError = err && err.message ? err.message.split('\n')[0].substring(0, 150) : String(err).substring(0, 150);
+
+        const screenshotImg = document.getElementById("screenshot");
+        if (screenshotImg) screenshotImg.style.display = "none";
+
+        const dummy = document.getElementById("dummyDevice");
+        if (dummy) {
+            dummy.style.display = "block";
+            dummy.innerHTML = `
+                <div class="phone-welcome-overlay">
+                    <svg id="dummyIcon" class="info-svg" viewBox="0 0 24 24" fill="#d9534f" xmlns="http://www.w3.org/2000/svg" style="width: 45px; height: 45px; margin-bottom: 15px;">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                    </svg>
+                    <p id="dummyMainText" style="color: #d9534f; padding: 0 10px; font-weight: 600; font-size: 13px; margin-bottom: 5px; line-height: 1.4;">App session interrupted.<br>Please ensure the app is active, then click 'Launch Application' to reconnect.</p>
+                    <p id="dummyErrorText" style="display: block; color: #d9534f; font-size: 11px; margin-top: 12px; line-height: 1.4; padding: 0 10px; font-weight: 600; word-break: break-word;">*Error: ${readableError}</p>
                 </div>
             `;
-            container.appendChild(localLoader);
-        }
-        if (localLoader) localLoader.style.display = "block";
-
-        // --- NEW: Bulletproof Screen State Comparison ---
-        function getPageStructureState(xmlDocument) {
-            if (!xmlDocument) return "";
-            let state = [];
-            const nodes = xmlDocument.getElementsByTagName("*");
-
-            for (let i = 0; i < nodes.length; i++) {
-                let n = nodes[i];
-                let nodeName = n.nodeName;
-
-                // STRICT FILTER: Ignore transient UI elements that falsely trigger state changes
-                if (nodeName.includes("StatusBar") || nodeName.includes("ScrollBar") || nodeName.includes("ActivityIndicator") || nodeName === "XCUIElementTypeWindow") {
-                    continue;
-                }
-
-                // Extract real text content
-                let text = n.getAttribute("label") || n.getAttribute("text") || n.getAttribute("value") || n.getAttribute("name") || "";
-                text = text.trim();
-
-                // Skip empty tags and clock/battery text
-                if (text === "" || /^\d{1,2}:\d{2}/.test(text) || text.includes("battery")) {
-                    continue;
-                }
-
-                let y = parseFloat(n.getAttribute("y"));
-
-                // Fallback for Android bounds
-                if (isNaN(y)) {
-                    let bounds = n.getAttribute("bounds");
-                    if (bounds) {
-                        let match = bounds.match(/\[(\d+),(\d+)\]/);
-                        if (match) y = parseInt(match[2], 10);
-                    }
-                }
-
-                if (!isNaN(y)) {
-                    // Group elements by Text + rough Y position (rounded to nearest 10px to ignore 1px micro-jitters)
-                    state.push(`${text}_${Math.round(y/10)*10}`);
-                }
-            }
-            return state.join("|");
         }
 
-        try {
-            // ---> Verifies app is actually in foreground <---
-            await checkAppForegroundState();
+        const runBtn = document.getElementById('Run');
+        if (runBtn) {
+            runBtn.disabled = false;
+            runBtn.style.backgroundColor = '#4285F4';
+        }
 
-            // 2. Capture the exact text & layout state BEFORE swiping
-            const preSwipeState = getPageStructureState(window.xmlDoc);
-
-            console.log("Swipe from:", startX, startY, "to", endX, endY);
-            var plateformName = document.getElementById('platformname');
-            var plateformOption = plateformName.options[plateformName.selectedIndex].text;
-
-                await driver.executeScript("mobile: dragFromToForDuration", {
-                    fromX: startX,
-                    fromY: startY,
-                    toX: endX,
-                    toY: endY,
-                    duration: 0.6
-                });
-
-            await driver.sleep(2000);
-
-            const image = await driver.takeScreenshot();
-            require("fs").writeFileSync(`${folderPath}/image0.png`, image, "base64");
-
-            const screenshot = document.getElementById("screenshot");
-            if (screenshot) {
-                screenshot.src = `${folderPath}/image0.png?${Date.now()}`;
-                await new Promise(resolve => { screenshot.onload = resolve; screenshot.onerror = resolve; });
+        const actionButtons = ['Scrape', 'scrapeUI', 'reset', 'download', 'algoQA'];
+        actionButtons.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.disabled = true;
+                btn.style.backgroundColor = '#B6B6B4';
             }
+        });
 
-            const pageSource = await driver.getPageSource();
-            const parser = new DOMParser();
-            window.xmlDoc = parser.parseFromString(pageSource, "text/xml");
-            clearOverlay();
-
-            // 3. Capture the exact text & layout state AFTER swiping
-            const postSwipeState = getPageStructureState(window.xmlDoc);
-
-            // 4. Compare States. If identical, the screen just bounced and nothing changed.
-            if (preSwipeState === postSwipeState) {
-                alert("No extra scrollable elements found on this page, or end of page reached.");
-                return; // Do NOT store the XPath in the table
-            }
-
-            // 5. Record the Scroll Action in the Table ONLY if a successful scroll occurred
-            let rootXPath = plateformOption === 'IOS' ? "//XCUIElementTypeApplication" : "//hierarchy";
-
-            createAndAppendTable([
-                {
-                    ControlName: `act_Scroll_${Math.round(startX)}_${Math.round(startY)}`,
-                    ControlType: "Scroll",
-                    ControlId: [
-                        `SWIPE(${Math.round(startX)},${Math.round(startY)},${Math.round(endX)},${Math.round(endY)})`,
-                        rootXPath
-                    ],
-                    Fingerprint: "<Action Type=\"Scroll\" />"
-                }
-            ]);
-
-        } catch (err) {
-            console.error("Swipe Error:", err);
-
-            let readableError = err && err.message ? err.message.split('\n')[0].substring(0, 150) : String(err).substring(0, 150);
-
-            const screenshotImg = document.getElementById("screenshot");
-            if (screenshotImg) screenshotImg.style.display = "none";
-
-            const dummy = document.getElementById("dummyDevice");
-            if (dummy) {
-                dummy.style.display = "block";
-                dummy.innerHTML = `
-                    <div class="phone-welcome-overlay">
-                        <svg id="dummyIcon" class="info-svg" viewBox="0 0 24 24" fill="#d9534f" xmlns="http://www.w3.org/2000/svg" style="width: 45px; height: 45px; margin-bottom: 15px;">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
-                        </svg>
-                        <p id="dummyMainText" style="color: #d9534f; padding: 0 10px; font-weight: 600; font-size: 13px; margin-bottom: 5px; line-height: 1.4;">App session interrupted.<br>Please ensure the app is active, then click 'Launch Application' to reconnect.</p>
-                        <p id="dummyErrorText" style="display: block; color: #d9534f; font-size: 11px; margin-top: 12px; line-height: 1.4; padding: 0 10px; font-weight: 600; word-break: break-word;">*Error: ${readableError}</p>
-                    </div>
-                `;
-            }
-
-            const runBtn = document.getElementById('Run');
-            if (runBtn) {
-                runBtn.disabled = false;
-                runBtn.style.backgroundColor = '#4285F4';
-            }
-
-            const actionButtons = ['Scrape', 'scrapeUI', 'reset', 'download', 'algoQA'];
-            actionButtons.forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) {
-                    btn.disabled = true;
-                    btn.style.backgroundColor = '#B6B6B4';
-                }
-            });
-
-            driver = null;
-        } finally {
+        driver = null;
+    } finally {
+        // ONLY turn the loader off automatically if we are NOT waiting for the user to click "Okay" on an alert
+        if (pendingExportAction !== "alertOnly") {
             const targetLoader = document.getElementById("localTouchLoader");
             if (targetLoader) targetLoader.style.display = "none";
             touchInProgress = false;
         }
     }
+}
 
     function previewElement(e){
 
@@ -3347,7 +3336,7 @@ function createAndAppendTable(dtControls) {
 
         if (pageName === "") {
             document.getElementById("pagename_searchbox").style.borderColor = "red";
-            alert("Please enter Page Name.");
+            showCustomAlert("Missing Information", "Please enter Page Name.");
             return;
         }
 
@@ -3463,12 +3452,12 @@ function createAndAppendTable(dtControls) {
     document.getElementById("algoQA").addEventListener("click", async () => {
                 const userData = JSON.parse(localStorage.getItem("algoQAUser"));
                 if (!userData) {
-                    alert("Token data not found");
+                    showCustomAlert("Authentication Error", "Token data not found. Please paste your token.");
                     return;
                 }
 
                 if (!tableCreated || !hasValidTableData('myTable')) {
-                    alert("No scraped data found to send.");
+                    showCustomAlert("Export Failed", "No scraped data found to send.");
                     return;
                 }
 
@@ -3483,7 +3472,7 @@ function createAndAppendTable(dtControls) {
     async function sendTableDataToAPI(tableId) {
         const userData = JSON.parse(localStorage.getItem("algoQAUser"));
         if (!userData) {
-            alert("Token data not found");
+            showCustomAlert("Authentication Error", "Token data not found.");
             return;
         }
 
@@ -3542,7 +3531,7 @@ function createAndAppendTable(dtControls) {
         });
 
         if (tableData.length === 0) {
-            alert("No scraped data found");
+            showCustomAlert("Export Failed", "No scraped data found.");
             return;
         }
 
@@ -3570,7 +3559,7 @@ function createAndAppendTable(dtControls) {
             const result = await response.json();
             if (!response.ok) throw new Error("API request failed");
 
-            alert("Scraped data shared successfully to AlgoQA");
+            showCustomAlert("Success!", "Scraped data shared successfully to AlgoQA.", "info");
 
             if (driver) { try { await driver.quit(); } catch (err) {} }
             const { exec } = require("child_process");
@@ -4291,7 +4280,7 @@ function getAllPossibleXPaths(node) {
 
             if (pageName === "") {
                 document.getElementById("pagename_searchbox").style.borderColor = "red";
-                alert("Please enter Page Name.");
+                showCustomAlert("Missing Information", "Please enter Page Name.");
                 return;
             }
 
@@ -4818,15 +4807,20 @@ function updateRowEyeButtonState() {
 
 // 3. Warning Prompt Helper
     function showHiddenColumnsWarning() {
-        const popup = document.getElementById('confirmationPopup');
-        if (!popup) return;
+            const popup = document.getElementById('confirmationPopup');
+            if (!popup) return;
 
-        popup.querySelector('p:nth-of-type(1)').textContent = "Warning: Rows or Columns are hidden!";
-        popup.querySelector('p:nth-of-type(2)').textContent = "Hidden data will not be included in your export.";
+            // ADD THESE TWO LINES:
+            document.getElementById('back_btn').style.display = 'inline-block';
+            document.getElementById('okay_btn').innerText = 'Confirm';
 
-        document.getElementById('overlay').style.display = 'block';
-        popup.style.display = 'block';
-    }
+            document.getElementById('popup_title').innerText = "Export Warning";
+            document.getElementById('popup_main_text').innerText = "Warning: Rows or Columns are hidden!";
+            document.getElementById('popup_sub_text').innerText = "Hidden data will not be included in your export.";
+
+            document.getElementById('overlay').style.display = 'block';
+            popup.style.display = 'block';
+        }
 
     // 4. Clean Unified "Okay" Button Handler
     const okayBtn = document.getElementById("okay_btn");
@@ -4840,30 +4834,51 @@ function updateRowEyeButtonState() {
             document.getElementById('confirmationPopup').style.display = 'none';
             document.getElementById('overlay').style.display = 'none';
 
-            // Reset popup text back to default reset message
+            // Reset popup text and buttons back to default generic state
             setTimeout(() => {
                 const popup = document.getElementById('confirmationPopup');
                 if (popup) {
-                    popup.querySelector('p:nth-of-type(1)').textContent = "Do you really want to reset?";
-                    popup.querySelector('p:nth-of-type(2)').textContent = "You will not be able to recover the data!";
+                    document.getElementById('popup_title').innerText = "Confirm Action";
+                    document.getElementById('popup_main_text').innerText = "";
+                    document.getElementById('popup_sub_text').innerText = "";
+
+                    // Restore buttons for next time
+                    document.getElementById('back_btn').style.display = 'inline-block';
+                    document.getElementById('okay_btn').innerText = 'Confirm';
                 }
             }, 200);
 
-            if (pendingExportAction === "download") {
-                        pendingExportAction = null;
-                        downloadTableAsJSON('myTable');
-                    } else if (pendingExportAction === "algoQA") {
-                        pendingExportAction = null;
-                        await sendTableDataToAPI("myTable");
-                    } else {
-                        // Default Reset Action execution
-                        await executeResetAction();
-                    }
-                });
+            if (pendingExportAction === "alertOnly") {
+                pendingExportAction = null;
 
+                // YAHAN HATEGA LOADER USER KE OKAY CLICK PAR
+                const targetLoader = document.getElementById("localTouchLoader");
+                if (targetLoader) targetLoader.style.display = "none";
+                touchInProgress = false;
 
+                return;
+            }else if (pendingExportAction === "download") {
+                pendingExportAction = null;
+                downloadTableAsJSON('myTable');
 
+            } else if (pendingExportAction === "algoQA") {
+                pendingExportAction = null;
+                await sendTableDataToAPI("myTable");
 
+            } else if (pendingExportAction === "deleteRow") {
+                pendingExportAction = null;
+                if (rowToDelete) {
+                    rowToDelete.remove();
+                    rowToDelete = null;
+                    updateRowNumbers();
+                    applyPagination();
+                    const tbody = document.getElementById('myTable');
+                    if (tbody && tbody.querySelectorAll('tr').length < 5) adjustEmptyRows();
+                }
+            } else {
+                await executeResetAction();
+            }
+        });
 
 
 
@@ -5394,3 +5409,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+
+/// HELPER: Swaps the colors and icon of the modal header
+ function setModalTheme(type) {
+     const header = document.getElementById('modal_header');
+     const iconContainer = document.getElementById('modal_icon_container');
+
+     if (header) header.className = `modal-header header-${type}`;
+
+     if (iconContainer) {
+         if (type === "success") {
+             iconContainer.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warning-icon"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+         } else if (type === "info") {
+             iconContainer.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warning-icon"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+         } else {
+             // Default warning (Red triangle)
+             iconContainer.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warning-icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+         }
+     }
+ }
+
+ // HELPER: Replaces default browser alerts with the custom modal
+ function showCustomAlert(title, message, type = "warning") {
+     setModalTheme(type); // Instantly apply the right color and icon
+
+     document.getElementById('popup_title').innerText = title;
+     document.getElementById('popup_main_text').innerHTML = message;
+     document.getElementById('popup_sub_text').innerText = "";
+
+     // Hide Cancel button, change Confirm to Okay
+     document.getElementById('back_btn').style.display = 'none';
+     document.getElementById('okay_btn').innerText = 'Okay';
+
+     // Tell the button this is just an alert
+     pendingExportAction = "alertOnly";
+
+     document.getElementById('confirmationPopup').style.display = 'block';
+     document.getElementById('overlay').style.display = 'block';
+ }

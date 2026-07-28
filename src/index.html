@@ -143,7 +143,7 @@
                             id="tokenStatus"
                             style="
             display:none;
-            width:200px;
+            width:150px;
             padding:7px 12px;
             border-radius:8px;
             font-weight:600;
@@ -274,7 +274,7 @@
     </div>
 
 </div>
-<!-- REPLACE your old table search row block with this layout structure -->
+<!-- Top Toolbar: Search and Download -->
 <div style="font-size: 11px; display: flex; align-items: center; gap: 10px;">
     <div class="table-search-wrapper">
         <!-- Inline magnifying glass vector icon -->
@@ -283,23 +283,15 @@
         </svg>
         <input type="text" id="searchbox" name="searchbox" placeholder="Search table data">
     </div>
+
     <button id="download" class="pill-btn" style="height: 26px !important; margin: 0 !important;">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         <span>Download</span>
     </button>
 
-    <!-- Upgraded Add Row Pill Button -->
-    <div class="custom-tooltip-wrapper">
-        <button id="add_row_btn" class="pill-btn" style="height: 26px !important; margin: 0 !important;">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            <span>Add Row</span>
-        </button>
-    </div>
-
     <!-- COLUMN Unhide Button -->
     <div class="unhide-dropdown-wrapper custom-tooltip-wrapper" style="margin-left: 5px; display: none !important;">
         <button id="unhide_col_btn" class="circular-eye-btn" disabled style="width: auto !important; min-width: unset; border-radius: 14px; padding: 0 10px; gap: 5px; display: inline-flex; align-items: center; justify-content: center;">
-            <!-- Clean SVG Eye Icon -->
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                 <circle cx="12" cy="12" r="3"></circle>
@@ -313,7 +305,6 @@
     <!-- ROW Unhide Button -->
     <div class="unhide-dropdown-wrapper custom-tooltip-wrapper" style="margin-left: 5px; display: none !important;">
         <button id="unhide_row_btn" class="circular-eye-btn" disabled style="width: auto !important; min-width: unset; border-radius: 14px; padding: 0 10px; gap: 5px; display: inline-flex; align-items: center; justify-content: center;">
-            <!-- Clean SVG Eye Icon -->
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                 <circle cx="12" cy="12" r="3"></circle>
@@ -323,32 +314,7 @@
         <span class="custom-tooltip">Unhide Row</span>
         <div id="unhide_row_menu" class="unhide-menu"></div>
     </div>
-
-    <!-- NEW: PAGINATION CONTROLS -->
-    <div id="pagination_controls" style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
-        <div id="pagination_pages" style="display: flex; gap: 4px;"></div>
-
-        <!-- Wrapper for Dropdown & Inline SVG -->
-        <div style="position: relative; display: inline-flex; align-items: center;">
-            <select id="rows_per_page">
-                <option value="10">10</option>
-                <option value="25" selected>25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="all">All</option>
-            </select>
-
-            <!-- Clean SVG Solid Triangle Icon (Directly in HTML) -->
-            <svg width="10" height="6" viewBox="0 0 10 6" style="position: absolute; right: 8px; pointer-events: none; z-index: 5;">
-                <polygon points="0,0 10,0 5,6" fill="#ffffff"></polygon>
-            </svg>
-        </div>
-    </div>
 </div> <!-- Closing div for the main toolbar flex container -->
-
-</div>
-
-</div>
 
 <!-- Context Menu for Column Hiding -->
 <div id="colContextMenu" class="custom-context-menu">
@@ -421,13 +387,62 @@
         </tbody>
     </table>
 </div>
-<div class="popup" id="confirmationPopup" style="display: none;">
-    <p style="font-weight: bold;margin-top: 4px;">Do you really want to reset?</p>
-    <p style="font-size: small;color: #828080;">You will not be able to recover the data!</p>
-    <div class="myname" style="margin-left: 6px;">
-        <button class="btn btn-primary yes-button" id="back_btn" style="font-size: 13px;font-weight: 500;">Back</button>
-        <button class="btn btn-primary no-button" id="okay_btn"
-                style="margin-left: 13px;font-size: 13px;font-weight: 500;">Okay</button>
+
+<!-- NEW: Bottom Action Bar (Integrated as Table Footer) -->
+<div id="bottom-action-bar" style="display: flex; justify-content: space-between; align-items: center; margin: 2px 15px 2px 15px; padding: 4px 12px; border-radius: 0 0 6px 6px; flex-shrink: 0;">
+
+    <!-- Left Side: Add Row Pill Button -->
+    <div class="custom-tooltip-wrapper">
+        <button id="add_row_btn" class="pill-btn" style="height: 26px !important; margin: 0 !important; background-color: #4285F4; border-radius: 4px !important;">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span> Row</span>
+        </button>
+    </div>
+
+    <!-- Right Side: PAGINATION CONTROLS -->
+    <div id="pagination_controls" style="display: flex; align-items: center; gap: 8px;">
+        <div id="pagination_pages" style="display: flex; gap: 4px;"></div>
+
+        <!-- Wrapper for Dropdown & Inline SVG -->
+        <div style="position: relative; display: inline-flex; align-items: center;">
+            <select id="rows_per_page">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="all">All</option>
+            </select>
+
+            <!-- Clean SVG Solid Triangle Icon -->
+            <svg width="10" height="6" viewBox="0 0 10 6" style="position: absolute; right: 8px; pointer-events: none; z-index: 5;">
+                <polygon points="0,0 10,0 5,6" fill="#888888"></polygon>
+            </svg>
+        </div>
+    </div>
+</div>
+<!-- Dynamic Confirmation Popup -->
+<div class="custom-modal" id="confirmationPopup" style="display: none;">
+    <div class="modal-header header-warning" id="modal_header">
+        <span id="modal_icon_container" style="display: flex;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warning-icon">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+        </span>
+        <!-- Dynamic Title -->
+        <span class="modal-title" id="popup_title">Confirm Action</span>
+    </div>
+
+    <div class="modal-body">
+        <!-- Dynamic Messages -->
+        <p class="modal-main-text" id="popup_main_text"></p>
+        <p class="modal-sub-text" id="popup_sub_text"></p>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" id="back_btn">Cancel</button>
+            <button class="btn-confirm" id="okay_btn">Confirm</button>
+        </div>
     </div>
 </div>
 <div class="popup" id="launchErrorPopup" style="display: none; height: auto; min-height: 220px; width: 440px; z-index: 9999;">
