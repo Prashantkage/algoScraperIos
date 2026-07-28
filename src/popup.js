@@ -1080,6 +1080,14 @@
                                     let controlValue = "";
                                     if (["XCUIElementTypeTextField", "XCUIElementTypeSecureTextField", "XCUIElementTypeSearchField", "XCUIElementTypeTextView"].includes(node.nodeName)) {
                                         controlValue = node.getAttribute("value") || "";
+                                        let label = node.getAttribute("label") || "";
+                                        let name = node.getAttribute("name") || "";
+                                        let placeholder = node.getAttribute("placeholderValue") || "";
+
+                                        // If the value matches the placeholder, label, or name, it is a default placeholder, not user input.
+                                        if (controlValue === placeholder || controlValue === label || controlValue === name) {
+                                            controlValue = "";
+                                        }
                                     }
 
                                     dtControls.push({
@@ -1419,15 +1427,18 @@
                 return cell.innerText;
             }).join(' ').toLowerCase();
 
-            // Check query match
-            if (searchText === "" || rowSearchableText.indexOf(searchText) > -1) {
-                row.style.display = '';
-                found = true;
-            } else {
-                row.style.display = 'none';
-            }
-        }
+           // INSTEAD of hiding/showing directly, flag them!
+                   if (searchText === "" || rowSearchableText.indexOf(searchText) > -1) {
+                       row.classList.remove('search-hidden');
+                       found = true;
+                   } else {
+                       row.classList.add('search-hidden');
+                   }
+               }
 
+               // NEW: Apply pagination to handle the actual hiding/showing
+               currentPage = 1;
+               applyPagination();
         // If search text is typed but no rows match, insert an in-table error row
         if (searchText !== "" && !found) {
             var noResultRow = document.createElement('tr');
@@ -1476,6 +1487,8 @@
 
                 // Update sequential numbering (# 1, 2, 3...)
                 updateRowNumbers();
+
+                applyPagination();
 
                 const tbody = document.getElementById('myTable');
 
@@ -2550,6 +2563,8 @@ function createAndAppendTable(dtControls) {
 
     updateRowNumbers();
     initResizableTable();
+
+    applyPagination();
 }
 
     function initResizableTable() {
@@ -3305,6 +3320,13 @@ function createAndAppendTable(dtControls) {
             let controlValue = "";
             if (["XCUIElementTypeTextField", "XCUIElementTypeSecureTextField", "XCUIElementTypeSearchField", "XCUIElementTypeTextView"].includes(node.nodeName)) {
                 controlValue = node.getAttribute("value") || "";
+                let label = node.getAttribute("label") || "";
+                let name = node.getAttribute("name") || "";
+                let placeholder = node.getAttribute("placeholderValue") || "";
+
+                if (controlValue === placeholder || controlValue === label || controlValue === name) {
+                    controlValue = "";
+                }
             }
 
             dtControls.push({
@@ -4356,6 +4378,13 @@ function getAllPossibleXPaths(node) {
                         let controlValue = "";
                         if (["XCUIElementTypeTextField", "XCUIElementTypeSecureTextField", "XCUIElementTypeSearchField", "XCUIElementTypeTextView"].includes(matchedNode.nodeName)) {
                             controlValue = matchedNode.getAttribute("value") || "";
+                            let label = matchedNode.getAttribute("label") || "";
+                            let name = matchedNode.getAttribute("name") || "";
+                            let placeholder = matchedNode.getAttribute("placeholderValue") || "";
+
+                            if (controlValue === placeholder || controlValue === label || controlValue === name) {
+                                controlValue = "";
+                            }
                         }
 
                         createAndAppendTable([
@@ -4439,14 +4468,20 @@ function getAllPossibleXPaths(node) {
             const targetRowCount = Math.max(5, Math.floor(availableHeight / rowHeight));
 
             let currentRows = Array.from(tbody.querySelectorAll('tr'));
-            let emptyRows = Array.from(tbody.querySelectorAll('tr.empty-excel-row'));
+                let emptyRows = Array.from(tbody.querySelectorAll('tr.empty-excel-row'));
 
-            // Ignore dynamic rows like "no results found" from the data count
-            let errorRows = tbody.querySelectorAll('.no-results-row').length;
-            let dataRowCount = currentRows.length - emptyRows.length - errorRows;
+                // Count ONLY the data rows that are currently VISIBLE on the active page
+                let dataRowCount = 0;
+                currentRows.forEach(row => {
+                    if (!row.classList.contains('empty-excel-row') &&
+                        !row.classList.contains('no-results-row') &&
+                        row.style.display !== 'none') {
+                        dataRowCount++;
+                    }
+                });
 
-            let desiredEmptyRows = targetRowCount - dataRowCount;
-            if (desiredEmptyRows < 0) desiredEmptyRows = 0;
+                let desiredEmptyRows = targetRowCount - dataRowCount;
+                if (desiredEmptyRows < 0) desiredEmptyRows = 0;
 
             if (emptyRows.length < desiredEmptyRows) {
                 // Fill missing space with blank rows
@@ -4484,6 +4519,7 @@ function getAllPossibleXPaths(node) {
             document.getElementById('table-container').style.display = "block";
             renderDefaultExcelGrid();
             initResizableTable();
+            applyPagination();
         });
 
         window.addEventListener('resize', () => {
@@ -4965,6 +5001,16 @@ function updateRowEyeButtonState() {
                     if (changeTokenBtn) changeTokenBtn.style.setProperty("display", "inline-block", "important");
                 }
 
+                // 9. Reset Pagination State
+                            currentPage = 1;
+                            const rppSelect = document.getElementById('rows_per_page');
+                            if (rppSelect) {
+                                rppSelect.value = '25'; // Resets the dropdown back to default 25
+                            }
+                            if (typeof applyPagination === 'function') {
+                                applyPagination(); // Recalculates and clears the page buttons since the table is now empty
+                            }
+
             } catch (err) {
                 // Log any unexpected errors instead of completely freezing the UI
                 console.error("Reset encountered an error, but was caught safely:", err);
@@ -5231,3 +5277,115 @@ function drawSwipeHoverMarker(startX, startY, endX, endY) {
 
     overlay.appendChild(svg);
 }
+
+
+// --- PAGINATION LOGIC ---
+let currentPage = 1;
+let rowsPerPage = 25;
+
+function applyPagination() {
+    const tableBody = document.getElementById('myTable');
+    if (!tableBody) return;
+
+    // Get all real data rows (exclude empty placeholder rows & error rows)
+    const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
+
+    // Filter out rows hidden by the search feature
+    const activeRows = allDataRows.filter(row => !row.classList.contains('search-hidden'));
+    const totalRows = activeRows.length;
+
+    const rppSelect = document.getElementById('rows_per_page');
+    const rppValue = rppSelect ? rppSelect.value : '25';
+
+    rowsPerPage = rppValue === 'all' ? totalRows : parseInt(rppValue, 10);
+    if (isNaN(rowsPerPage) || rowsPerPage <= 0) rowsPerPage = totalRows || 1;
+
+    const totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+
+    // Apply the display hiding/showing
+    allDataRows.forEach(row => {
+        if (row.classList.contains('search-hidden')) {
+            row.style.display = 'none'; // Keep hidden by search
+        } else {
+            const activeIndex = activeRows.indexOf(row);
+            // Show if it falls within current page chunk, otherwise hide
+            if (activeIndex >= startIndex && activeIndex < endIndex) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        }
+    });
+
+    renderPaginationControls(totalPages);
+
+    // Crucial: Fire your existing empty row recalculator to fill screen gaps
+    if (typeof adjustEmptyRows === 'function') requestAnimationFrame(adjustEmptyRows);
+}
+
+function renderPaginationControls(totalPages) {
+    const container = document.getElementById('pagination_pages');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // Prev Button
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'page-btn';
+    prevBtn.innerHTML = '❮';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; applyPagination(); } };
+    container.appendChild(prevBtn);
+
+    // Page Numbers Layout
+    let pages = [];
+    if (totalPages <= 5) {
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+        if (currentPage <= 3) {
+            pages = [1, 2, 3, 4, '...', totalPages];
+        } else if (currentPage >= totalPages - 2) {
+            pages = [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+        } else {
+            pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+        }
+    }
+
+    pages.forEach(p => {
+        if (p === '...') {
+            const dot = document.createElement('span');
+            dot.className = 'page-dots';
+            dot.innerText = '...';
+            container.appendChild(dot);
+        } else {
+            const btn = document.createElement('button');
+            btn.className = `page-btn ${p === currentPage ? 'active' : ''}`;
+            btn.innerText = p;
+            btn.onclick = () => { currentPage = p; applyPagination(); };
+            container.appendChild(btn);
+        }
+    });
+
+    // Next Button
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'page-btn';
+    nextBtn.innerHTML = '❯';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; applyPagination(); } };
+    container.appendChild(nextBtn);
+}
+
+// Bind dropdown change event
+document.addEventListener('DOMContentLoaded', () => {
+    const rppSelect = document.getElementById('rows_per_page');
+    if (rppSelect) {
+        rppSelect.addEventListener('change', () => {
+            currentPage = 1; // Reset to page 1 on resize
+            applyPagination();
+        });
+    }
+});

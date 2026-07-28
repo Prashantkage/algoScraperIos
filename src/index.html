@@ -114,9 +114,17 @@
                     <span>Reset</span>
                 </button>
 
-                <button id="algoQA" class="pill-btn" style="width: 100px; background-color: #34A853;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    <span>algoQA</span>
+                <button id="algoQA" class="pill-btn algoqa-styled-btn">
+                    <!-- Updated Share/Export Vector Icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 3h7v7"></path>
+                        <path d="M10 14L21 3"></path>
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    </svg>
+                    <!-- Styled Logo Text -->
+                    <span class="algoqa-text">
+        <span class="text-algo">algo</span><span class="text-qa">QA</span><sup class="registered-symbol">®</sup>
+    </span>
                 </button>
 
                 <button id="changeTokenBtn" class="pill-btn" style="width: 100px; display: none;">
@@ -315,6 +323,28 @@
         <span class="custom-tooltip">Unhide Row</span>
         <div id="unhide_row_menu" class="unhide-menu"></div>
     </div>
+
+    <!-- NEW: PAGINATION CONTROLS -->
+    <div id="pagination_controls" style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+        <div id="pagination_pages" style="display: flex; gap: 4px;"></div>
+
+        <!-- Wrapper for Dropdown & Inline SVG -->
+        <div style="position: relative; display: inline-flex; align-items: center;">
+            <select id="rows_per_page">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="all">All</option>
+            </select>
+
+            <!-- Clean SVG Solid Triangle Icon (Directly in HTML) -->
+            <svg width="10" height="6" viewBox="0 0 10 6" style="position: absolute; right: 8px; pointer-events: none; z-index: 5;">
+                <polygon points="0,0 10,0 5,6" fill="#ffffff"></polygon>
+            </svg>
+        </div>
+    </div>
+</div> <!-- Closing div for the main toolbar flex container -->
 
 </div>
 

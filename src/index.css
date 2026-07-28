@@ -1347,3 +1347,144 @@ th .resizer:hover {
     transform: scale(1.05);
 }
 
+/* Button background matching the vibrant purple-to-blue gradient */
+.algoqa-styled-btn {
+    background: linear-gradient(90deg, #d300ff, #248bf5) !important;
+    color: #ffffff !important;
+    padding: 0 16px !important;
+    width: auto !important;
+    border: none !important;
+}
+
+/* Disabled state matching your standard gray layout */
+.algoqa-styled-btn:disabled {
+    background: #B6B6B4 !important;
+    color: #ffffff !important;
+}
+
+/* Completely disable the scaling and color-change hover effect for this specific button */
+.pill-btn.algoqa-styled-btn:hover:not(:disabled) {
+    background: linear-gradient(90deg, #d300ff, #248bf5) !important;
+    transform: none !important;
+}
+
+/* Make SVG icon white */
+.algoqa-styled-btn svg {
+    width: 15px;
+    height: 15px;
+    stroke: #ffffff !important;
+    margin-right: 2px;
+}
+
+/* Typography styling for 'algoQA®' */
+.algoqa-text {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 13px !important;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    color: #ffffff !important; /* Forces all text inside to white */
+}
+
+/* Force the inner spans to inherit the white color (overriding previous dark-mode colors) */
+.algoqa-text .text-algo,
+.algoqa-text .text-qa,
+.algoqa-text .registered-symbol {
+    color: inherit !important;
+}
+
+/* Registered trademark symbol positioning */
+.algoqa-text .registered-symbol {
+    font-size: 8px;
+    vertical-align: super;
+    margin-left: 1px;
+    font-weight: 400;
+}
+
+/* Enable the scaling hover effect but prevent the color from changing */
+.pill-btn.algoqa-styled-btn:hover:not(:disabled) {
+    background: linear-gradient(90deg, #d300ff, #248bf5) !important;
+    transform: scale(1.03) !important; /* Restores the standard size-pop effect */
+}
+/* --- PAGINATION STYLES --- */
+
+/* Updated to include the uniform grey background for inactive buttons */
+.page-btn {
+    width: 26px;
+    height: 26px;
+    border: 1px solid #c5c9d0;
+    border-radius: 4px;
+    background-color: #e2e4e8; /* Fills inactive buttons with light grey */
+    color: #4b5563; /* Dark grey text */
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.page-btn:hover:not(:disabled) {
+    background-color: #d0d4dc; /* Slightly darker grey on hover */
+    color: #1f2937;
+}
+
+/* The active page stays vibrant blue */
+.page-btn.active {
+    background-color: #03a9f4;
+    color: #ffffff;
+    border-color: #03a9f4;
+}
+
+.page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-dots {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #888;
+    padding: 0 2px;
+}
+/* 1. Dropdown: Normal text (not black/heavy) and no blue hover border */
+#rows_per_page {
+    margin: 0 !important;
+    height: 26px;
+    border: 1px solid #c5c9d0;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600; /* Back to normal weight */
+    outline: none;
+    cursor: pointer;
+    padding: 0 24px 0 8px;
+    color: #4b5563; /* Normal grey text instead of full black */
+    background-color: #e2e4e8;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+#rows_per_page:hover {
+    background-color: #d0d4dc; /* Just darkens the grey slightly */
+    border-color: #c5c9d0; /* Keeps the standard border, removes the blue */
+}
+
+/* 1. Apply the grey hover ONLY to inactive buttons */
+.page-btn:hover:not(:disabled):not(.active) {
+    background-color: #d0d4dc;
+    color: #1f2937;
+    border-color: #c5c9d0;
+}
+
+/* 2. Keep the active button blue on hover (with a slightly darker blue effect) */
+.page-btn.active:hover {
+    background-color: #028cd1; /* Slightly darker blue for a clean hover effect */
+    border-color: #028cd1;
+    color: #ffffff;
+}
