@@ -2234,6 +2234,10 @@ async function checkAppForegroundState() {
         document.getElementById('automatione_name').style.display = "block"
     }
 
+
+
+
+
    // 1. Add Row Handler (Inserts 1 new row at top, pushing default rows down without replacing them)
        const addRowBtn = document.getElementById("add_row_btn");
        if (addRowBtn && !addRowBtn.dataset.listenerAttached) {
@@ -3245,59 +3249,84 @@ function createAndAppendTable(dtControls) {
 
     document.getElementById("scrapeUI").addEventListener("click", async () => {
 
-            dtControls = [];
-            controlNameLists = [];
+        dtControls = [];
+        controlNameLists = [];
 
-            const xmlNodes = window.xmlDoc.getElementsByTagName("*");
+        const xmlNodes = window.xmlDoc.getElementsByTagName("*");
 
-            for (let i = 0; i < xmlNodes.length; i++) {
-                const node = xmlNodes[i];
+        const ignoreSystemTypes = [
+            "AppiumAUT",
+            "XCUIElementTypeApplication",
+            "XCUIElementTypeWindow",
+            "hierarchy"
+        ];
 
-                const allowedTypes = [
-                    "XCUIElementTypeButton",
-                    "XCUIElementTypeStaticText",
-                    "XCUIElementTypeTextField",
-                    "XCUIElementTypeSecureTextField",
-                    "XCUIElementTypeSearchField",
-                    "XCUIElementTypeImage",
-                    "XCUIElementTypeTextView"
-                ];
+        for (let i = 0; i < xmlNodes.length; i++) {
+            const node = xmlNodes[i];
 
-                if (!allowedTypes.includes(node.nodeName))
-                    continue;
+            // 1. Skip system root elements
+            if (ignoreSystemTypes.includes(node.nodeName))
+                continue;
 
-                // 1. Generate clean, professional variable name (e.g., btn_Login)
-                                let controlName = generateProfessionalControlName(node);
-
-                                // 2. Fetch STRICT exact-match XPaths only
-                                let allXPaths = getAllPossibleXPaths(node);
-
-                                // NEW: Extract the input value if the element is a text/search field
-                                let controlValue = "";
-                                if (["XCUIElementTypeTextField", "XCUIElementTypeSecureTextField", "XCUIElementTypeSearchField", "XCUIElementTypeTextView"].includes(node.nodeName)) {
-                                    controlValue = node.getAttribute("value") || "";
-                                }
-
-                                dtControls.push({
-                                    ControlName: controlName,
-                                    ControlType: node.nodeName.replace("XCUIElementType", "").replace("android.widget.", ""),
-                                    ControlId: allXPaths,
-                                    ControlValue: controlValue, // Added this to pass the value
-                                    Fingerprint: new XMLSerializer().serializeToString(node)
-                                });
-                            }
-
-                            const pageName = document.getElementById("pagename_searchbox").value.trim();
-
-            if(pageName === ""){
-                document.getElementById("pagename_searchbox").style.borderColor = "red";
-                alert("Please enter Page Name.");
-                return;
+            // 2. Filter out invisible or unrendered 0-sized elements
+            const width = parseFloat(node.getAttribute("width"));
+            const height = parseFloat(node.getAttribute("height"));
+            if (!isNaN(width) && !isNaN(height) && (width <= 0 || height <= 0)) {
+                continue;
             }
 
-            createAndAppendTable(dtControls);
-            dtControls = [];
-        });
+            // 3. Extract text/attributes to determine if element is meaningful
+            const hasTextOrLabel = (
+                (node.getAttribute("label") && node.getAttribute("label").trim() !== "") ||
+//                (node.getAttribute("name") && node.getAttribute("name").trim() !== "") ||
+                (node.getAttribute("value") && node.getAttribute("value").trim() !== "") ||
+                (node.getAttribute("content-desc") && node.getAttribute("content-desc").trim() !== "") ||
+                (node.getAttribute("text") && node.getAttribute("text").trim() !== "")
+            );
+
+            // 4. Skip generic containers (XCUIElementTypeOther/Cell) ONLY IF they have no text/label content
+            const isGenericContainer = (
+                node.nodeName === "XCUIElementTypeOther" ||
+                node.nodeName === "XCUIElementTypeCell" ||
+                node.nodeName === "android.view.View"
+            );
+
+            if (isGenericContainer && !hasTextOrLabel) {
+                continue;
+            }
+
+            // 5. Generate clean, professional variable name (e.g., btn_Login)
+            let controlName = generateProfessionalControlName(node);
+
+            // 6. Fetch XPaths using updated getAllPossibleXPaths
+            let allXPaths = getAllPossibleXPaths(node);
+
+            // Extract input value if it's a text entry field
+            let controlValue = "";
+            if (["XCUIElementTypeTextField", "XCUIElementTypeSecureTextField", "XCUIElementTypeSearchField", "XCUIElementTypeTextView"].includes(node.nodeName)) {
+                controlValue = node.getAttribute("value") || "";
+            }
+
+            dtControls.push({
+                ControlName: controlName,
+                ControlType: node.nodeName.replace("XCUIElementType", "").replace("android.widget.", ""),
+                ControlId: allXPaths,
+                ControlValue: controlValue,
+                Fingerprint: new XMLSerializer().serializeToString(node)
+            });
+        }
+
+        const pageName = document.getElementById("pagename_searchbox").value.trim();
+
+        if (pageName === "") {
+            document.getElementById("pagename_searchbox").style.borderColor = "red";
+            alert("Please enter Page Name.");
+            return;
+        }
+
+        createAndAppendTable(dtControls);
+        dtControls = [];
+    });
 
     document.getElementById("closePreview").addEventListener("click", () => {
         document.getElementById("split-div3").style.display = "none";
@@ -4148,9 +4177,9 @@ function getAllPossibleXPaths(node) {
     }
     */
 
-    const isGeneric = (tagName === "XCUIElementTypeOther" || tagName === "Other" || tagName === "android.view.View");
+    const isGeneric = (tagName === "XCUIElementTypeOther" || tagName === "Other" || tagName === "android.view.View" || tagName === "XCUIElementTypeCell");
 
-    // 2. ALWAYS extract useful attributes (like [@label="HZ"])
+    // 2. ALWAYS extract useful attributes (like [@label="HZ"]) "name",
     const attributes = ["label", "resource-id", "content-desc", "text", "value"];
     for (let attr of attributes) {
         let val = node.getAttribute(attr);
@@ -4163,8 +4192,38 @@ function getAllPossibleXPaths(node) {
         }
     }
 
-    // 3. ONLY process the blind index [1], [2] fallback if the element IS NOT a generic tag
-    if (!isGeneric) {
+    // 2b. If generic tag has NO direct attributes, resolve via nearest labeled Parent Context
+    if (candidates.length === 0 && isGeneric) {
+        let ancestor = node.parentNode;
+        let ancestorXpath = "";
+
+        while (ancestor && ancestor.nodeType === 1 && !["XCUIElementTypeApplication", "hierarchy", "AppiumAUT"].includes(ancestor.nodeName)) {
+            for (let attr of attributes) {
+                let parentVal = ancestor.getAttribute(attr);
+                if (parentVal && parentVal.trim() !== "") {
+                    let cleanParentVal = parentVal.trim().replace(/"/g, '');
+                    ancestorXpath = `//${ancestor.nodeName}[@${attr}="${cleanParentVal}"]`;
+                    break;
+                }
+            }
+            if (ancestorXpath) break;
+            ancestor = ancestor.parentNode;
+        }
+
+        if (ancestorXpath) {
+            let relativePath = `${ancestorXpath}//${tagName}`;
+            let scopedResults = window.xmlDoc.evaluate(relativePath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+            for (let i = 0; i < scopedResults.snapshotLength; i++) {
+                if (scopedResults.snapshotItem(i) === node) {
+                    candidates.push(`(${relativePath})[${i + 1}]`);
+                    break;
+                }
+            }
+        }
+    }
+
+    // 3. Process index fallback if not generic, OR if generic has no parent attributes found
+    if (!isGeneric || candidates.length === 0) {
         let fallbackXpath = `//${tagName}`;
         let globalResults = window.xmlDoc.evaluate(fallbackXpath, window.xmlDoc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
         for (let i = 0; i < globalResults.snapshotLength; i++) {
@@ -4191,9 +4250,8 @@ function getAllPossibleXPaths(node) {
     }
     */
 
-    return candidates.length > 0 ? candidates : [`//${tagName}`];
+    return candidates.length > 0 ? candidates : [`(${tagName})[1]`];
 }
-
 
 
 

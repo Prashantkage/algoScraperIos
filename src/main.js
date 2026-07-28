@@ -259,205 +259,185 @@
       loadingWindow.loadURL(
         "data:text/html;charset=utf-8," +
         encodeURIComponent(`
-    <!DOCTYPE html>
-    <html>
-
-    <head>
-    <meta charset="UTF-8">
-
-    <style>
-
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
-    }
-
-    html,
-    body{
-      width:100%;
-      height:100%;
-      overflow:hidden;
-    }
-
-    body{
-      background:#2d2d30;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    }
-
-    .popup{
-
-      position:relative;
-
-      width:100%;
-      height:100%;
-
-      background:linear-gradient(
-        180deg,
-        #3a3a3d 0%,
-        #2d2d30 100%
-      );
-
-      border:1px solid rgba(255,255,255,.15);
-
-      border-radius:18px;
-
-      overflow:hidden;
-
-    }
-
-    /* AlgoScraper badge */
-
-    .brand{
-
-      position:absolute;
-
-      top:0;
-      left:0;
-
-      width:215px;
-      height:48px;
-
-      background:linear-gradient(
-        90deg,
-        #1f6fff,
-        #46b9ff
-      );
-
-      border-radius:0 0 30px 0;
-
-      display:flex;
-
-      align-items:center;
-
-      padding-left:18px;
-
-      color:#ffffff;
-
-      font-size:16px;
-
-      font-weight:700;
-
-      z-index:2;
-
-    }
-
-    /* Bottom blue line continuing to the end */
-    .bottom-line{
-
-      position:absolute;
-
-      top:48px;
-
-      left:0;
-
-      width:100%;
-
-      height:2px;
-
-      background:#3aa9ff;
-
-      z-index:1;
-
-    }
-
-    /* Main content */
-
-    .content{
-
-      width:100%;
-      height:100%;
-
-      display:flex;
-
-      flex-direction:column;
-
-      justify-content:center;
-
-      align-items:center;
-
-      padding-top:40px;
-
-    }
-
-    .loader-image {
-      width: 64px;
-      height: 64px;
-      margin-bottom: 18px;
-      object-fit: contain;
-      -webkit-user-drag: none;
-    }
-
-    h1{
-
-      color:#ffffff;
-
-      font-size:22px;
-
-      font-weight:700;
-
-      margin-bottom:10px;
-
-    }
-
-    p{
-
-      color:#d0d0d0;
-
-      font-size:15px;
-
-      font-weight:500;
-
-    }
-
-    </style>
-
-    </head>
-
-    <body>
-
-    <div class="popup">
-
-      <div class="bottom-line"></div>
-
-      <div class="brand">
-        AlgoScraper
-      </div>
-
-      <div class="content">
-
-        <!-- Replaced old CSS spinner container with the fluid native GIF element link context -->
-        <img src="${loaderSrc}" class="loader-image" alt="Loading Engine Context..." />
-
-        <h1>Preparing AlgoScraper</h1>
-
-        <p>
-          Checking prerequisites<span id="dots"></span>
-        </p>
+      <!DOCTYPE html>
+      <html>
+
+      <head>
+      <meta charset="UTF-8">
+
+      <style>
+
+      *{
+        margin:0;
+        padding:0;
+        box-sizing:border-box;
+      }
+
+      html{
+        width:100%;
+        height:100%;
+        overflow:hidden;
+      }
+
+      /* White background with 1px padding forces a sharp white border */
+      body{
+        width:100%;
+        height:100%;
+        overflow:hidden;
+        background:#ffffff;
+        padding:1px;
+        border-radius:18px;
+        font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      }
+
+      /* Inner Window Container */
+      .popup{
+        position:relative;
+        width:100%;
+        height:100%;
+        background:linear-gradient(
+          180deg,
+          #3a3a3d 0%,
+          #2d2d30 100%
+        );
+        border-radius:17px;
+        overflow:hidden;
+      }
+
+      /* AlgoScraper Brand Badge Header */
+      .brand{
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 44px;
+
+        /* Tight padding right after subtitle to eliminate excess empty space */
+        padding: 0 30px 0 12px;
+
+        border-top-right-radius: 36px;
+
+        background: linear-gradient(
+          90deg,
+          #0062cc 0%,
+          #1f83f1 60%,
+          #3a99ff 100%
+        );
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        z-index: 2;
+
+        /* Custom curve matching the original S-curve tab edge */
+        clip-path: path('M 0 0 L 100% 0 C Q 100% 12, calc(100% - 8px) 24 C calc(100% - 16px) 36, calc(100% - 28px) 44 L 0 44 Z');
+
+        /* Fallback smooth curve radius if path clip is disabled */
+
+      }
+
+      .brand-title {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.2px;
+        white-space: nowrap;
+      }
+
+      .brand-subtitle {
+        font-size: 13px;
+        font-weight: 400;
+        font-style: italic;
+        opacity: 0.9;
+        white-space: nowrap;
+      }
+
+      /* Accent blue line running across below header */
+      .bottom-line{
+        position: absolute;
+        top: 44px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: #3aa9ff;
+        z-index: 1;
+      }
+
+      /* Main Content Area */
+      .content{
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding-top: 30px;
+      }
+
+      .loader-image {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 18px;
+        object-fit: contain;
+        -webkit-user-drag: none;
+      }
+
+      h1{
+        color: #ffffff;
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      p{
+        color: #d0d0d0;
+        font-size: 15px;
+        font-weight: 500;
+      }
+
+      </style>
+
+      </head>
+
+      <body>
+
+      <div class="popup">
+
+        <!-- Header badge with exact fitted curve tab -->
+        <div class="brand">
+          <span class="brand-title">algoScraper</span>
+          <span class="brand-subtitle">Powered by algoShack</span>
+        </div>
+
+        <div class="bottom-line"></div>
+
+        <div class="content">
+
+          <img src="${loaderSrc}" class="loader-image" alt="Loading Engine Context..." />
+
+          <h1>Preparing AlgoScraper</h1>
+
+          <p>
+            Checking Connected Device<span id="dots"></span>
+          </p>
+
+        </div>
 
       </div>
 
-    </div>
+      <script>
 
-    <script>
+      let dots = 0;
 
-    let dots = 0;
+      setInterval(() => {
+        dots = (dots + 1) % 4;
+        document.getElementById("dots").textContent = ".".repeat(dots);
+      }, 450);
 
-    setInterval(() => {
+      </script>
 
-      dots = (dots + 1) % 4;
+      </body>
 
-      document.getElementById("dots").textContent =
-        ".".repeat(dots);
-
-    }, 450);
-
-    </script>
-
-    </body>
-
-    </html>
-    `)
+      </html>
+      `)
       );
 
     }
