@@ -2641,29 +2641,34 @@ function createAndAppendTable(dtControls) {
                 maxWidth = Math.max(maxWidth, dummySpan.offsetWidth + 20);
 
                 // Measure cell contents in rows
-                const rows = table.querySelectorAll('tbody tr');
-                rows.forEach(row => {
-                    const cell = row.cells[colIndex];
-                    if (cell) {
-                        let textToMeasure = "";
-                        const selectEl = cell.querySelector('select');
-                        if (selectEl) {
-                            Array.from(selectEl.options).forEach(opt => {
-                                if (opt.text.length > textToMeasure.length) {
-                                    textToMeasure = opt.text;
-                                }
-                            });
-                        } else {
-                            textToMeasure = cell.innerText;
-                        }
+                                const rows = table.querySelectorAll('tbody tr');
+                                rows.forEach(row => {
+                                    const cell = row.cells[colIndex];
+                                    if (cell) {
+                                        let textToMeasure = "";
+                                        let extraPadding = 25; // Default padding for normal text cells
 
-                        dummySpan.innerText = textToMeasure;
-                        const cellWidth = dummySpan.offsetWidth + 25;
-                        if (cellWidth > maxWidth) {
-                            maxWidth = cellWidth;
-                        }
-                    }
-                });
+                                        const selectEl = cell.querySelector('select');
+                                        if (selectEl) {
+                                            // ONLY measure the currently selected option, ignoring hidden long XPaths
+                                            if (selectEl.selectedIndex >= 0) {
+                                                textToMeasure = selectEl.options[selectEl.selectedIndex].text;
+                                            } else {
+                                                textToMeasure = selectEl.value;
+                                            }
+                                            // Add extra padding to account for the physical dropdown arrow icon
+                                            extraPadding = 45;
+                                        } else {
+                                            textToMeasure = cell.innerText;
+                                        }
+
+                                        dummySpan.innerText = textToMeasure;
+                                        const cellWidth = dummySpan.offsetWidth + extraPadding;
+                                        if (cellWidth > maxWidth) {
+                                            maxWidth = cellWidth;
+                                        }
+                                    }
+                                });
 
                 document.body.removeChild(dummySpan);
 
