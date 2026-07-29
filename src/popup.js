@@ -475,6 +475,8 @@
         document.getElementById('algoQA').style.backgroundColor = '#4285F4';
         document.getElementById('AppRunningPopup').style.display = 'none';
         document.getElementById('overlay').style.display = 'none';
+        document.getElementById('recordScenarioBtn').disabled = false;
+        document.getElementById('recordScenarioBtn').style.backgroundColor = '#4285F4';
 
         await loadFirstScreen();
     }
@@ -1858,7 +1860,7 @@ async function checkAppForegroundState() {
                         runBtn.style.backgroundColor = '#4285F4';
                     }
 
-                    const actionButtons = ['Scrape', 'scrapeUI', 'reset', 'download', 'algoQA'];
+                    const actionButtons = ['Scrape', 'scrapeUI', 'reset', 'download', 'algoQA', 'recordScenarioBtn'];
                     actionButtons.forEach(id => {
                         const btn = document.getElementById(id);
                         if (btn) {
@@ -2047,7 +2049,7 @@ async function performSwipe(startX, startY, endX, endY) {
             runBtn.style.backgroundColor = '#4285F4';
         }
 
-        const actionButtons = ['Scrape', 'scrapeUI', 'reset', 'download', 'algoQA'];
+        const actionButtons = ['Scrape', 'scrapeUI', 'reset', 'download', 'algoQA', 'recordScenarioBtn'];
         actionButtons.forEach(id => {
             const btn = document.getElementById(id);
             if (btn) {
@@ -3761,6 +3763,9 @@ function createAndAppendTable(dtControls) {
                 document.getElementById('download').disabled = false;
                 document.getElementById('download').style.backgroundColor = '#4285F4';
 
+                document.getElementById('recordScenarioBtn').disabled = false;
+                document.getElementById('recordScenarioBtn').style.backgroundColor = '#4285F4';
+
                 // Also ensure table control state remains true so downloads work seamlessly
                 tableCreated = true;
 
@@ -3809,14 +3814,14 @@ function createAndAppendTable(dtControls) {
                     runBtn.style.backgroundColor = '#4285F4';
                 }
 
-                const actionButtons = ['Scrape', 'scrapeUI', 'reset', 'download', 'algoQA'];
-                actionButtons.forEach(id => {
-                    const btn = document.getElementById(id);
-                    if (btn) {
-                        btn.disabled = true;
-                        btn.style.backgroundColor = '#B6B6B4';
-                    }
-                });
+                const actionButtons = ['Scrape', 'scrapeUI', 'reset', 'download', 'algoQA', 'recordScenarioBtn'];
+                            actionButtons.forEach(id => {
+                                const btn = document.getElementById(id);
+                                if (btn) {
+                                    btn.disabled = true;
+                                    btn.style.backgroundColor = '#B6B6B4';
+                                }
+                            });
 
                 driver = null;
 
@@ -4946,20 +4951,20 @@ function updateRowEyeButtonState() {
                 const previewContainer = document.getElementById("image-container_ss");
                 if (previewContainer) previewContainer.innerHTML = "";
 
-                // 5. Wipe out the table rows
-                var table = document.getElementById('myTable');
-                if (table) {
-                    var rowCount = table.rows.length;
-                    for (var i = rowCount - 1; i >= 0; i--) {
-                        table.deleteRow(i);
-                    }
-                }
+               // 5. Wipe out the table rows
+                               var table = document.getElementById('myTable');
+                               if (table) {
+                                   var rowCount = table.rows.length;
+                                   for (var i = rowCount - 1; i >= 0; i--) {
+                                       table.deleteRow(i);
+                                   }
+                               }
 
-                renderDefaultExcelGrid(5);
+                               renderDefaultExcelGrid(5);
 
-                const tableContainer = document.getElementById('table-container');
-                if (tableContainer) tableContainer.style.display = "none";
-                tableCreated = false;
+                               const tableContainer = document.getElementById('table-container');
+                               if (tableContainer) tableContainer.style.display = "block"; // <--- FIXED: Keeps auto-rows running
+                               tableCreated = false;
 
                 // 6. HELPER: Safely delete old screenshots without crashing the app
                 function safelyDeletePngs(dirPath) {
@@ -4997,8 +5002,22 @@ function updateRowEyeButtonState() {
                     runBtn.style.backgroundColor = '#B6B6B4';
                 }
 
+                // --- RESET SCENARIO BUTTONS STATE ON RESET ---
+                                const recordScenarioBtn = document.getElementById('recordScenarioBtn');
+                                const addScenarioBtn = document.getElementById('addScenarioBtn');
+                                if (recordScenarioBtn && addScenarioBtn) {
+                                    // Force Record Scenario to show, Add Scenario to hide
+                                    recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
+                                    addScenarioBtn.style.setProperty("display", "none", "important");
+
+                                    // Disable and grey out Record Scenario until "Launch Application" is clicked again
+                                    recordScenarioBtn.disabled = true;
+                                    recordScenarioBtn.style.backgroundColor = '#B6B6B4';
+                                }
+                                // ---------------------------------------------
+
                 // DISABLE bottom export/utility tools
-                const actionButtons = ['scrapeUI', 'download', 'reset', 'algoQA'];
+                const actionButtons = ['Scrape', 'scrapeUI', 'reset', 'download', 'algoQA', 'recordScenarioBtn'];
                 actionButtons.forEach(id => {
                     const btn = document.getElementById(id);
                     if (btn) {
@@ -5028,7 +5047,10 @@ function updateRowEyeButtonState() {
                                 rppSelect.value = '25'; // Resets the dropdown back to default 25
                             }
                             if (typeof applyPagination === 'function') {
-                                applyPagination(); // Recalculates and clears the page buttons since the table is now empty
+
+                                currentPage = 1; // Reset to page 1 on resize
+                                            applyPagination();
+
                             }
 
             } catch (err) {
@@ -5157,7 +5179,7 @@ function displayScreenshotError(err) {
     }
 
     // 2. Disable ScrapeUI, Reset, and other tools
-    const actionButtons = ['Scrape', 'scrapeUI', 'download', 'reset', 'algoQA'];
+    const actionButtons = ['Scrape', 'scrapeUI', 'reset', 'download', 'algoQA', 'recordScenarioBtn'];
     actionButtons.forEach(id => {
         const btn = document.getElementById(id);
         if (btn) {
@@ -5399,7 +5421,49 @@ function renderPaginationControls(totalPages) {
     container.appendChild(nextBtn);
 }
 
-// Bind dropdown change event
+//Page Name lock/unlock logic
+function initPageNameLogic() {
+    const pageNameInput = document.getElementById('pagename_searchbox');
+    const editPenIcon = document.querySelector('.edit-icon');
+    const resetButton = document.getElementById('reset');
+
+    if (!pageNameInput) return; // Exit if the element isn't found
+
+    // 1. Lock the input once the user types something and clicks away
+    pageNameInput.addEventListener('blur', function() {
+        if (this.value.trim() !== '') {
+            this.readOnly = true;
+            this.style.cursor = 'default';
+        }
+    });
+
+    // Optional: Lock on Enter key press
+    pageNameInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            this.blur();
+        }
+    });
+
+    // 2. Unlock the input when the edit (pen) icon is clicked
+    if (editPenIcon) {
+        editPenIcon.addEventListener('click', function() {
+            pageNameInput.readOnly = false;
+            pageNameInput.style.cursor = 'text';
+            pageNameInput.focus();
+        });
+    }
+
+    // 3. Clear the input and unlock it when the Reset button is clicked
+    if (resetButton) {
+        resetButton.addEventListener('click', function() {
+            pageNameInput.value = '';
+            pageNameInput.readOnly = false;
+            pageNameInput.style.cursor = 'text';
+        });
+    }
+}
+
+// Bind dropdown change event and initialize our methods
 document.addEventListener('DOMContentLoaded', () => {
     const rppSelect = document.getElementById('rows_per_page');
     if (rppSelect) {
@@ -5408,7 +5472,12 @@ document.addEventListener('DOMContentLoaded', () => {
             applyPagination();
         });
     }
+
+    // --- Initialize the new Page Name logic ---
+    initPageNameLogic();
 });
+
+
 
 
 /// HELPER: Swaps the colors and icon of the modal header
@@ -5448,3 +5517,28 @@ document.addEventListener('DOMContentLoaded', () => {
      document.getElementById('confirmationPopup').style.display = 'block';
      document.getElementById('overlay').style.display = 'block';
  }
+
+
+// --- SCENARIO BUTTONS TOGGLE LOGIC ---
+ document.addEventListener("DOMContentLoaded", () => {
+     const recordScenarioBtn = document.getElementById("recordScenarioBtn");
+     const addScenarioBtn = document.getElementById("addScenarioBtn");
+
+     if (recordScenarioBtn && addScenarioBtn) {
+         // Force initial state using !important to override .pill-btn class
+         recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
+         addScenarioBtn.style.setProperty("display", "none", "important");
+
+         // When "Record Scenario" is clicked -> Hide Record, Show Add
+         recordScenarioBtn.addEventListener("click", () => {
+             recordScenarioBtn.style.setProperty("display", "none", "important");
+             addScenarioBtn.style.setProperty("display", "inline-flex", "important");
+         });
+
+         // When "Add Scenario" is clicked -> Hide Add, Show Record
+         addScenarioBtn.addEventListener("click", () => {
+//             addScenarioBtn.style.setProperty("display", "none", "important");
+//             recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
+         });
+     }
+ });

@@ -479,9 +479,9 @@
     }
 
     const createWindow = () => {
-      // Create the browser window in maximized mode from the start
       mainWindow = new BrowserWindow({
-        show: false,
+        show: false, // Keep hidden initially to prevent flashing
+//        fullscreen: true, // enable this if need scraper to open in full page
         title: "AlgoScraper IOS",
         icon: path.join(__dirname, '..', 'assets', 'algoScraper Logo.png'),
         webPreferences: {
@@ -490,9 +490,6 @@
             enableRemoteModule: true,
         }
       });
-
-      // Immediately maximize the window configuration context
-      mainWindow.maximize();
 
       Menu.setApplicationMenu(null);
       const template = [
@@ -536,7 +533,8 @@
       mainWindow.loadFile('./src/index.html');
 
       mainWindow.once("ready-to-show", () => {
-        mainWindow.show();
+        mainWindow.maximize(); // Maximize first while window is still hidden
+        mainWindow.show();     // Then reveal the fully maximized window
         mainWindow.focus();
 
         mainWindow.webContents.send(
