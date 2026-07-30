@@ -94,7 +94,27 @@
                         </div>
                     </div>
                     <input type="text" id="pagename_searchbox" name="pagename_searchbox" placeholder="Page name">
+
+                    <!-- Existing Edit Pen Icon -->
                     <svg class="edit-icon" viewBox="0 0 24 24" fill="#555555"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+
+                    <!-- Existing Confirm (Right) Mark Icon -->
+                    <svg class="confirm-edit-icon" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: none; cursor: pointer; width: 16px; height: 16px; margin-left: 5px; transition: transform 0.2s;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+
+                    <!-- Existing Cancel (Cross) Mark Icon -->
+                    <svg class="cancel-edit-icon" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: none; cursor: pointer; width: 16px; height: 16px; margin-left: 5px; transition: transform 0.2s;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+
+                    <!-- NEW: Error Info Icon (Hidden by default) -->
+                    <div class="error-icon-wrapper" style="display: none; margin-left: 5px; position: relative;">
+                        <!-- CHANGED: cursor: help; is now cursor: pointer; -->
+                        <svg class="error-info-icon" viewBox="0 0 24 24" fill="#dc3545" style="width: 16px; height: 16px; cursor: pointer;">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                        </svg>
+                        <div class="error-info-tooltip">
+                            Page Name can accept alphanumeric, single space between words and underscore starting with alphabet and numbers and underscore
+                        </div>
+                    </div>
+
                     <svg class="dropdown-icon" viewBox="0 0 10 6"><polygon points="0,0 10,0 5,6" fill="#888888"></polygon></svg>
                 </div>
             </div>
@@ -308,6 +328,11 @@
         <span style="margin-left:2px">Download</span>
     </button>
 
+    <div id="scenarioOutlineBar" class="scenario-outline-bar" style="display:none;">
+        <span class="scenario-label">Scenario Outline :</span>
+        <span id="scenarioOutlineText" class="scenario-value"></span>
+    </div>
+
     <!-- COLUMN Unhide Button -->
     <div class="unhide-dropdown-wrapper custom-tooltip-wrapper" style="margin-left: 5px; display: none !important;">
         <button id="unhide_col_btn" class="circular-eye-btn" disabled style="width: auto !important; min-width: unset; border-radius: 14px; padding: 0 10px; gap: 5px; display: inline-flex; align-items: center; justify-content: center;">
@@ -464,6 +489,7 @@
         </div>
     </div>
 </div>
+
 <div class="popup" id="launchErrorPopup" style="display: none; height: auto; min-height: 220px; width: 440px; z-index: 9999;">
     <p id="launchErrorTitle" style="font-weight: bold; margin-top: 15px; text-align: center; color: #d9534f; font-size: 15px;">
         Application Launch Error
@@ -506,6 +532,49 @@
 <div class="loading" id="AppRunningPopup" style="display: none;">
     <span><img src="icon/load-8510_256.gif" style="height: 101px;"/></span>
 </div>
+
+<!-- Custom Record Scenario Modal -->
+<div class="custom-modal" id="recordScenarioModal" style="display: none; width: 380px; background: #ffffff; border: 2px solid #00AEEF; border-radius: 8px; overflow: hidden; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+    <!-- Black Header with Blue Border -->
+    <div style="background: #000000; border-bottom: 2px solid #00AEEF; padding: 10px 16px; display: flex; align-items: center;">
+        <span style="color: #ffffff; font-size: 14px; font-weight: 600;">Record Scenario</span>
+    </div>
+
+    <!-- Modal Body with White Background & Increased Gap -->
+    <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; background: #ffffff; color: #333333;">
+
+        <!-- Page Name Field (Pre-filled & Disabled/Required) -->
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+            <label style="font-size: 11px; font-weight: 600; color: #555; margin-bottom: 0px;">Page Name *</label>
+            <input type="text" id="rec_pagename" readonly style="margin-top: 0px !important; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; font-size: 12px; color: #333;">
+        </div>
+
+        <!-- Scenario Name Field (Required) -->
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+            <label style="font-size: 11px; font-weight: 600; color: #555; margin-bottom: 0px;">Scenario Name *</label>
+            <input type="text" id="rec_scenarioname" placeholder="Enter scenario name.." style="margin-top: 0px !important; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">
+        </div>
+
+        <!-- Scenario Outline Field (Required) -->
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+            <label style="font-size: 11px; font-weight: 600; color: #555; margin-bottom: 0px;">Scenario Outline *</label>
+            <textarea id="rec_scenariooutline" placeholder="Enter scenario outline.." rows="2.5" style="margin-top: 0px !important; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; resize: none;"></textarea>
+        </div>
+
+        <!-- Checkbox for screenshots -->
+        <!--        <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">-->
+        <!--            <input type="checkbox" id="rec_capturescreenshots" style="width: 14px; height: 14px; accent-color: #00AEEF; cursor: pointer;">-->
+        <!--            <label for="rec_capturescreenshots" style="font-size: 11px; font-weight: 500; color: #333; margin: 0; cursor: pointer;">Capture Screenshots while recording</label>-->
+        <!--        </div>-->
+
+        <!-- Actions Footer -->
+        <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 8px;">
+            <button id="rec_close_btn" class="pill-btn" style="flex: 1; background-color: #555555; color: #fff; height: 30px !important; font-size: 12px;">Close</button>
+            <button id="rec_start_btn" class="pill-btn" style="flex: 1; background-color: #00AEEF; color: #fff; height: 30px !important; font-size: 12px;">Start Recording</button>
+        </div>
+    </div>
+</div>
+
 <script src="./popup.js">type = "text/javascript"</script>
 </body>
 

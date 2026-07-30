@@ -1960,6 +1960,7 @@ async function performSwipe(startX, startY, endX, endY) {
         if (pageName === "") {
             document.getElementById("pagename_searchbox").style.borderColor = "red";
             showCustomAlert("Missing Information", "Please enter Page Name before attempting to scroll.", "warning");
+            flashPageNameError(); // Flashes the badge red for 2 seconds
             return; // Exit! The loader stays visible behind the alert until 'Okay' is clicked.
         }
 
@@ -3339,6 +3340,7 @@ function createAndAppendTable(dtControls) {
         if (pageName === "") {
             document.getElementById("pagename_searchbox").style.borderColor = "red";
             showCustomAlert("Missing Information", "Please enter Page Name.");
+            flashPageNameError(); // Flashes the badge red for 2 seconds
             return;
         }
 
@@ -4286,6 +4288,7 @@ function getAllPossibleXPaths(node) {
             if (pageName === "") {
                 document.getElementById("pagename_searchbox").style.borderColor = "red";
                 showCustomAlert("Missing Information", "Please enter Page Name.");
+                flashPageNameError(); // Flashes the badge red for 2 seconds
                 return;
             }
 
@@ -4966,6 +4969,18 @@ function updateRowEyeButtonState() {
                                if (tableContainer) tableContainer.style.display = "block"; // <--- FIXED: Keeps auto-rows running
                                tableCreated = false;
 
+                               // Hide Scenario Outline
+                               const scenarioOutlineBar = document.getElementById("scenarioOutlineBar");
+                               const scenarioOutlineText = document.getElementById("scenarioOutlineText");
+
+                               if (scenarioOutlineBar) {
+                                   scenarioOutlineBar.style.display = "none";
+                               }
+
+                               if (scenarioOutlineText) {
+                                   scenarioOutlineText.textContent = "";
+                               }
+
                 // 6. HELPER: Safely delete old screenshots without crashing the app
                 function safelyDeletePngs(dirPath) {
                     if (!dirPath || !fs.existsSync(dirPath)) return;
@@ -5009,6 +5024,9 @@ function updateRowEyeButtonState() {
                                     // Force Record Scenario to show, Add Scenario to hide
                                     recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
                                     addScenarioBtn.style.setProperty("display", "none", "important");
+
+
+
 
                                     // Disable and grey out Record Scenario until "Launch Application" is clicked again
                                     recordScenarioBtn.disabled = true;
@@ -5421,47 +5439,238 @@ function renderPaginationControls(totalPages) {
     container.appendChild(nextBtn);
 }
 
+
+// HELPER: Flashes the Page Name badge red for 2 seconds
+function flashPageNameError() {
+    const badgeWrapper = document.querySelector('.screen-name-badge');
+    const badgeLabel = document.querySelector('.badge-label');
+    const pageNameInput = document.getElementById('pagename_searchbox');
+
+    if (badgeWrapper && badgeLabel) {
+        // 1. Change border and label to Error Red
+        badgeWrapper.style.transition = 'all 0.3s ease';
+        badgeLabel.style.transition = 'all 0.3s ease';
+
+        badgeWrapper.style.borderColor = '#d9534f';
+        badgeLabel.style.backgroundColor = '#d9534f';
+
+        if (pageNameInput) pageNameInput.focus(); // Bring cursor back
+
+        // 2. Revert back to original Blue after 2 seconds
+        setTimeout(() => {
+            badgeWrapper.style.borderColor = '#4285F4';
+            badgeLabel.style.backgroundColor = '#4285F4';
+        }, 2000);
+    }
+}
+
 //Page Name lock/unlock logic
 function initPageNameLogic() {
     const pageNameInput = document.getElementById('pagename_searchbox');
     const editPenIcon = document.querySelector('.edit-icon');
+    const confirmIcon = document.querySelector('.confirm-edit-icon');
+    const cancelIcon = document.querySelector('.cancel-edit-icon');
+    const errorIconWrapper = document.querySelector('.error-icon-wrapper');
+    const dropdownIcon = document.querySelector('.dropdown-icon');
+    const badgeWrapper = document.querySelector('.screen-name-badge');
+    const badgeLabel = document.querySelector('.badge-label');
     const resetButton = document.getElementById('reset');
 
-    if (!pageNameInput) return; // Exit if the element isn't found
+    let previousPageName = "";
+    let isEditMode = false; // Track if we are actively editing vs normal typing
 
-    // 1. Lock the input once the user types something and clicks away
+    if (!pageNameInput) return;
+
+    // HELPER: Validate Page Name Format
+    function isValidPageName(name) {
+        if (name.trim() === '') return false; // Empty is invalid
+        const format = /[!@#$%^&*()+\-=\[\]{};':"\\|,.<>\/?]+/;
+        const onlySpecialCharsRegex = /^[!@#$%^&*(),.?":{}|<>]*$/;
+        if (format.test(name) || /^\d+$/.test(name) || name.includes("  ") || name.startsWith(" ") || name.endsWith(" ") || onlySpecialCharsRegex.test(name)) {
+            return false;
+        }
+        return true;
+    }
+
+    // HELPER: Revert UI to valid standard blue state
+    function restoreValidBlueState() {
+        badgeWrapper.style.borderColor = '#4285F4';
+        badgeLabel.style.backgroundColor = '#4285F4';
+        if (errorIconWrapper) errorIconWrapper.style.display = 'none';
+        if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+    }
+
+    // 1. Live Validation: Works for BOTH Normal Entry and Edit Mode
+    pageNameInput.addEventListener('input', function() {
+        if (!pageNameInput.readOnly) {
+
+            // If it's invalid AND they have typed something
+            if (!isValidPageName(this.value) && this.value !== "") {
+
+                // Hide ALL controls, show red info
+                if (confirmIcon) confirmIcon.style.display = 'none';
+                if (cancelIcon) cancelIcon.style.display = 'none';
+                if (editPenIcon) editPenIcon.style.display = 'none';
+                if (dropdownIcon) dropdownIcon.style.display = 'none';
+
+                if (errorIconWrapper) errorIconWrapper.style.display = 'inline-flex';
+                badgeWrapper.style.borderColor = '#dc3545';
+                badgeLabel.style.backgroundColor = '#dc3545';
+
+            } else {
+
+                // If it's valid, restore the blue styling and dropdown arrow
+                restoreValidBlueState();
+
+                if (isEditMode) {
+                    // RESOLVED DURING EDIT MODE: Bring back Right/Cross marks, keep Pen hidden
+                    if (this.value.trim() !== '') {
+                        if (confirmIcon) confirmIcon.style.display = 'inline-block';
+                        if (cancelIcon) cancelIcon.style.display = 'inline-block';
+                    }
+                    if (editPenIcon) editPenIcon.style.display = 'none';
+                } else {
+                    // RESOLVED DURING NORMAL MODE: Bring back Pen, keep Right/Cross hidden
+                    if (confirmIcon) confirmIcon.style.display = 'none';
+                    if (cancelIcon) cancelIcon.style.display = 'none';
+                    if (editPenIcon) editPenIcon.style.display = 'inline-block';
+                }
+            }
+        }
+    });
+
+    // 2. Lock input on blur (Clicking away)
     pageNameInput.addEventListener('blur', function() {
-        if (this.value.trim() !== '') {
-            this.readOnly = true;
-            this.style.cursor = 'default';
-        }
+        setTimeout(() => {
+            // FIX: If the user is actively in Edit Mode, do NOT auto-lock the field on blur.
+            // This stops the icons from disappearing instantly.
+            if (isEditMode) return;
+
+            if (this.value.trim() !== '' && isValidPageName(this.value)) {
+                this.readOnly = true;
+                this.style.cursor = 'default';
+
+                // Reset icons for locked state
+                if (editPenIcon) editPenIcon.style.display = 'inline-block';
+                if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+                if (confirmIcon) confirmIcon.style.display = 'none';
+                if (cancelIcon) cancelIcon.style.display = 'none';
+            }
+        }, 150);
     });
 
-    // Optional: Lock on Enter key press
-    pageNameInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            this.blur();
-        }
-    });
-
-    // 2. Unlock the input when the edit (pen) icon is clicked
+    // 3. Edit (Pen) Icon Logic
     if (editPenIcon) {
         editPenIcon.addEventListener('click', function() {
+            if (pageNameInput.value.trim() === '') {
+                pageNameInput.focus();
+                flashPageNameError();
+                return;
+            }
+
+            isEditMode = true; // Enter Edit Mode
+            previousPageName = pageNameInput.value;
+
             pageNameInput.readOnly = false;
             pageNameInput.style.cursor = 'text';
             pageNameInput.focus();
+
+            editPenIcon.style.display = 'none';
+            if (confirmIcon) confirmIcon.style.display = 'inline-block';
+            if (cancelIcon) cancelIcon.style.display = 'inline-block';
         });
     }
 
-    // 3. Clear the input and unlock it when the Reset button is clicked
+    // 4. Confirm Edit (Right mark) Logic
+    if (confirmIcon) {
+        confirmIcon.addEventListener('click', function() {
+
+            // Prevent confirming if manually cleared all text
+            if (pageNameInput.value.trim() === '') {
+                pageNameInput.focus();
+                flashPageNameError();
+                showCustomAlert("Missing Information", "Please enter Page Name.");
+                return;
+            }
+
+            if (!isValidPageName(pageNameInput.value)) {
+                pageNameInput.focus();
+                flashPageNameError();
+                showCustomAlert("Invalid Format", "Please provide a valid Page Name without special characters.");
+                return;
+            }
+
+            pageNameInput.readOnly = true;
+            pageNameInput.style.cursor = 'default';
+            isEditMode = false; // Exit Edit Mode
+
+            confirmIcon.style.display = 'none';
+            cancelIcon.style.display = 'none';
+            if (editPenIcon) editPenIcon.style.display = 'inline-block';
+            if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+        });
+    }
+
+    // 5. Cancel Edit (Cross mark) Logic
+    function triggerCancel() {
+        pageNameInput.value = previousPageName;
+        pageNameInput.readOnly = true;
+        pageNameInput.style.cursor = 'default';
+        isEditMode = false; // Exit Edit Mode
+
+        restoreValidBlueState(); // Clear any red error formatting immediately
+
+        if (confirmIcon) confirmIcon.style.display = 'none';
+        if (cancelIcon) cancelIcon.style.display = 'none';
+        if (editPenIcon) editPenIcon.style.display = 'inline-block';
+        if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+    }
+
+    if (cancelIcon) {
+        cancelIcon.addEventListener('click', triggerCancel);
+    }
+
+    // 6. Enter & Escape Keys Support
+    pageNameInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            if (this.value.trim() === '') {
+                flashPageNameError();
+                showCustomAlert("Missing Information", "Please enter Page Name.");
+            } else if (!isValidPageName(this.value) && this.value !== "") {
+                flashPageNameError();
+            } else if (confirmIcon && confirmIcon.style.display !== 'none') {
+                confirmIcon.click(); // Trigger confirm edit
+            } else if (this.value.trim() !== '' && isValidPageName(this.value)) {
+                this.blur(); // Trigger normal lock
+            }
+        } else if (e.key === 'Escape' && isEditMode) {
+            triggerCancel(); // Allows user to cancel even if cross is hidden by an error state
+        }
+    });
+
+    // 7. Reset Button Overrides
     if (resetButton) {
         resetButton.addEventListener('click', function() {
             pageNameInput.value = '';
             pageNameInput.readOnly = false;
             pageNameInput.style.cursor = 'text';
+            isEditMode = false;
+
+            restoreValidBlueState();
+
+            if (editPenIcon) editPenIcon.style.display = 'inline-block';
+            if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+            if (confirmIcon) confirmIcon.style.display = 'none';
+            if (cancelIcon) cancelIcon.style.display = 'none';
         });
     }
 }
+
+
+
+
+
+
 
 // Bind dropdown change event and initialize our methods
 document.addEventListener('DOMContentLoaded', () => {
@@ -5519,26 +5728,102 @@ document.addEventListener('DOMContentLoaded', () => {
  }
 
 
-// --- SCENARIO BUTTONS TOGGLE LOGIC ---
- document.addEventListener("DOMContentLoaded", () => {
-     const recordScenarioBtn = document.getElementById("recordScenarioBtn");
-     const addScenarioBtn = document.getElementById("addScenarioBtn");
+// --- RECORD SCENARIO & TOGGLE LOGIC ---
+document.addEventListener("DOMContentLoaded", () => {
+    const recordScenarioBtn = document.getElementById("recordScenarioBtn");
+    const addScenarioBtn = document.getElementById("addScenarioBtn");
+    const recordModal = document.getElementById("recordScenarioModal");
+    const overlay = document.getElementById("overlay");
+    const pageNameInput = document.getElementById("pagename_searchbox");
 
-     if (recordScenarioBtn && addScenarioBtn) {
-         // Force initial state using !important to override .pill-btn class
-         recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
-         addScenarioBtn.style.setProperty("display", "none", "important");
+    const recPageNameInput = document.getElementById("rec_pagename");
+    const recScenarioNameInput = document.getElementById("rec_scenarioname");
+    const recScenarioOutlineInput = document.getElementById("rec_scenariooutline");
 
-         // When "Record Scenario" is clicked -> Hide Record, Show Add
-         recordScenarioBtn.addEventListener("click", () => {
-             recordScenarioBtn.style.setProperty("display", "none", "important");
-             addScenarioBtn.style.setProperty("display", "inline-flex", "important");
-         });
+    const recCloseBtn = document.getElementById("rec_close_btn");
+    const recStartBtn = document.getElementById("rec_start_btn");
 
-         // When "Add Scenario" is clicked -> Hide Add, Show Record
-         addScenarioBtn.addEventListener("click", () => {
-//             addScenarioBtn.style.setProperty("display", "none", "important");
-//             recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
-         });
-     }
- });
+    const scenarioOutlineBar = document.getElementById("scenarioOutlineBar");
+    const scenarioOutlineText = document.getElementById("scenarioOutlineText");
+
+
+    //recordScenarioBtn
+    if (recordScenarioBtn && addScenarioBtn) {
+        recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
+        addScenarioBtn.style.setProperty("display", "none", "important");
+
+        recordScenarioBtn.addEventListener("click", () => {
+            const pageNameValue = pageNameInput ? pageNameInput.value.trim() : "";
+
+            if (pageNameValue === "") {
+                pageNameInput.style.borderColor = "red";
+                showCustomAlert("Missing Information", "Please enter Page Name before recording a scenario.");
+                flashPageNameError();
+                return;
+            }
+
+            if (recPageNameInput) recPageNameInput.value = pageNameValue;
+            if (recScenarioNameInput) {
+                recScenarioNameInput.value = "";
+                recScenarioNameInput.style.borderColor = "#ccc";
+            }
+            if (recScenarioOutlineInput) {
+                recScenarioOutlineInput.value = "";
+                recScenarioOutlineInput.style.borderColor = "#ccc";
+            }
+
+            if (recordModal) recordModal.style.display = "block";
+            if (overlay) overlay.style.display = "block";
+        });
+
+        if (recCloseBtn) {
+            recCloseBtn.addEventListener("click", () => {
+                if (recordModal) recordModal.style.display = "none";
+                if (overlay) overlay.style.display = "none";
+                if (scenarioOutlineBar) scenarioOutlineBar.style.display = "none";
+            });
+        }
+
+        if (recStartBtn) {
+            recStartBtn.addEventListener("click", () => {
+                let isValid = true;
+
+                if (recScenarioNameInput.value.trim() === "") {
+                    recScenarioNameInput.style.borderColor = "red";
+                    isValid = false;
+                } else {
+                    recScenarioNameInput.style.borderColor = "#ccc";
+                }
+
+                if (recScenarioOutlineInput.value.trim() === "") {
+                    recScenarioOutlineInput.style.borderColor = "red";
+                    isValid = false;
+                } else {
+                    recScenarioOutlineInput.style.borderColor = "#ccc";
+                }
+
+                if (!isValid) return;
+
+                if (recordModal) recordModal.style.display = "none";
+                if (overlay) overlay.style.display = "none";
+
+                // Populate and display inline inside the download row
+                if (scenarioOutlineBar && scenarioOutlineText) {
+                    scenarioOutlineText.innerText = recScenarioOutlineInput.value.trim();
+                    scenarioOutlineBar.style.display = "inline-flex";
+                }
+
+                recordScenarioBtn.style.setProperty("display", "none", "important");
+                addScenarioBtn.style.setProperty("display", "inline-flex", "important");
+
+
+
+
+            });
+        }
+
+        addScenarioBtn.addEventListener("click", () => {
+            // Optional behavior when clicking Add Scenario
+        });
+    }
+});

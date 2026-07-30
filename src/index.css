@@ -1758,7 +1758,7 @@ th .resizer:hover {
 /* 3. Adjust tooltip positioning so it perfectly drops below the box */
 .page-info-tooltip {
     position: absolute !important;
-    top: 25px !important; /* Pushes it directly below the 28px tall badge */
+    top: 28px !important; /* Pushed to 28px to allow room for the new arrow */
     left: -15px !important;
     width: 280px;
     padding: 10px 12px;
@@ -1775,6 +1775,28 @@ th .resizer:hover {
     transition: opacity 0.2s ease, visibility 0.2s ease;
     pointer-events: none;
     z-index: 999999;
+}
+
+/* NEW: Tooltip Arrow Pointer - Outer Border */
+.page-info-tooltip::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 15px; /* Aligns precisely under the hand icon */
+    border-width: 7px;
+    border-style: solid;
+    border-color: transparent transparent #c5c9d0 transparent;
+}
+
+/* NEW: Tooltip Arrow Pointer - Inner White Triangle */
+.page-info-tooltip::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 16px; /* 1px offset for the inner border */
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent transparent #ffffff transparent;
 }
 
 /* Trigger tooltip display when hovering directly over the info icon wrapper */
@@ -1831,4 +1853,107 @@ th .resizer:hover {
 .badge-content:hover .dropdown-icon {
     opacity: 1;
     visibility: visible;
+}
+
+/* --- Scenario Outline Bar Styling --- */
+.scenario-outline-bar {
+    /* Removed width: 100% so it doesn't push elements apart */
+    display: flex;
+    align-items: center;
+    margin-left: 15px; /* Space from the Download button */
+    font-size: 13px; /* Scaled down slightly to match the toolbar */
+    font-weight: 500;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.scenario-label {
+    color: #3b3b3b;
+    margin-right: 4px;
+}
+
+.scenario-value {
+    color: #19a9ff;
+    font-weight: 600;
+    max-width: 550px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Hover effects for Confirm (Right) and Cancel (Cross) icons */
+.badge-content .confirm-edit-icon:hover,
+.badge-content .cancel-edit-icon:hover {
+    transform: scale(1.15);
+}
+
+/* Optional: Make the confirm icon a slightly brighter green on hover */
+.badge-content .confirm-edit-icon:hover {
+    stroke: #218838 !important;
+}
+
+/* Optional: Make the cancel icon a slightly brighter red on hover */
+.badge-content .cancel-edit-icon:hover {
+    stroke: #c82333 !important;
+}
+
+/* --- Real-Time Error Info Icon & Light Tooltip Styles --- */
+.error-icon-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.error-info-tooltip {
+    position: absolute !important;
+    top: 28px !important;
+    right: -10px !important; /* Aligns to the right edge */
+    width: 280px; /* Expanded to match your normal info tooltip */
+    padding: 10px 12px;
+    background-color: #ffffff !important; /* Light background */
+    color: #1f2937 !important; /* Dark grey text */
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.4;
+    border-radius: 6px;
+    border: 1px solid #c5c9d0 !important; /* Light grey border */
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); /* Softer shadow */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    pointer-events: none;
+    z-index: 999999;
+    text-align: left;
+    white-space: normal !important;
+}
+
+/* Tooltip Arrow Pointer - Outer Border */
+.error-info-tooltip::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    right: 12px;
+    border-width: 7px;
+    border-style: solid;
+    border-color: transparent transparent #c5c9d0 transparent;
+}
+
+/* Tooltip Arrow Pointer - Inner White Triangle */
+.error-info-tooltip::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    right: 13px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent transparent #ffffff transparent;
+}
+
+/* Show tooltip on hover */
+.error-icon-wrapper:hover .error-info-tooltip {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
