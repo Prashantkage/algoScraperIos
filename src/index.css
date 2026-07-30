@@ -1855,32 +1855,108 @@ th .resizer:hover {
     visibility: visible;
 }
 
-/* --- Scenario Outline Bar Styling --- */
+/* --- Scenario Outline Bar Styling (Badge Style) --- */
 .scenario-outline-bar {
-    /* Removed width: 100% so it doesn't push elements apart */
-    display: flex;
+    display: none; /* Hidden by default until scenario recorded */
     align-items: center;
-    margin-left: 15px; /* Space from the Download button */
-    font-size: 13px; /* Scaled down slightly to match the toolbar */
-    font-weight: 500;
-    background: transparent;
-    border: none;
-    box-shadow: none;
+    margin-left: 10px;
+    background-color: #ffffff;
+    border: 1px solid #4285F4; /* Blue border matching Page Name */
+    border-radius: 13px; /* Pill shape */
+    height: 26px; /* Match download button height */
+    box-sizing: border-box;
     padding: 0;
+    overflow: visible !important; /* Keeps the internal blue label cleanly clipped to the rounded corners */
 }
 
 .scenario-label {
-    color: #3b3b3b;
-    margin-right: 4px;
+    background-color: #4285F4;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0 10px;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    border-radius: 12px 0 0 12px; /* NEW: Rounds the blue background cleanly without needing overflow: hidden */
 }
 
-.scenario-value {
-    color: #19a9ff;
-    font-weight: 600;
-    max-width: 550px;
-    overflow: hidden;
-    white-space: nowrap;
+/* Container for input and icons */
+.scenario-content {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 10px 0 8px; /* Fixed padding, no sliding */
+    gap: 6px;
+    height: 100%;
+    box-sizing: border-box;
+    border-radius: 0 13px 13px 0;
+}
+
+.scenario-input {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    color: #19a9ff !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    width: 450px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    height: 100%;
     text-overflow: ellipsis;
+}
+
+.scenario-input:read-only {
+    cursor: default !important;
+}
+
+/* Dropdown Arrow Styling */
+.scenario-dropdown-icon {
+    width: 9px;
+    height: 5px;
+    margin-right: -4px;
+    cursor: pointer;
+    transition: transform 0.2s ease, fill 0.2s ease;
+}
+
+.scenario-dropdown-icon:hover polygon {
+    fill: #4285F4; /* Turns blue on hover */
+}
+
+.scenario-icons-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Pen and Trash Icons */
+.scenario-icon {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    fill: #555555; /* Default grey matching the dropdown */
+    color: #555555;
+    transition: transform 0.15s ease, fill 0.15s ease, color 0.15s ease;
+}
+
+.scenario-icon:hover {
+    transform: scale(1.15); /* Pop effect */
+    fill: #4285F4 !important; /* Turns blue on hover */
+    color: #4285F4 !important;
+}
+
+/* Overrides the blue-icon class from HTML so they start grey */
+.scenario-icon.blue-icon {
+    fill: #555555;
+    color: #555555;
+}
+
+.scenario-icon.blue-icon:hover {
+    fill: #4285F4;
+    color: #4285F4;
 }
 
 /* Hover effects for Confirm (Right) and Cancel (Cross) icons */
@@ -1952,6 +2028,81 @@ th .resizer:hover {
 }
 
 /* Show tooltip on hover */
+.error-icon-wrapper:hover .error-info-tooltip {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Scenario Action Icons (Confirm/Cancel) */
+.scenario-action-icon {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+#so_confirm_icon:hover {
+    stroke: #218838 !important;
+    transform: scale(1.15);
+}
+
+#so_cancel_icon:hover {
+    stroke: #c82333 !important;
+    transform: scale(1.15);
+}
+
+
+/* --- Real-Time Error Info Icon & Light Tooltip Styles --- */
+.error-icon-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.error-info-tooltip {
+    position: absolute !important;
+    top: 28px !important;
+    right: -10px !important;
+    width: 280px;
+    padding: 10px 12px;
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.4;
+    border-radius: 6px;
+    border: 1px solid #c5c9d0 !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    pointer-events: none;
+    z-index: 999999;
+    text-align: left;
+    white-space: normal !important;
+}
+
+.error-info-tooltip::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    right: 12px;
+    border-width: 7px;
+    border-style: solid;
+    border-color: transparent transparent #c5c9d0 transparent;
+}
+
+.error-info-tooltip::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    right: 13px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent transparent #ffffff transparent;
+}
+
 .error-icon-wrapper:hover .error-info-tooltip {
     opacity: 1;
     visibility: visible;

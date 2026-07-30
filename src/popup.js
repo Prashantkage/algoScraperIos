@@ -684,236 +684,175 @@
 
 
 
-
-
-
-    // action to perfom on clicking scrape button
-    document.getElementById("Scrape").addEventListener('click', async () => {
-      document.getElementById('searchbox').value = '';
-      document.getElementById('brokenText').style.display = 'none'
-      const ssElement = document.getElementById('ss');
-      if (ssElement) {
+// action to perform on clicking scrape (Load Page) button
+document.getElementById("Scrape").addEventListener('click', async () => {
+    document.getElementById('searchbox').value = '';
+    document.getElementById('brokenText').style.display = 'none';
+    const ssElement = document.getElementById('ss');
+    if (ssElement) {
         ssElement.remove();
-      }
-      noResultsMessage.style.display = 'none';
-    try{
+    }
+    if (typeof noResultsMessage !== 'undefined') {
+        noResultsMessage.style.display = 'none';
+    }
 
-      var correct_pageName = true;
-      var controlIdList = [];
-      controlNameLists = [];
-      const onlySpecialCharsRegex = /^[!@#$%^&*(),.?":{}|<>]*$/;
-      var plateformName = document.getElementById('platformname');
-      var pagename_searchbox_Field = document.getElementById('pagename_searchbox').value;
-      if (pagename_searchbox_Field.trim() === '') {
+    try {
+        var plateformName = document.getElementById('platformname');
+        var pagename_searchbox_Field = document.getElementById('pagename_searchbox').value;
 
-          document.getElementById('pagename_searchbox').style.borderColor = 'red';
+        // 1. STRICT GLOBAL VALIDATION CHECK
+        if (!isGlobalPageNameValid(pagename_searchbox_Field)) {
+            handleInvalidPageNameAttempt();
+            return;
+        }
 
-          showCustomAlert("Missing Information", "Please enter Page Name before scraping.");
+        var controlIdList = [];
+        controlNameLists = [];
 
-          return;
-      }
-      if (pagename_searchbox_Field.trim() != '') {
+        // 2. DUPLICATE PAGE NAME CHECK
+        if (!screenNameList.includes(pagename_searchbox_Field)) {
 
-        if (pagename_searchbox_Field.length > 0) {
-          var format = /[!@#$%^&*()+\-=\[\]{};':"\\|,.<>\/?]+/;
-          if (format.test(pagename_searchbox_Field) || /^\d+$/.test(pagename_searchbox_Field) || pagename_searchbox_Field.includes("  ")|| pagename_searchbox_Field.startsWith(" ") || pagename_searchbox_Field.endsWith(" ") || onlySpecialCharsRegex.test(pagename_searchbox_Field)) {
+            var plateformOption = plateformName.options[plateformName.selectedIndex].text;
+            document.getElementById('sttus_bar_div').style.display = 'none';
+            document.getElementById('div_status_bar').style.display = 'block';
 
-            document.getElementById('ScreenNameError').style.display = 'block'
-            document.getElementById('overlay').style.display = 'block';
-            document.getElementById("ok_button").addEventListener('click', async () => {
-              document.getElementById('ScreenNameError').style.display = 'none'
-              document.getElementById('SamePageNameError').style.display = 'none'
-              document.getElementById('overlay').style.display = 'none';
-            });
-            correct_pageName = false;
-          }
-        // }
-        else{
+            // Lock UI during scrape
+            document.getElementById('Scrape').style.backgroundColor = '#B6B6B4';
+            document.getElementById('Scrape').disabled = true;
+            document.getElementById('reset').style.backgroundColor = '#B6B6B4';
+            document.getElementById('reset').disabled = true;
+            document.getElementById('download').style.backgroundColor = '#B6B6B4';
+            document.getElementById('download').disabled = true;
 
-        if (correct_pageName) {
-          if(!screenNameList.includes(pagename_searchbox_Field)){
-          var plateformOption = plateformName.options[plateformName.selectedIndex].text;
-          document.getElementById('sttus_bar_div').style.display = 'none'
-          document.getElementById('div_status_bar').style.display = 'block';
-          document.getElementById('Scrape').style.backgroundColor = '#B6B6B4';
-          document.getElementById('Scrape').disabled = true;
-          document.getElementById('reset').style.backgroundColor = '#B6B6B4';
-          document.getElementById('reset').disabled = true;
-          document.getElementById('download').style.backgroundColor = '#B6B6B4';
-          document.getElementById('download').disabled = true;
             const homeDirectory = require('os').homedir();
             folderPath = path.join(homeDirectory, 'algoScraperScreenShot');
+
             try {
-              if (!fs.existsSync('algoScraperScreenShot')) {
-                fs.mkdirSync(folderPath);
-              }
+                if (!fs.existsSync(folderPath)) {
+                    fs.mkdirSync(folderPath, { recursive: true });
+                }
             } catch (err) {
+                console.error("Folder creation error:", err);
+            }
 
-
+            // Capture screenshot
             const image = await driver.takeScreenshot();
             require('fs').writeFileSync(`${folderPath}/image${counter}.png`, image, 'base64');
 
             await addImage();
-          }
 
+            var firstlist = [];
 
-          var firstlist = [];
+            async function addImage() {
+                if (imgTagFlag === false) {
+                    let img = document.createElement('img');
+                    img.src = `${folderPath}/image${counter}.png?${new Date().getTime()}`;
+                    img.id = 'screenshot';
+                    enableImageDragging(img);
+                    rotation = 0;
+                    zoomLevel = 1;
 
-          async function addImage() {
-            var plateformName = document.getElementById('platformname');
-            var plateformOption = plateformName.options[plateformName.selectedIndex].text;
-            if (imgTagFlag === false) {
-              let img = document.createElement('img');
-                img.src = `${folderPath}/image${counter}.png?${new Date().getTime()}`;
-            img.id = 'screenshot'
-            enableImageDragging(img);
-            rotation = 0;
-            zoomLevel = 1;
+                    img.style.transform = "scale(1) rotate(0deg)";
+                    img.style.height = BASE_HEIGHT + "px";
+                    img.style.width = BASE_WIDTH + "px";
+                    img.style.maxWidth = "none";
+                    img.style.maxHeight = "none";
+                    img.style.objectFit = "unset";
+                    img.style.display = "block";
+                    img.style.margin = "0 auto";
 
-            img.style.transform =
-                "scale(1) rotate(0deg)";
-           img.style.height = BASE_HEIGHT + "px";
-           img.style.width = BASE_WIDTH + "px";
-            img.style.maxWidth = "none";
-            img.style.maxHeight = "none";
-            img.style.objectFit = "unset";
-            img.style.display = "block";
-            img.style.margin = "0 auto";
+                    img.onmousemove = function(e) {
+                        previewElement(e);
+                    };
 
-            img.onmousemove = function(e){
+                    img.onmouseleave = function () {
+                        showElementHover = false;
+                        clearOverlay();
+                    };
 
-                previewElement(e);
+                    img.onclick = async function(e) {
+                        if (hasDragged) return;
 
-            };
+                        if (!tapMode) {
+                            const rect = img.getBoundingClientRect();
+                            const appNode = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
+                            const appWidth = parseFloat(appNode.getAttribute("width"));
+                            const appHeight = parseFloat(appNode.getAttribute("height"));
+                            const scaleX = appWidth / rect.width;
+                            const scaleY = appHeight / rect.height;
 
+                            const x = Math.round((e.clientX - rect.left) * scaleX);
+                            const y = Math.round((e.clientY - rect.top) * scaleY);
 
-            img.onmouseleave = function () {
+                            await performTouch(x, y);
+                            return;
+                        }
 
-                showElementHover = false;
-                clearOverlay();
+                        const rect = img.getBoundingClientRect();
+                        const appNode = window.xmlDoc.getElementsByTagName("XCUIElementTypeApplication")[0];
+                        const appWidth = parseFloat(appNode.getAttribute("width"));
+                        const appHeight = parseFloat(appNode.getAttribute("height"));
+                        const scaleX = appWidth / rect.width;
+                        const scaleY = appHeight / rect.height;
 
-            };
+                        const clickX = (e.clientX - rect.left) * scaleX;
+                        const clickY = (e.clientY - rect.top) * scaleY;
 
-            img.onclick = async function(e){
+                        console.log("CLICK:", clickX, clickY);
+                        findIOSLocator(clickX, clickY);
+                    };
 
-                 if (hasDragged) {
-                         return;
-                     }
+                    const dummy = document.getElementById("dummyDevice");
+                    if (dummy) {
+                        dummy.style.display = "none";
+                    }
+                    document.getElementById('image-container').appendChild(img);
+                    counter = counter + 1;
+                    imgTagFlag = true;
+                } else {
+                    let ss = document.getElementById('screenshot');
+                    const dummy = document.getElementById("dummyDevice");
 
-                 if (!tapMode) {
+                    if (dummy) {
+                        dummy.style.display = "none";
+                    }
+                    rotation = 0;
+                    zoomLevel = 1;
 
-                     const rect = img.getBoundingClientRect();
+                    ss.style.transform = "scale(1) rotate(0deg)";
+                    ss.src = `${folderPath}/image${counter}.png?${new Date().getTime()}`;
+                    ss.style.width = BASE_WIDTH + "px";
+                    ss.style.height = BASE_HEIGHT + "px";
+                    ss.style.maxWidth = "none";
+                    ss.style.maxHeight = "none";
+                    ss.style.objectFit = "unset";
+                    ss.style.display = "block";
+                    ss.style.margin = "0 auto";
 
-                     const appNode =
-                         window.xmlDoc.getElementsByTagName(
-                             "XCUIElementTypeApplication"
-                         )[0];
-
-                     const appWidth =
-                         parseFloat(appNode.getAttribute("width"));
-
-                     const appHeight =
-                         parseFloat(appNode.getAttribute("height"));
-
-                     const scaleX = appWidth / rect.width;
-                     const scaleY = appHeight / rect.height;
-
-                     const x =
-                         Math.round((e.clientX - rect.left) * scaleX);
-
-                     const y =
-                         Math.round((e.clientY - rect.top) * scaleY);
-
-
-
-                     await performTouch(x, y);
-
-                     return;
-                 }
-
-                const rect = img.getBoundingClientRect();
-
-                const appNode =
-                    window.xmlDoc.getElementsByTagName(
-                        "XCUIElementTypeApplication"
-                    )[0];
-
-                const appWidth =
-                    parseFloat(appNode.getAttribute("width"));
-
-                const appHeight =
-                    parseFloat(appNode.getAttribute("height"));
-
-                const scaleX = appWidth / rect.width;
-                const scaleY = appHeight / rect.height;
-
-                const clickX =
-                    (e.clientX - rect.left) * scaleX;
-
-                const clickY =
-                    (e.clientY - rect.top) * scaleY;
-
-                console.log("CLICK:", clickX, clickY);
-
-                findIOSLocator(clickX, clickY);
-            };
-
-            const dummy = document.getElementById("dummyDevice");
-
-            if (dummy) {
-                dummy.style.display = "none";
+                    imgTagFlag = true;
+                    counter = counter + 1;
+                }
             }
-            document.getElementById('image-container').appendChild(img);
-              counter = counter + 1;
-              imgTagFlag = true
+
+            var pageSource = await driver.getPageSource();
+            parser = new DOMParser();
+            xmlDoc = parser.parseFromString(pageSource, "text/xml");
+            window.xmlDoc = xmlDoc;
+            showElementHover = false;
+
+            function selectNodes(path) {
+                var xpathResult = xmlDoc.evaluate(path, xmlDoc, null, XPathResult.ANY_TYPE, null);
+                var nodes = [];
+                var node;
+                while (node = xpathResult.iterateNext()) {
+                    nodes.push(node);
+                }
+                return nodes;
             }
-            else {
-              let ss = document.getElementById('screenshot')
-              const dummy = document.getElementById("dummyDevice");
-
-              if (dummy) {
-                  dummy.style.display = "none";
-              }
-              rotation = 0;
-              zoomLevel = 1;
-
-              ss.style.transform =
-                  "scale(1) rotate(0deg)";
-                ss.src = `${folderPath}/image${counter}.png?${new Date().getTime()}`;
-             ss.style.width = BASE_WIDTH + "px";
-             ss.style.height = BASE_HEIGHT + "px";
-             ss.style.maxWidth = "none";
-             ss.style.maxHeight = "none";
-             ss.style.objectFit = "unset";
-             ss.style.display = "block";
-             ss.style.margin = "0 auto";
-              imgTagFlag = true
-              counter = counter + 1;
-            }
-          }
-
-          var pageSource = await driver.getPageSource() // Get all the elements from the webpage
-
-          parser = new DOMParser();
-          xmlDoc = parser.parseFromString(pageSource, "text/xml");
-          window.xmlDoc = xmlDoc;
-          showElementHover = false;
-          var selectedNodes = selectNodes('/');
-
-          function selectNodes(path) {
-            var xpathResult = xmlDoc.evaluate(path, xmlDoc, null, XPathResult.ANY_TYPE, null);
-            var nodes = [];
-            var node;
-            while (node = xpathResult.iterateNext()) {
-              nodes.push(node);
-            }
-            return nodes;
-          }
 
             let listOfTags = [];
-
             function addTag(tag) {
-              listOfTags.push(tag);
+                listOfTags.push(tag);
             }
 
             addTag("XCUIElementTypeButton");
@@ -927,225 +866,214 @@
             var xmlNodes = [];
 
             listOfTags.forEach(function (stringTag) {
-              var getElements = xmlDoc.getElementsByTagName(stringTag);
-              for (var i = 0; i < getElements.length; i++) {
-                xmlNodes.push(getElements[i]);
-              }
+                var getElements = xmlDoc.getElementsByTagName(stringTag);
+                for (var i = 0; i < getElements.length; i++) {
+                    xmlNodes.push(getElements[i]);
+                }
             });
 
-
             for (var i = 0; i < xmlNodes.length; i++) {
-              var node = xmlNodes[i];
+                var node = xmlNodes[i];
 
-              if (node.nodeName !== "AppiumAUT" && node.nodeName !== "XCUIElementTypeApplication"
-                && !node.nodeName.includes("XCUIElementTypeWindow") && !node.nodeName.includes("XCUIElementTypeOther")
-                && node.nodeName !== "" && node.nodeName !== null) {
+                if (node.nodeName !== "AppiumAUT" && node.nodeName !== "XCUIElementTypeApplication"
+                    && !node.nodeName.includes("XCUIElementTypeWindow") && !node.nodeName.includes("XCUIElementTypeOther")
+                    && node.nodeName !== "" && node.nodeName !== null) {
 
-                var controlName = "";
-                var controlType = node.nodeName;
-                var controlIdentificationType = "XPath";
-                var controlId = "";
-                var xpath = "";
+                    var controlName = "";
+                    var controlType = node.nodeName;
+                    var controlIdentificationType = "XPath";
+                    var controlId = "";
+                    var xpath = "";
 
-                if (node.nodeName === "XCUIElementTypeButton" || node.nodeName === "XCUIElementTypeTextView") {
-                  controlType = "Button";
-                } else if (node.nodeName === "XCUIElementTypeTextField" || node.nodeName === "XCUIElementTypeSecureTextField" || node.nodeName === "XCUIElementTypeSearchField" || node.nodeName === "XCUIElementTypeTextView" || node.nodeName === "XCUIElementTypeTextView" || node.nodeName === "XCUIElementTypeStaticText") {
-                  controlType = "TextBox";
-                } else if (node.nodeName === "XCUIElementTypeOther") {
-                  controlType = "Other";
-                } else if (node.nodeName === "XCUIElementTypeImage") {
-                  controlType = "Image";
-                }
-                try {
-                  if (node.getAttribute("name") !== null && node.getAttribute("name").trim() !== "") {
-                    let rawName = node.getAttribute("name").trim();
-
-                    controlName = rawName;
-                    controlName = checkForSingleQuote(controlName);
-
-                    controlId = "//" + node.nodeName + "[@name=\"" + rawName + "\"]";
-                    if (controlIdList.includes(controlId)) {
-                      controlIdList.push(controlId);
-                      var CNcount = 0;
-                      var CN_ID = controlId;
-                      for (var k = 0; k < controlIdList.length; k++) {
-                        if (CN_ID === controlIdList[k])
-                          CNcount++;
-                      }
-                      xpath = "(" + controlId + ")[" + CNcount + "]";
+                    if (node.nodeName === "XCUIElementTypeButton" || node.nodeName === "XCUIElementTypeTextView") {
+                        controlType = "Button";
+                    } else if (node.nodeName === "XCUIElementTypeTextField" || node.nodeName === "XCUIElementTypeSecureTextField" || node.nodeName === "XCUIElementTypeSearchField" || node.nodeName === "XCUIElementTypeTextView" || node.nodeName === "XCUIElementTypeStaticText") {
+                        controlType = "TextBox";
+                    } else if (node.nodeName === "XCUIElementTypeOther") {
+                        controlType = "Other";
+                    } else if (node.nodeName === "XCUIElementTypeImage") {
+                        controlType = "Image";
                     }
-                    else {
-                      controlIdList.push(controlId);
-                      xpath = controlId;
-                    }
-                  }
-                  else if (node.getAttribute("value") !== null && node.getAttribute("value").trim() !== "") {
-                    controlName = node.getAttribute("value").trim();
-                    controlName = checkForSingleQuote(controlName);
-                    controlId = "//" + node.nodeName + "[@value=\"" + controlName + "\"]";
-                    if (controlIdList.includes(controlId)) {
-                      controlIdList.push(controlId);
-                      var CNcount = 0;
-                      var CN_ID = controlId;
-                      for (var k = 0; k < controlIdList.length; k++) {
-                        if (CN_ID === controlIdList[k])
-                          CNcount++;
-                      }
-                      xpath = "(" + controlId + ")[" + CNcount + "]";
-                    }
-                    else {
-                      controlIdList.push(controlId);
-                      xpath = controlId;
-                    }
-                  }
-                  else if (node.getAttribute("label") !== null && node.getAttribute("label").trim() !== "") {
-                    controlName = node.getAttribute("label").trim();
-                    controlId = "//" + node.nodeName + "[@label=\"" + controlName + "\"]";
-                    if (controlIdList.includes(controlId)) {
-                      controlIdList.push(controlId);
-                      var CNcount = 0;
-                      var CN_ID = controlId;
-                      for (var k = 0; k < controlIdList.length; k++) {
-                        if (CN_ID === controlIdList[k])
-                          CNcount++;
-                      }
-                      xpath = "(" + controlId + ")[" + CNcount + "]";
-                    }
-                    else {
-                      controlIdList.push(controlId);
-                      xpath = controlId;
-                    }
-                  }
-                  else {
-                    controlId = "//" + node.nodeName;
-                    if (controlIdList.includes(controlId)) {
-                      controlIdList.push(controlId);
-                      var CNcount = 0;
-                      var CN_ID = controlId;
-                      for (var k = 0; k < controlIdList.length; k++) {
-                        if (CN_ID === controlIdList[k])
-                          CNcount++;
-                      }
-                      xpath = "(" + controlId + ")[" + CNcount + "]";
-                    }
-                    else {
-                      controlIdList.push(controlId);
-                      xpath = controlId;
-                    }
-                  }
-                } catch (err) {
-                  console.log("Error :", err);
-                  controlId = "//" + node.nodeName;
-                  controlName = node.nodeName;
-                }
 
-                if (controlName === "") {
-                  controlName = node.nodeName;
-                }
-
-                if (controlName !== "") {
-                  controlName = controlName.substring(0, Math.min(40, controlName.length));
-                  controlName = controlName.replace(/[^a-zA-Z0-9 ]/g, "").trimStart()
-                  if (/^\d/.test(controlName)) {
-                    controlName = `NUM_` + controlName;
-                  }
-                  var count = 0;
-
-                  firstlist.forEach(function (item) {
-                    if (item.toLowerCase() === controlName.toLowerCase()) {
-                      count++;
-                    }
-                  });
-
-                  if (count > 1) {
-                    controlName = controlName + "_" + count;
-                  }
-
-                  // to remove dulpicates from page
-                                    if (!controlNameLists.includes(controlName)) {
-                                      controlNameLists.push(controlName);
-                                    }
-                                    else {
-                                      controlNameLists.push(controlName)
-                                      if (controlNameLists.includes(controlName)) {
-                                        var CNcount = 0;
-                                        var CN = controlName;
-                                        for (var j = 0; j < controlNameLists.length; j++) {
-                                          if (CN === controlNameLists[j])
-                                            CNcount++;
-                                        }
-                                        controlName = controlName + "_" + (CNcount);
-
-                                      }
-                                    }
-
-                                    // NEW: Extract the input value if the element is a text/search field
-                                    let controlValue = "";
-                                    if (["XCUIElementTypeTextField", "XCUIElementTypeSecureTextField", "XCUIElementTypeSearchField", "XCUIElementTypeTextView"].includes(node.nodeName)) {
-                                        controlValue = node.getAttribute("value") || "";
-                                        let label = node.getAttribute("label") || "";
-                                        let name = node.getAttribute("name") || "";
-                                        let placeholder = node.getAttribute("placeholderValue") || "";
-
-                                        // If the value matches the placeholder, label, or name, it is a default placeholder, not user input.
-                                        if (controlValue === placeholder || controlValue === label || controlValue === name) {
-                                            controlValue = "";
-                                        }
-                                    }
-
-                                    dtControls.push({
-                                        ControlName: controlName,
-                                        ControlType: controlType,
-                                        ControlId: xpath,
-                                        ControlValue: controlValue, // Added this to pass the value
-                                        Fingerprint: new XMLSerializer().serializeToString(node)
-                                    });
-                                  }
-
+                    try {
+                        if (node.getAttribute("name") !== null && node.getAttribute("name").trim() !== "") {
+                            let rawName = node.getAttribute("name").trim();
+                            controlName = rawName;
+                            controlName = checkForSingleQuote(controlName);
+                            controlId = "//" + node.nodeName + "[@name=\"" + rawName + "\"]";
+                            if (controlIdList.includes(controlId)) {
+                                controlIdList.push(controlId);
+                                var CNcount = 0;
+                                var CN_ID = controlId;
+                                for (var k = 0; k < controlIdList.length; k++) {
+                                    if (CN_ID === controlIdList[k]) CNcount++;
                                 }
-                              }
+                                xpath = "(" + controlId + ")[" + CNcount + "]";
+                            } else {
+                                controlIdList.push(controlId);
+                                xpath = controlId;
+                            }
+                        } else if (node.getAttribute("value") !== null && node.getAttribute("value").trim() !== "") {
+                            controlName = node.getAttribute("value").trim();
+                            controlName = checkForSingleQuote(controlName);
+                            controlId = "//" + node.nodeName + "[@value=\"" + controlName + "\"]";
+                            if (controlIdList.includes(controlId)) {
+                                controlIdList.push(controlId);
+                                var CNcount = 0;
+                                var CN_ID = controlId;
+                                for (var k = 0; k < controlIdList.length; k++) {
+                                    if (CN_ID === controlIdList[k]) CNcount++;
+                                }
+                                xpath = "(" + controlId + ")[" + CNcount + "]";
+                            } else {
+                                controlIdList.push(controlId);
+                                xpath = controlId;
+                            }
+                        } else if (node.getAttribute("label") !== null && node.getAttribute("label").trim() !== "") {
+                            controlName = node.getAttribute("label").trim();
+                            controlId = "//" + node.nodeName + "[@label=\"" + controlName + "\"]";
+                            if (controlIdList.includes(controlId)) {
+                                controlIdList.push(controlId);
+                                var CNcount = 0;
+                                var CN_ID = controlId;
+                                for (var k = 0; k < controlIdList.length; k++) {
+                                    if (CN_ID === controlIdList[k]) CNcount++;
+                                }
+                                xpath = "(" + controlId + ")[" + CNcount + "]";
+                            } else {
+                                controlIdList.push(controlId);
+                                xpath = controlId;
+                            }
+                        } else {
+                            controlId = "//" + node.nodeName;
+                            if (controlIdList.includes(controlId)) {
+                                controlIdList.push(controlId);
+                                var CNcount = 0;
+                                var CN_ID = controlId;
+                                for (var k = 0; k < controlIdList.length; k++) {
+                                    if (CN_ID === controlIdList[k]) CNcount++;
+                                }
+                                xpath = "(" + controlId + ")[" + CNcount + "]";
+                            } else {
+                                controlIdList.push(controlId);
+                                xpath = controlId;
+                            }
+                        }
+                    } catch (err) {
+                        console.log("Error :", err);
+                        controlId = "//" + node.nodeName;
+                        controlName = node.nodeName;
+                    }
+
+                    if (controlName === "") {
+                        controlName = node.nodeName;
+                    }
+
+                    if (controlName !== "") {
+                        controlName = controlName.substring(0, Math.min(40, controlName.length));
+                        controlName = controlName.replace(/[^a-zA-Z0-9 ]/g, "").trimStart();
+                        if (/^\d/.test(controlName)) {
+                            controlName = `NUM_` + controlName;
+                        }
+                        var count = 0;
+
+                        firstlist.forEach(function (item) {
+                            if (item.toLowerCase() === controlName.toLowerCase()) {
+                                count++;
+                            }
+                        });
+
+                        if (count > 1) {
+                            controlName = controlName + "_" + count;
+                        }
+
+                        // remove duplicates from page
+                        if (!controlNameLists.includes(controlName)) {
+                            controlNameLists.push(controlName);
+                        } else {
+                            controlNameLists.push(controlName);
+                            if (controlNameLists.includes(controlName)) {
+                                var CNcount = 0;
+                                var CN = controlName;
+                                for (var j = 0; j < controlNameLists.length; j++) {
+                                    if (CN === controlNameLists[j]) CNcount++;
+                                }
+                                controlName = controlName + "_" + (CNcount);
+                            }
+                        }
+
+                        // Extract input value if it is a text/search field
+                        let controlValue = "";
+                        if (["XCUIElementTypeTextField", "XCUIElementTypeSecureTextField", "XCUIElementTypeSearchField", "XCUIElementTypeTextView"].includes(node.nodeName)) {
+                            controlValue = node.getAttribute("value") || "";
+                            let label = node.getAttribute("label") || "";
+                            let name = node.getAttribute("name") || "";
+                            let placeholder = node.getAttribute("placeholderValue") || "";
+
+                            // If value matches placeholder/label/name, it's a default hint, not input
+                            if (controlValue === placeholder || controlValue === label || controlValue === name) {
+                                controlValue = "";
+                            }
+                        }
+
+                        dtControls.push({
+                            ControlName: controlName,
+                            ControlType: controlType,
+                            ControlId: xpath,
+                            ControlValue: controlValue,
+                            Fingerprint: new XMLSerializer().serializeToString(node)
+                        });
+                    }
+                }
+            }
+
+            createAndAppendTable(dtControls);
             dtControls = [];
 
-          document.getElementById('div_status_bar').style.display = 'none';
-          showElementHover = false;
-          hoverRequestId++;
-          clearOverlay();
-          document.getElementById('Scrape').style.backgroundColor = '#4285F4';
-          document.getElementById('Scrape').disabled = false;
-          document.getElementById('reset').style.backgroundColor = '#4285F4';
-          document.getElementById('reset').disabled = false;
-          document.getElementById('download').style.backgroundColor = '#4285F4';
-          document.getElementById('download').disabled = false;
-          document.getElementById('scrapeUI').disabled = false;
-          document.getElementById('scrapeUI').style.backgroundColor = '#4285F4';
+            // Restore UI after successful scrape
+            document.getElementById('div_status_bar').style.display = 'none';
+            showElementHover = false;
+            hoverRequestId++;
+            clearOverlay();
+            document.getElementById('Scrape').style.backgroundColor = '#4285F4';
+            document.getElementById('Scrape').disabled = false;
+            document.getElementById('reset').style.backgroundColor = '#4285F4';
+            document.getElementById('reset').disabled = false;
+            document.getElementById('download').style.backgroundColor = '#4285F4';
+            document.getElementById('download').disabled = false;
+            document.getElementById('scrapeUI').disabled = false;
+            document.getElementById('scrapeUI').style.backgroundColor = '#4285F4';
+            document.getElementById('algoQA').disabled = false;
+            document.getElementById('algoQA').style.backgroundColor = '#4285F4';
 
-          document.getElementById('algoQA').disabled = false;
-          document.getElementById('algoQA').style.backgroundColor = '#4285F4';
+        } else {
+            // Duplicate Page Name logic
+            document.getElementById('SamePageNameError').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById("okay").addEventListener('click', async () => {
+                document.getElementById('confirmationPopup').style.display = 'none';
+                document.getElementById('SamePageNameError').style.display = 'none';
+                document.getElementById('overlay').style.display = 'none';
+            });
         }
-        else{
-          document.getElementById('SamePageNameError').style.display = 'block'
-          document.getElementById('overlay').style.display = 'block';
-          document.getElementById("okay").addEventListener('click', async () => {
-            document.getElementById('confirmationPopup').style.display = 'none'
-            document.getElementById('SamePageNameError').style.display = 'none'
-            document.getElementById('overlay').style.display = 'none';
-          });
-          correct_pageName = false;
-        }
-      }
-      }
-    }
-      }
+
     } catch(error) {
-          document.getElementById('div_status_bar').style.display = 'none';
-          document.getElementById('download').disabled = false;
-          document.getElementById('download').style.backgroundColor = '#4285F4';
+        document.getElementById('div_status_bar').style.display = 'none';
+        document.getElementById('download').disabled = false;
+        document.getElementById('download').style.backgroundColor = '#4285F4';
 
-          console.error("Scraping Error:", error);
-          showErrorPopup("Error occurred while scraping", error);
-        }
+        console.error("Scraping Error:", error);
+        showErrorPopup("Error occurred while scraping", error);
+    }
+});
 
-    });
+
+
+
+
+
+
+
 
 
     let pendingExportAction = null;
@@ -3261,8 +3189,17 @@ function createAndAppendTable(dtControls) {
 
     document.getElementById("scrapeUI").addEventListener("click", async () => {
 
-        dtControls = [];
-        controlNameLists = [];
+            const pageNameInput = document.getElementById("pagename_searchbox");
+            const pageName = pageNameInput ? pageNameInput.value : "";
+
+            // NEW: Strict Global Validation Check BEFORE anything else happens
+            if (!isGlobalPageNameValid(pageName)) {
+                handleInvalidPageNameAttempt();
+                return;
+            }
+
+            dtControls = [];
+            controlNameLists = [];
 
         const xmlNodes = window.xmlDoc.getElementsByTagName("*");
 
@@ -3333,15 +3270,6 @@ function createAndAppendTable(dtControls) {
                 ControlValue: controlValue,
                 Fingerprint: new XMLSerializer().serializeToString(node)
             });
-        }
-
-        const pageName = document.getElementById("pagename_searchbox").value.trim();
-
-        if (pageName === "") {
-            document.getElementById("pagename_searchbox").style.borderColor = "red";
-            showCustomAlert("Missing Information", "Please enter Page Name.");
-            flashPageNameError(); // Flashes the badge red for 2 seconds
-            return;
         }
 
         createAndAppendTable(dtControls);
@@ -4279,18 +4207,40 @@ function getAllPossibleXPaths(node) {
 
 
 
+// --- GLOBAL PAGE NAME VALIDATOR ---
+function isGlobalPageNameValid(name) {
+    if (!name || name.trim() === '') return false; // Empty is invalid
+    const format = /[!@#$%^&*()+\-=\[\]{};':"\\|,.<>\/?]+/;
+    const onlySpecialCharsRegex = /^[!@#$%^&*(),.?":{}|<>]*$/;
+
+    if (format.test(name) || /^\d+$/.test(name) || name.includes("  ") || name.startsWith(" ") || name.endsWith(" ") || onlySpecialCharsRegex.test(name)) {
+        return false;
+    }
+    return true;
+}
+
+function handleInvalidPageNameAttempt() {
+    const pageNameInput = document.getElementById('pagename_searchbox');
+    if (pageNameInput) {
+        pageNameInput.style.borderColor = "#dc3545"; // Red
+        pageNameInput.focus();
+    }
+    if (typeof flashPageNameError === "function") flashPageNameError(); // Flashes the badge red
+    showCustomAlert("Invalid Page Name", "Please enter a valid Page Name. It can accept alphanumeric characters, a single space between words, and must start with an alphabet.", "warning");
+}
+
 
     //finding xpath
     async function findIOSLocator(clickX, clickY) {
 
-            const pageName = document.getElementById("pagename_searchbox").value.trim();
+            const pageNameInput = document.getElementById("pagename_searchbox");
+                        const pageName = pageNameInput ? pageNameInput.value : "";
 
-            if (pageName === "") {
-                document.getElementById("pagename_searchbox").style.borderColor = "red";
-                showCustomAlert("Missing Information", "Please enter Page Name.");
-                flashPageNameError(); // Flashes the badge red for 2 seconds
-                return;
-            }
+                        // NEW: Strict Global Validation Check
+                        if (!isGlobalPageNameValid(pageName)) {
+                            handleInvalidPageNameAttempt();
+                            return;
+                        }
 
             const nodes = window.xmlDoc.getElementsByTagName("*");
             let matchedNode = null;
@@ -4978,7 +4928,7 @@ function updateRowEyeButtonState() {
                                }
 
                                if (scenarioOutlineText) {
-                                   scenarioOutlineText.textContent = "";
+                                   scenarioOutlineText.value = "";
                                }
 
                 // 6. HELPER: Safely delete old screenshots without crashing the app
@@ -5483,13 +5433,7 @@ function initPageNameLogic() {
 
     // HELPER: Validate Page Name Format
     function isValidPageName(name) {
-        if (name.trim() === '') return false; // Empty is invalid
-        const format = /[!@#$%^&*()+\-=\[\]{};':"\\|,.<>\/?]+/;
-        const onlySpecialCharsRegex = /^[!@#$%^&*(),.?":{}|<>]*$/;
-        if (format.test(name) || /^\d+$/.test(name) || name.includes("  ") || name.startsWith(" ") || name.endsWith(" ") || onlySpecialCharsRegex.test(name)) {
-            return false;
-        }
-        return true;
+        return isGlobalPageNameValid(name);
     }
 
     // HELPER: Revert UI to valid standard blue state
@@ -5497,16 +5441,18 @@ function initPageNameLogic() {
         badgeWrapper.style.borderColor = '#4285F4';
         badgeLabel.style.backgroundColor = '#4285F4';
         if (errorIconWrapper) errorIconWrapper.style.display = 'none';
-        if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+
+        // NEW: Only show the dropdown icon if we are NOT actively in edit mode
+        if (!isEditMode && dropdownIcon) {
+            dropdownIcon.style.display = 'inline-block';
+        }
     }
 
     // 1. Live Validation: Works for BOTH Normal Entry and Edit Mode
     pageNameInput.addEventListener('input', function() {
         if (!pageNameInput.readOnly) {
-
             // If it's invalid AND they have typed something
             if (!isValidPageName(this.value) && this.value !== "") {
-
                 // Hide ALL controls, show red info
                 if (confirmIcon) confirmIcon.style.display = 'none';
                 if (cancelIcon) cancelIcon.style.display = 'none';
@@ -5518,19 +5464,17 @@ function initPageNameLogic() {
                 badgeLabel.style.backgroundColor = '#dc3545';
 
             } else {
-
-                // If it's valid, restore the blue styling and dropdown arrow
+                // If it's valid, restore the blue styling
                 restoreValidBlueState();
 
                 if (isEditMode) {
-                    // RESOLVED DURING EDIT MODE: Bring back Right/Cross marks, keep Pen hidden
                     if (this.value.trim() !== '') {
                         if (confirmIcon) confirmIcon.style.display = 'inline-block';
                         if (cancelIcon) cancelIcon.style.display = 'inline-block';
                     }
                     if (editPenIcon) editPenIcon.style.display = 'none';
+                    if (dropdownIcon) dropdownIcon.style.display = 'none'; // Keep hidden
                 } else {
-                    // RESOLVED DURING NORMAL MODE: Bring back Pen, keep Right/Cross hidden
                     if (confirmIcon) confirmIcon.style.display = 'none';
                     if (cancelIcon) cancelIcon.style.display = 'none';
                     if (editPenIcon) editPenIcon.style.display = 'inline-block';
@@ -5542,15 +5486,12 @@ function initPageNameLogic() {
     // 2. Lock input on blur (Clicking away)
     pageNameInput.addEventListener('blur', function() {
         setTimeout(() => {
-            // FIX: If the user is actively in Edit Mode, do NOT auto-lock the field on blur.
-            // This stops the icons from disappearing instantly.
             if (isEditMode) return;
 
             if (this.value.trim() !== '' && isValidPageName(this.value)) {
                 this.readOnly = true;
                 this.style.cursor = 'default';
 
-                // Reset icons for locked state
                 if (editPenIcon) editPenIcon.style.display = 'inline-block';
                 if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
                 if (confirmIcon) confirmIcon.style.display = 'none';
@@ -5576,6 +5517,7 @@ function initPageNameLogic() {
             pageNameInput.focus();
 
             editPenIcon.style.display = 'none';
+            if (dropdownIcon) dropdownIcon.style.display = 'none'; // Hide dropdown
             if (confirmIcon) confirmIcon.style.display = 'inline-block';
             if (cancelIcon) cancelIcon.style.display = 'inline-block';
         });
@@ -5584,7 +5526,6 @@ function initPageNameLogic() {
     // 4. Confirm Edit (Right mark) Logic
     if (confirmIcon) {
         confirmIcon.addEventListener('click', function() {
-
             // Prevent confirming if manually cleared all text
             if (pageNameInput.value.trim() === '') {
                 pageNameInput.focus();
@@ -5668,6 +5609,173 @@ function initPageNameLogic() {
 
 
 
+// --- Scenario Outline Logic (Final Clean Version) ---
+function flashScenarioOutlineError() {
+    const soBar = document.getElementById('scenarioOutlineBar');
+    const soLabel = document.getElementById('so_badge_label');
+    const soInput = document.getElementById('scenarioOutlineText');
+    const soErrorIconWrapper = document.getElementById('so_error_icon_wrapper');
+    const soConfirmIcon = document.getElementById('so_confirm_icon');
+    const soCancelIcon = document.getElementById('so_cancel_icon');
+
+    if (soBar && soLabel) {
+        soBar.style.borderColor = '#d9534f';
+        soLabel.style.backgroundColor = '#d9534f';
+
+        if (soInput) soInput.focus();
+
+        if (soConfirmIcon) soConfirmIcon.style.display = 'none';
+        if (soCancelIcon) soCancelIcon.style.display = 'none';
+        if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'inline-flex';
+
+        setTimeout(() => {
+            if (soInput && (isGlobalPageNameValid(soInput.value) || soInput.value.trim() === '')) {
+                soBar.style.borderColor = '#4285F4';
+                soLabel.style.backgroundColor = '#4285F4';
+                if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'none';
+
+                if (!soInput.readOnly) {
+                    if (soConfirmIcon && soInput.value.trim() !== '') soConfirmIcon.style.display = 'inline-block';
+                    if (soCancelIcon) soCancelIcon.style.display = 'inline-block';
+                }
+            }
+        }, 2000);
+    }
+}
+
+function initScenarioOutlineLogic() {
+    const soInput = document.getElementById('scenarioOutlineText');
+    const soEditIcon = document.getElementById('so_edit_icon');
+    const soDeleteIcon = document.getElementById('so_delete_icon');
+    const soDropdownIcon = document.getElementById('so_dropdown_icon');
+    const soConfirmIcon = document.getElementById('so_confirm_icon');
+    const soCancelIcon = document.getElementById('so_cancel_icon');
+    const soErrorIconWrapper = document.getElementById('so_error_icon_wrapper');
+
+    const soBar = document.getElementById('scenarioOutlineBar');
+    const soLabel = document.getElementById('so_badge_label');
+
+    let previousScenarioOutline = "";
+    let isSOEditMode = false;
+
+    if (!soInput) return;
+
+    function restoreValidSOBlueState() {
+        if (soBar) soBar.style.borderColor = '#4285F4';
+        if (soLabel) soLabel.style.backgroundColor = '#4285F4';
+        if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'none';
+    }
+
+    soInput.addEventListener('input', function() {
+        if (!soInput.readOnly) {
+            if (!isGlobalPageNameValid(this.value) && this.value !== "") {
+                if (soConfirmIcon) soConfirmIcon.style.display = 'none';
+                if (soCancelIcon) soCancelIcon.style.display = 'none'; // Cross mark gayab
+                if (soBar) soBar.style.borderColor = '#dc3545';
+                if (soLabel) soLabel.style.backgroundColor = '#dc3545';
+                if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'inline-flex'; // Red error icon aa jayega
+            } else {
+                restoreValidSOBlueState();
+                if (isSOEditMode) {
+                    if (this.value.trim() !== '') {
+                        if (soConfirmIcon) soConfirmIcon.style.display = 'inline-block';
+                    } else {
+                        if (soConfirmIcon) soConfirmIcon.style.display = 'none';
+                    }
+                    if (soCancelIcon) soCancelIcon.style.display = 'inline-block';
+                }
+            }
+        }
+    });
+
+    if (soEditIcon) {
+        soEditIcon.addEventListener('click', function() {
+            isSOEditMode = true;
+            previousScenarioOutline = soInput.value;
+
+            soInput.readOnly = false;
+            soInput.style.cursor = 'text';
+            soInput.focus();
+
+            soEditIcon.style.display = 'none';
+            if (soDeleteIcon) soDeleteIcon.style.display = 'none';
+            if (soDropdownIcon) soDropdownIcon.style.display = 'none';
+            if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'none';
+
+            if (soConfirmIcon) soConfirmIcon.style.display = 'inline-block';
+            if (soCancelIcon) soCancelIcon.style.display = 'inline-block';
+        });
+    }
+
+    if (soConfirmIcon) {
+        soConfirmIcon.addEventListener('click', function() {
+            if (soInput.value.trim() === '') {
+                soInput.focus();
+                flashScenarioOutlineError();
+                showCustomAlert("Missing Information", "Scenario Outline cannot be empty.");
+                return;
+            }
+
+            if (!isGlobalPageNameValid(soInput.value)) {
+                soInput.focus();
+                flashScenarioOutlineError();
+                showCustomAlert("Invalid Format", "Please provide a valid Scenario Outline without special characters.");
+                return;
+            }
+
+            soInput.readOnly = true;
+            soInput.style.cursor = 'default';
+            isSOEditMode = false;
+
+            if (soConfirmIcon) soConfirmIcon.style.display = 'none';
+            if (soCancelIcon) soCancelIcon.style.display = 'none';
+            if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'none';
+
+            if (soEditIcon) soEditIcon.style.display = 'inline-block';
+            if (soDeleteIcon) soDeleteIcon.style.display = 'inline-block';
+            if (soDropdownIcon) soDropdownIcon.style.display = 'inline-block';
+        });
+    }
+
+    function triggerSOCancel() {
+        soInput.value = previousScenarioOutline;
+        soInput.readOnly = true;
+        soInput.style.cursor = 'default';
+        isSOEditMode = false;
+
+        restoreValidSOBlueState();
+
+        if (soConfirmIcon) soConfirmIcon.style.display = 'none';
+        if (soCancelIcon) soCancelIcon.style.display = 'none';
+        if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'none';
+
+        if (soEditIcon) soEditIcon.style.display = 'inline-block';
+        if (soDeleteIcon) soDeleteIcon.style.display = 'inline-block';
+        if (soDropdownIcon) soDropdownIcon.style.display = 'inline-block';
+    }
+
+    if (soCancelIcon) {
+        soCancelIcon.addEventListener('click', triggerSOCancel);
+    }
+
+    soInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            if (this.value.trim() === '') {
+                flashScenarioOutlineError();
+                showCustomAlert("Missing Information", "Scenario Outline cannot be empty.");
+            } else if (!isGlobalPageNameValid(this.value) && this.value !== "") {
+                flashScenarioOutlineError();
+            } else if (soConfirmIcon && soConfirmIcon.style.display !== 'none') {
+                soConfirmIcon.click();
+            }
+        } else if (e.key === 'Escape' && isSOEditMode) {
+            triggerSOCancel();
+        }
+    });
+}
+
+
+
 
 
 
@@ -5684,6 +5792,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initialize the new Page Name logic ---
     initPageNameLogic();
+
+
+    // --- Initialize Scenario Outline logic ---
+        initScenarioOutlineLogic();
 });
 
 
@@ -5746,23 +5858,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const scenarioOutlineBar = document.getElementById("scenarioOutlineBar");
     const scenarioOutlineText = document.getElementById("scenarioOutlineText");
 
-
-    //recordScenarioBtn
     if (recordScenarioBtn && addScenarioBtn) {
+
+        // Initial State: Show "Record Scenario", hide "Add Scenario"
         recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
         addScenarioBtn.style.setProperty("display", "none", "important");
 
-        recordScenarioBtn.addEventListener("click", () => {
-            const pageNameValue = pageNameInput ? pageNameInput.value.trim() : "";
+        // 1. SEPARATE REUSABLE FUNCTION: Opens the modal and prepares the fields
+                function openScenarioModal() {
+                    const pageNameValue = pageNameInput ? pageNameInput.value : "";
 
-            if (pageNameValue === "") {
-                pageNameInput.style.borderColor = "red";
-                showCustomAlert("Missing Information", "Please enter Page Name before recording a scenario.");
-                flashPageNameError();
-                return;
+                    // Step A: Strict Global Validation Check
+                    if (!isGlobalPageNameValid(pageNameValue)) {
+                        handleInvalidPageNameAttempt();
+                        return; // Stop execution, do not open modal
+                    }
+
+            // Step B: Populate the disabled Page Name field in the modal
+            if (recPageNameInput) {
+                recPageNameInput.value = pageNameValue;
             }
 
-            if (recPageNameInput) recPageNameInput.value = pageNameValue;
+            // Step C: Clear the Scenario Name and Outline fields, reset their borders
             if (recScenarioNameInput) {
                 recScenarioNameInput.value = "";
                 recScenarioNameInput.style.borderColor = "#ccc";
@@ -5772,22 +5889,35 @@ document.addEventListener("DOMContentLoaded", () => {
                 recScenarioOutlineInput.style.borderColor = "#ccc";
             }
 
+            // Step D: Show the modal and the background overlay
             if (recordModal) recordModal.style.display = "block";
             if (overlay) overlay.style.display = "block";
-        });
+        }
 
+        // 2. Attach the shared function to BOTH buttons
+        recordScenarioBtn.addEventListener("click", openScenarioModal);
+        addScenarioBtn.addEventListener("click", openScenarioModal);
+
+        // 3. Handle Close Button inside the Modal
         if (recCloseBtn) {
             recCloseBtn.addEventListener("click", () => {
                 if (recordModal) recordModal.style.display = "none";
                 if (overlay) overlay.style.display = "none";
-                if (scenarioOutlineBar) scenarioOutlineBar.style.display = "none";
+
+                // Only hide the Outline Bar if we are canceling the FIRST "Record Scenario" click.
+                // If "Add Scenario" is currently visible, it means a scenario is already active, so keep the bar visible.
+                if (addScenarioBtn.style.display === "none" && scenarioOutlineBar) {
+                    scenarioOutlineBar.style.display = "none";
+                }
             });
         }
 
+        // 4. Handle Start Recording Button inside the Modal
         if (recStartBtn) {
             recStartBtn.addEventListener("click", () => {
                 let isValid = true;
 
+                // Validate Scenario Name
                 if (recScenarioNameInput.value.trim() === "") {
                     recScenarioNameInput.style.borderColor = "red";
                     isValid = false;
@@ -5795,6 +5925,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     recScenarioNameInput.style.borderColor = "#ccc";
                 }
 
+                // Validate Scenario Outline
                 if (recScenarioOutlineInput.value.trim() === "") {
                     recScenarioOutlineInput.style.borderColor = "red";
                     isValid = false;
@@ -5802,28 +5933,23 @@ document.addEventListener("DOMContentLoaded", () => {
                     recScenarioOutlineInput.style.borderColor = "#ccc";
                 }
 
+                // Stop if any field is empty
                 if (!isValid) return;
 
+                // Success: Hide modal
                 if (recordModal) recordModal.style.display = "none";
                 if (overlay) overlay.style.display = "none";
 
-                // Populate and display inline inside the download row
-                if (scenarioOutlineBar && scenarioOutlineText) {
-                    scenarioOutlineText.innerText = recScenarioOutlineInput.value.trim();
-                    scenarioOutlineBar.style.display = "inline-flex";
-                }
+                // Populate and display inline scenario text next to Download button
+                                if (scenarioOutlineBar && scenarioOutlineText) {
+                                    scenarioOutlineText.value = recScenarioOutlineInput.value.trim();
+                                    scenarioOutlineBar.style.display = "inline-flex";
+                                }
 
+                // Swap buttons: Hide "Record Scenario", Show "Add Scenario"
                 recordScenarioBtn.style.setProperty("display", "none", "important");
                 addScenarioBtn.style.setProperty("display", "inline-flex", "important");
-
-
-
-
             });
         }
-
-        addScenarioBtn.addEventListener("click", () => {
-            // Optional behavior when clicking Add Scenario
-        });
     }
 });
