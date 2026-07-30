@@ -85,15 +85,18 @@
 
             <div class="screen-name-badge">
                 <span class="badge-label">Page Name</span>
-                <div class="badge-content">
+                <div class="badge-content" style="position: relative;">
                     <div class="info-icon-wrapper">
                         <svg class="info-icon" viewBox="0 0 24 24" fill="#00AEEF"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
                         <div class="page-info-tooltip">
-                            <b>1. Normal Mode:</b> Changing the page name applies the new name to any newly scraped controls.<br><br>
-                            <b>2. Record Scenario Mode:</b> Updating the page name will automatically be reflected in all controls where it has been captured.
+                        Updating the page name will automatically be reflected in all controls where it has been captured.
                         </div>
                     </div>
+
                     <input type="text" id="pagename_searchbox" name="pagename_searchbox" placeholder="Page name">
+
+                    <!-- NEW: Add Page (Plus) Icon -->
+                    <svg class="add-page-icon" viewBox="0 0 24 24" fill="none" stroke="#555555" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; cursor: pointer; width: 14px; height: 14px; margin-right: 4px; transition: all 0.2s ease;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
 
                     <!-- Existing Edit Pen Icon -->
                     <svg class="edit-icon" viewBox="0 0 24 24" fill="#555555"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
@@ -104,9 +107,8 @@
                     <!-- Existing Cancel (Cross) Mark Icon -->
                     <svg class="cancel-edit-icon" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: none; cursor: pointer; width: 16px; height: 16px; margin-left: 5px; transition: transform 0.2s;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
 
-                    <!-- NEW: Error Info Icon (Hidden by default) -->
+                    <!-- Error Info Icon -->
                     <div class="error-icon-wrapper" style="display: none; margin-left: 5px; position: relative;">
-                        <!-- CHANGED: cursor: help; is now cursor: pointer; -->
                         <svg class="error-info-icon" viewBox="0 0 24 24" fill="#dc3545" style="width: 16px; height: 16px; cursor: pointer;">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
                         </svg>
@@ -115,7 +117,11 @@
                         </div>
                     </div>
 
-                    <svg class="dropdown-icon" viewBox="0 0 10 6"><polygon points="0,0 10,0 5,6" fill="#888888"></polygon></svg>
+                    <!-- Existing Dropdown Icon -->
+                    <svg class="dropdown-icon" viewBox="0 0 10 6" style="cursor: pointer;"><polygon points="0,0 10,0 5,6" fill="#888888"></polygon></svg>
+
+                    <!-- Dropdown Menu Container -->
+                    <div id="pageNameDropdown" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; max-height: 150px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-width: 150px; margin-top: 5px;"></div>
                 </div>
             </div>
 
@@ -407,6 +413,11 @@
     <div id="hideRowOption">Hide Row</div>
 </div>
 
+<!-- NEW: Context Menu for Multi-Delete -->
+<div id="deleteContextMenu" class="custom-context-menu">
+    <div id="toggleMultiDeleteOpt">Enable Multi-Delete</div>
+</div>
+
 <div class="bottom-div" id="table-container">
     <!-- REPLACE it with this clean baseline element string initialization -->
     <table class="table table-bordered" id="mainTable">
@@ -449,11 +460,13 @@
             <th id="appUrl" style="display:none;">APP URL</th>
 
             <th id="delete_header" style="border-inline-color:black; width: 45px; text-align: center; vertical-align: middle;">
+                <!-- Hidden Select All Checkbox for Multi-Delete -->
+                <input type="checkbox" id="selectAllCheckbox" style="display: none; cursor: pointer; margin: 0 auto;">
+
                 <!-- Standard Detailed Trash Can Icon -->
-                <svg viewBox="0 0 448 512" fill="#d9534f" style="width: 15px; height: 16px; margin-top: 2px; cursor: default; -webkit-user-drag: none;">
+                <svg id="headerDeleteIcon" viewBox="0 0 448 512" fill="#d9534f" style="width: 15px; height: 16px; margin-top: 2px; cursor: pointer; -webkit-user-drag: none;">
                     <path d="M135.2 17.7C140.6 6.8 151.7 0 163.8 0H284.2c12.1 0 23.2 6.8 28.6 17.7L320 32h96c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 96 0 81.7 0 64S14.3 32 32 32h96l7.2-14.3zM32 128H416V448c0 35.3-28.7 64-64 64H96c-35.3 0-64-28.7-64-64V128zm96 64c-8.8 0-16 7.2-16 16V432c0 8.8 7.2 16 16 16s16-7.2 16-16V208c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16V432c0 8.8 7.2 16 16 16s16-7.2 16-16V208c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16V432c0 8.8 7.2 16 16 16s16-7.2 16-16V208c0-8.8-7.2-16-16-16z"/>
                 </svg>
-                <!-- Hidden text so popup.js still knows this is the Delete column -->
                 <span style="display:none;">DELETE</span>
             </th>
 
@@ -472,11 +485,19 @@
 <!-- NEW: Bottom Action Bar (Integrated as Table Footer) -->
 <div id="bottom-action-bar" style="display: flex; justify-content: space-between; align-items: center; margin: 2px 15px 2px 15px; padding: 4px 12px; border-radius: 0 0 6px 6px; flex-shrink: 0;">
 
-    <!-- Left Side: Add Row Pill Button -->
-    <div class="custom-tooltip-wrapper">
-        <button id="add_row_btn" class="pill-btn" style="height: 26px !important; margin: 0 !important; padding: 0 10px 0 6px !important; background-color: #4285F4; border-radius: 4px !important; gap: 2px !important;">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: -2px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            <span>Row</span>
+    <!-- Left Side: Add Row & Bulk Delete -->
+    <div style="display: flex; align-items: center;">
+        <div class="custom-tooltip-wrapper">
+            <button id="add_row_btn" class="pill-btn" style="height: 26px !important; margin: 0 !important; padding: 0 10px 0 6px !important; background-color: #4285F4; border-radius: 4px !important; gap: 2px !important;">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: -2px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Row</span>
+            </button>
+        </div>
+
+        <!-- NEW: Bulk Delete Button -->
+        <button id="bulk_delete_btn" class="pill-btn" style="height: 26px !important; margin: 0 0 0 10px !important; padding: 0 10px !important; background-color: #d9534f; border-radius: 4px !important; display: none !important; gap: 4px;">
+            <svg viewBox="0 0 448 512" fill="#ffffff" style="width: 12px; height: 12px;"><path d="M135.2 17.7C140.6 6.8 151.7 0 163.8 0H284.2c12.1 0 23.2 6.8 28.6 17.7L320 32h96c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 96 0 81.7 0 64S14.3 32 32 32h96l7.2-14.3zM32 128H416V448c0 35.3-28.7 64-64 64H96c-35.3 0-64-28.7-64-64V128zm96 64c-8.8 0-16 7.2-16 16V432c0 8.8 7.2 16 16 16s16-7.2 16-16V208c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16V432c0 8.8 7.2 16 16 16s16-7.2 16-16V208c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16V432c0 8.8 7.2 16 16 16s16-7.2 16-16V208c0-8.8-7.2-16-16-16z"/></svg>
+            <span>Delete Selected</span>
         </button>
     </div>
 
@@ -486,7 +507,7 @@
 
         <!-- Wrapper for Dropdown & Inline SVG -->
         <div style="position: relative; display: inline-flex; align-items: center;margin-right: -10px;">
-            <select id="rows_per_page" style="width: 55px !important; padding-right: 22px !important;s">
+            <select id="rows_per_page" style="width: 55px !important; padding-right: 22px !important;">
                 <option value="10">10</option>
                 <option value="25" selected>25</option>
                 <option value="50">50</option>

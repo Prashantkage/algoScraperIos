@@ -2329,3 +2329,64 @@ textarea.floating-input ~ .rec-error-icon {
     opacity: 1;
     visibility: visible;
 }
+
+/* --- PLUS, PEN, AND DROPDOWN ICON STYLES --- */
+
+/* Make all structural icons ALWAYS visible */
+.badge-content .add-page-icon,
+.badge-content .edit-icon,
+.badge-content .dropdown-icon {
+    cursor: pointer;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition: all 0.2s ease;
+}
+
+.badge-content .add-page-icon { stroke: #555555; }
+.badge-content .edit-icon { fill: #555555; width: 14px; height: 14px; }
+.badge-content .dropdown-icon { fill: #555555; width: 9px; height: 6px; margin-left: 4px; }
+
+/* Make icons pop (slightly larger/blue) when hovered */
+.badge-content .add-page-icon:hover { stroke: #4285F4 !important; transform: scale(1.15); }
+.badge-content .edit-icon:hover,
+.badge-content .dropdown-icon:hover { fill: #4285F4 !important; transform: scale(1.15); }
+
+/* Force color change on internal polygon of dropdown arrow */
+.badge-content .dropdown-icon:hover polygon { fill: #4285F4 !important; }
+
+/* Reveal Info Icon / Tooltip still only on hover */
+.badge-content:hover .info-icon-wrapper { opacity: 1; visibility: visible; }
+
+
+/* --- Delete Header Custom Tooltip Styling --- */
+#delete_header.custom-tooltip-wrapper {
+    position: relative !important;
+    overflow: visible !important; /* Prevents the tooltip from being cut off */
+}
+
+#delete_header .custom-tooltip {
+    position: absolute !important;
+    top: calc(100% + 6px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    padding: 4px 8px !important;
+    border-radius: 5px !important;
+    background: #ffffff !important;
+    color: #222222 !important;
+    border: 1px solid #c5c9d0 !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.15s ease, visibility 0.15s ease !important;
+    pointer-events: none !important;
+    z-index: 999999 !important;
+}
+
+/* Smoothly reveal tooltip on hover */
+#delete_header.custom-tooltip-wrapper:hover .custom-tooltip {
+    opacity: 1 !important;
+    visibility: visible !important;
+}

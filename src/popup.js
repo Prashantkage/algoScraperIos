@@ -1109,84 +1109,97 @@ document.getElementById("Scrape").addEventListener('click', async () => {
 
 
     function downloadTableAsJSON(tableId) {
-        document.getElementById('sttus_bar_div').style.display = 'none';
+            document.getElementById('sttus_bar_div').style.display = 'none';
 
-        const now = new Date();
-        const dateTime = now.toISOString().split('T')[0] + 'T' + now.toTimeString().split(' ')[0];
+            const now = new Date();
+            const dateTime = now.toISOString().split('T')[0] + 'T' + now.toTimeString().split(' ')[0];
 
-        var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
-        var visibleHeaders = allHeaders.filter(th => window.getComputedStyle(th).display !== 'none');
-        var rows = document.querySelectorAll(`#${tableId} tr`);
-        var dashboardControls = [];
+            var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
 
-        rows.forEach((row) => {
-            if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
-
-            // NEW: Skip hidden rows
-                        if (window.getComputedStyle(row).display === 'none') return;
-
-            var allCells = Array.from(row.querySelectorAll('td'));
-            var visibleCells = allCells.filter(cell => window.getComputedStyle(cell).display !== 'none');
-            if (visibleCells.length === 0) return;
-
-            var rowObj = {
-                "CONTROL NAME": "",
-                "CONTROL TYPE": "",
-                "XPATH": "",
-                "PAGE NAME": "",
-                "IDENTIFICATION TYPE": "",
-                "CONTROL VALUE": "",
-                "FEATURE NAME": "",
-                "NODE NAME": "",
-                "FINGERPRINT": "",
-                "APP URL": ""
-            };
-
-            visibleHeaders.forEach((th, idx) => {
-                var cell = visibleCells[idx];
-                if (!cell) return;
-
-                var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
-                var selectEl = cell.querySelector('select');
-                var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
-
-                if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
-                else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
-                else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
-                else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
-                else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
-                else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
-                else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
-                else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
-                else if (th.classList.contains('custom-editable-header')) {
-                    var colName = th.querySelector('span')?.innerText.trim() || thText;
-                    rowObj[colName] = val;
+            // Map visible headers and their original indices to safely extract cells from hidden rows
+            var visibleHeaderIndices = [];
+            var visibleHeaders = allHeaders.filter((th, index) => {
+                if (window.getComputedStyle(th).display !== 'none') {
+                    visibleHeaderIndices.push(index);
+                    return true;
                 }
+                return false;
             });
 
-//            if (!rowObj["CONTROL NAME"] && !rowObj["XPATH"]) return;
-            dashboardControls.push(rowObj);
-        });
+            var rows = document.querySelectorAll(`#${tableId} tr`);
+            var dashboardControls = [];
 
-        var jsonContent = {
-            "isRecordscenario": false,
-            "dashboardControls": dashboardControls
-        };
+            rows.forEach((row) => {
+                // Always skip empty placeholders and error rows
+                if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
 
-        var blob = new Blob([JSON.stringify(jsonContent, null, 2)], { type: "application/json;charset=utf-8;" });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
+                // Only skip if the row is explicitly hidden by the user's Context Menu feature
+                if (typeof hiddenRows !== 'undefined' && hiddenRows.some(h => h.rowElement === row)) return;
 
-        var appSelect = document.getElementById('appname');
-        var appName = appSelect ? appSelect.options[appSelect.selectedIndex].text.trim() : "App";
+                var allCells = Array.from(row.querySelectorAll('td'));
+                if (allCells.length === 0) return;
 
-        a.download = appName + "_" + dateTime + ".json";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
+                var rowObj = {
+                    "CONTROL NAME": "",
+                    "CONTROL TYPE": "",
+                    "XPATH": "",
+                    "PAGE NAME": "",
+                    "IDENTIFICATION TYPE": "",
+                    "CONTROL VALUE": "",
+                    "FEATURE NAME": "",
+                    "NODE NAME": "",
+                    "FINGERPRINT": "",
+                    "APP URL": ""
+                };
+
+                visibleHeaders.forEach((th, idx) => {
+                    var cellIndex = visibleHeaderIndices[idx];
+                    var cell = allCells[cellIndex];
+                    if (!cell) return;
+
+                    var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                    var selectEl = cell.querySelector('select');
+                    var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
+
+                    if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
+                    else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
+                    else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
+                    else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
+                    else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
+                    else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
+                    else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
+                    else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
+                    else if (th.classList.contains('custom-editable-header')) {
+                        var colName = th.querySelector('span')?.innerText.trim() || thText;
+                        rowObj[colName] = val;
+                    }
+                });
+
+                dashboardControls.push(rowObj);
+            });
+
+            var jsonContent = {
+                "isRecordscenario": false,
+                "dashboardControls": dashboardControls
+            };
+
+            var blob = new Blob([JSON.stringify(jsonContent, null, 2)], { type: "application/json;charset=utf-8;" });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+
+            var appSelect = document.getElementById('appname');
+            var appName = appSelect ? appSelect.options[appSelect.selectedIndex].text.trim() : "App";
+
+            a.download = appName + "_" + dateTime + ".json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+
+
 
     // actions to perform on clicking reset button
     document.getElementById("reset").addEventListener('click', async () => {
@@ -1419,43 +1432,58 @@ document.getElementById("Scrape").addEventListener('click', async () => {
     async function onTableClick(e) {
 
         // 1. DELETE ROW HANDLER
-        if (e.target.classList.contains("deleteBtn")) {
-            const targetRow = e.target.closest("tr");
-            if (!targetRow) return;
+         if (e.target.classList.contains("deleteBtn")) {
+                    const targetRow = e.target.closest("tr");
+                    if (!targetRow) return;
 
-            // A. Extract Control Name and Page Name dynamically from the row
-            const cnCell = targetRow.querySelector(".cn");
-            const pageCell = targetRow.querySelector(".page");
+                    // A. Extract Control Name and Page Name dynamically from the row
+                    const cnCell = targetRow.querySelector(".cn");
+                    const pageCell = targetRow.querySelector(".page");
 
-            // Grab the text, or fallback if the field is empty
-            let controlName = cnCell && cnCell.innerText.trim() !== "" ? cnCell.innerText.trim() : null;
-            let pageName = pageCell && pageCell.innerText.trim() !== "" ? pageCell.innerText.trim() : "this page";
+                    // Grab the text, or fallback if the field is empty
+                    let controlName = cnCell && cnCell.innerText.trim() !== "" ? cnCell.innerText.trim() : null;
+                    let pageName = pageCell && pageCell.innerText.trim() !== "" ? pageCell.innerText.trim() : "this page";
 
-            // B. Format the text according to the situation
-            let mainText = controlName
-                ? `Are you sure you want to delete<br>"${controlName}"?`
-                : `Are you sure you want to delete this row?`;
+                    // B. NEW: Count how many elements share this exact Page Name
+                    const allDataRows = document.querySelectorAll('#myTable tr:not(.empty-excel-row):not(.no-results-row)');
+                    let samePageCount = 0;
+                    allDataRows.forEach(r => {
+                        const pCell = r.querySelector(".page");
+                        if (pCell && pCell.innerText.trim() === pageName) {
+                            samePageCount++;
+                        }
+                    });
 
-            let subText = `It will be removed from "${pageName}".`;
+                    // C. Format the text according to the situation
+                    let mainText = controlName
+                        ? `Are you sure you want to delete<br>"${controlName}"?`
+                        : `Are you sure you want to delete this row?`;
 
-            // C. Inject text into the modal
-                    document.getElementById('back_btn').style.display = 'inline-block'; // ADD THIS
-                    document.getElementById('okay_btn').innerText = 'Confirm';          // ADD THIS
+                    let subText = `It will be removed from "${pageName}".`;
+
+                    // D. NEW: Append strict warning if this is the last element for this page
+                    if (samePageCount === 1 && pageName !== "this page") {
+                        subText += `<br><strong style="color: #d9534f; font-size: 11px;">Warning: This is the last element. Deleting this will also delete the page "${pageName}".</strong>`;
+                    }
+
+                    // E. Inject text into the modal
+                    document.getElementById('back_btn').style.display = 'inline-block';
+                    document.getElementById('okay_btn').innerText = 'Confirm';
 
                     document.getElementById('popup_title').innerText = "Confirm Deletion";
                     document.getElementById('popup_main_text').innerHTML = mainText;
-                    document.getElementById('popup_sub_text').innerText = subText;
+                    document.getElementById('popup_sub_text').innerHTML = subText; // Using innerHTML to safely render the bold <strong> tag
 
-            // D. Set action state and store the row reference
-            pendingExportAction = "deleteRow";
-            rowToDelete = targetRow;
+                    // F. Set action state and store the row reference
+                    pendingExportAction = "deleteRow";
+                    rowToDelete = targetRow;
 
-            // E. Show the popup
-            document.getElementById('confirmationPopup').style.display = 'block';
-            document.getElementById('overlay').style.display = 'block';
+                    // G. Show the popup
+                    document.getElementById('confirmationPopup').style.display = 'block';
+                    document.getElementById('overlay').style.display = 'block';
 
-            return; // Stop execution here. Wait for user to click Confirm or Cancel.
-        }
+                    return;
+                }
 
         // 2. SHOW ELEMENT HANDLER
         if (e.target.id && e.target.id.startsWith("info_")) {
@@ -2230,8 +2258,11 @@ async function performSwipe(startX, startY, endX, endY) {
                    } else if (th.id === 'appUrl' || thText.includes('APP URL')) {
                        rowHtml += `<td class="appUrl" style="display:none;"></td>`;
                    } else if (thText.includes('DELETE')) {
-                       rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}"><img src="icon/icons8-delete_red.svg" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; -webkit-user-drag: none; display:inline-block;"></td>`;
-                   } else {
+                       rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}">
+                           <input type="checkbox" class="bulk-delete-cb" style="display:none; cursor:pointer; margin:0 auto;">
+                           <img src="icon/icons8-delete_red.svg" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; -webkit-user-drag: none; display:inline-block;">
+                       </td>`;
+                   }else {
                        rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
                    }
                });
@@ -2467,8 +2498,11 @@ function createAndAppendTable(dtControls) {
             } else if (th.id === 'appUrl' || thText.includes('APP URL')) {
                 rowHtml += `<td class="appUrl" style="display:none;"></td>`;
             } else if (thText.includes('DELETE')) {
-                rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}">${rowDataMap["DELETE"]}</td>`;
-            } else {
+                rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}">
+                    <input type="checkbox" class="bulk-delete-cb" style="display:none; cursor:pointer; margin:0 auto;">
+                    <img src="icon/icons8-delete_red.svg" alt="delete" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; -webkit-user-drag: none; display:inline-block;">
+                </td>`;
+            }else {
                 rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
             }
         });
@@ -3402,106 +3436,116 @@ function createAndAppendTable(dtControls) {
             });
 
     async function sendTableDataToAPI(tableId) {
-        const userData = JSON.parse(localStorage.getItem("algoQAUser"));
-        if (!userData) {
-            showCustomAlert("Authentication Error", "Token data not found.");
-            return;
-        }
+            const userData = JSON.parse(localStorage.getItem("algoQAUser"));
+            if (!userData) {
+                showCustomAlert("Authentication Error", "Token data not found.");
+                return;
+            }
 
-        var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
-        var visibleHeaders = allHeaders.filter(th => window.getComputedStyle(th).display !== 'none');
-        var rows = document.querySelectorAll(`#${tableId} tr`);
-        var tableData = [];
+            var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
 
-        rows.forEach((row) => {
-            if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
+            // Map visible headers and their original indices to safely extract cells from hidden rows
+            var visibleHeaderIndices = [];
+            var visibleHeaders = allHeaders.filter((th, index) => {
+                if (window.getComputedStyle(th).display !== 'none') {
+                    visibleHeaderIndices.push(index);
+                    return true;
+                }
+                return false;
+            });
 
-            // NEW: Skip hidden rows
-                        if (window.getComputedStyle(row).display === 'none') return;
+            var rows = document.querySelectorAll(`#${tableId} tr`);
+            var tableData = [];
 
-            var allCells = Array.from(row.querySelectorAll('td'));
-            var visibleCells = allCells.filter(cell => window.getComputedStyle(cell).display !== 'none');
-            if (visibleCells.length === 0) return;
+            rows.forEach((row) => {
+                // Always skip empty placeholders and error rows
+                if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
 
-            var rowObj = {
-                "CONTROL NAME": "",
-                "CONTROL TYPE": "",
-                "XPATH": "",
-                "PAGE NAME": "",
-                "IDENTIFICATION TYPE": "",
-                "CONTROL VALUE": "",
-                "FEATURE NAME": "",
-                "NODE NAME": "",
-                "FINGERPRINT": "",
-                "APP URL": ""
+                // Only skip if the row is explicitly hidden by the user's Context Menu feature
+                if (typeof hiddenRows !== 'undefined' && hiddenRows.some(h => h.rowElement === row)) return;
+
+                var allCells = Array.from(row.querySelectorAll('td'));
+                if (allCells.length === 0) return;
+
+                var rowObj = {
+                    "CONTROL NAME": "",
+                    "CONTROL TYPE": "",
+                    "XPATH": "",
+                    "PAGE NAME": "",
+                    "IDENTIFICATION TYPE": "",
+                    "CONTROL VALUE": "",
+                    "FEATURE NAME": "",
+                    "NODE NAME": "",
+                    "FINGERPRINT": "",
+                    "APP URL": ""
+                };
+
+                visibleHeaders.forEach((th, idx) => {
+                    var cellIndex = visibleHeaderIndices[idx];
+                    var cell = allCells[cellIndex];
+                    if (!cell) return;
+
+                    var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                    var selectEl = cell.querySelector('select');
+                    var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
+
+                    if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
+                    else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
+                    else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
+                    else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
+                    else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
+                    else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
+                    else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
+                    else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
+                    else if (th.classList.contains('custom-editable-header')) {
+                        var colName = th.querySelector('span')?.innerText.trim() || thText;
+                        rowObj[colName] = val;
+                    }
+                });
+
+                tableData.push(rowObj);
+            });
+
+            if (tableData.length === 0) {
+                showCustomAlert("Export Failed", "No scraped data found.");
+                return;
+            }
+
+            const payload = {
+                data: tableData,
+                userID: Number(userData.userID),
+                baseUrl: userData.baseUrl,
+                projectId: userData.project_id,
+                launchUrl: userData.launchUrl,
+                projectName: userData.project_name,
+                applicationTypeId: Number(userData.application_type_id),
+                applicationType: "Mobile"
             };
 
-            visibleHeaders.forEach((th, idx) => {
-                var cell = visibleCells[idx];
-                if (!cell) return;
+            console.log("Payload:", payload);
 
-                var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
-                var selectEl = cell.querySelector('select');
-                var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
+            try {
+                const endpoint = userData.project_id ? "saveReScraperData" : "MobileAutomationScraperData";
+                const response = await fetch(`${userData.baseUrl}/project/${endpoint}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
 
-                if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
-                else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
-                else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
-                else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
-                else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
-                else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
-                else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
-                else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
-                else if (th.classList.contains('custom-editable-header')) {
-                    var colName = th.querySelector('span')?.innerText.trim() || thText;
-                    rowObj[colName] = val;
-                }
-            });
+                const result = await response.json();
+                if (!response.ok) throw new Error("API request failed");
 
-//            if (!rowObj["CONTROL NAME"] && !rowObj["XPATH"]) return;
-            tableData.push(rowObj);
-        });
+                showCustomAlert("Success!", "Scraped data shared successfully to AlgoQA.", "info");
 
-        if (tableData.length === 0) {
-            showCustomAlert("Export Failed", "No scraped data found.");
-            return;
-        }
+                if (driver) { try { await driver.quit(); } catch (err) {} }
+                const { exec } = require("child_process");
+                exec("xcrun simctl shutdown all", () => { ipcRenderer.send("close-app"); });
 
-        const payload = {
-            data: tableData,
-            userID: Number(userData.userID),
-            baseUrl: userData.baseUrl,
-            projectId: userData.project_id,
-            launchUrl: userData.launchUrl,
-            projectName: userData.project_name,
-            applicationTypeId: Number(userData.application_type_id),
-            applicationType: "Mobile"
-        };
-
-        console.log("Payload:", payload);
-
-        try {
-            const endpoint = userData.project_id ? "saveReScraperData" : "MobileAutomationScraperData";
-            const response = await fetch(`${userData.baseUrl}/project/${endpoint}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-
-            const result = await response.json();
-            if (!response.ok) throw new Error("API request failed");
-
-            showCustomAlert("Success!", "Scraped data shared successfully to AlgoQA.", "info");
-
-            if (driver) { try { await driver.quit(); } catch (err) {} }
-            const { exec } = require("child_process");
-            exec("xcrun simctl shutdown all", () => { ipcRenderer.send("close-app"); });
-
-        } catch (error) {
-                    console.error("Error sending table data:", error);
-                    showErrorPopup("Failed to share data to AlgoQA", error);
-                }
+            } catch (error) {
+                console.error("Error sending table data:", error);
+                showErrorPopup("Failed to share data to AlgoQA", error);
             }
+        }
 
 
 
@@ -4210,6 +4254,10 @@ function getAllPossibleXPaths(node) {
 // --- GLOBAL PAGE NAME VALIDATOR ---
 function isGlobalPageNameValid(name) {
     if (!name || name.trim() === '') return false; // Empty is invalid
+
+    // NEW: Reserve "All" so it cannot be used as a real scraped page name
+    if (name.trim().toLowerCase() === 'all') return false;
+
     const format = /[!@#$%^&*()+\-=\[\]{};':"\\|,.<>\/?]+/;
     const onlySpecialCharsRegex = /^[!@#$%^&*(),.?":{}|<>]*$/;
 
@@ -4226,7 +4274,9 @@ function handleInvalidPageNameAttempt() {
         pageNameInput.focus();
     }
     if (typeof flashPageNameError === "function") flashPageNameError(); // Flashes the badge red
-    showCustomAlert("Invalid Page Name", "Please enter a valid Page Name. It can accept alphanumeric characters, a single space between words, and must start with an alphabet.", "warning");
+
+    // NEW: Updated alert text to mention "All" is reserved
+    showCustomAlert("Invalid Page Name", "Please enter a valid Page Name.It can accept alphanumeric characters, a single space between words, and must start with an alphabet.", "warning");
 }
 
 
@@ -4350,15 +4400,26 @@ function handleInvalidPageNameAttempt() {
                         ]);
                     }
 
-    function updateRowNumbers() {
-        const rows = document.querySelectorAll("#myTable tr");
-        rows.forEach((row, index) => {
-            const indexCell = row.querySelector(".row-index");
-            if (indexCell) {
-                indexCell.textContent = index + 1;
-            }
-        });
-    }
+    //Add Rows number
+        function updateRowNumbers() {
+            const rows = document.querySelectorAll("#myTable tr");
+            let visibleIndex = 1; // Start counting from 1 for the filtered view
+
+            rows.forEach((row) => {
+                // Only skip the "No Results" search error row
+                if (row.classList.contains("no-results-row")) {
+                    return;
+                }
+
+                // Assign a sequence number to ALL visible rows (Data + Empty Placeholders)
+                if (!row.classList.contains("page-hidden") && !row.classList.contains("search-hidden")) {
+                    const indexCell = row.querySelector(".row-index");
+                    if (indexCell) {
+                        indexCell.textContent = visibleIndex++;
+                    }
+                }
+            });
+        }
 
     // Helper to count custom columns added by user
     function getCustomColsCount() {
@@ -4383,11 +4444,7 @@ function handleInvalidPageNameAttempt() {
                     rowHtml += `<td class="add-col-cell" style="${displayStyle}">&nbsp;</td>`;
                 } else if (th.classList.contains('custom-editable-header')) {
                     rowHtml += `<td contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
-                }
-
-                //if we want control type dropdown arrives on default row we can change code here
-
-                else if (thText.includes('CONTROL TYPE')) {
+                } else if (thText.includes('CONTROL TYPE')) {
                     rowHtml += `<td class="ct pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}">&nbsp;</td>`;
                 } else if (thText.includes('CONTROL ID')) {
                     rowHtml += `<td class="xpath pt-3-half" style="border-color: black; text-align: center; ${displayStyle}"></td>`;
@@ -4396,7 +4453,8 @@ function handleInvalidPageNameAttempt() {
                 } else if (th.classList.contains('fingerprint')) {
                     rowHtml += `<td class="fingerprint" style="display:none;"></td>`;
                 } else if (thText.includes('DELETE') || th.innerText.includes('Delete') || th.id === 'delete_header') {
-                    rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}"><img src="icon/icons8-delete_red.svg" class="deleteBtn" style="margin-left: auto; margin-right: 1px; max-width:17px; cursor: pointer; display:none;"></td>`;
+                    // Completely empty cell for placeholder rows so no icons or checkboxes ever appear
+                    rowHtml += `<td class="delete-cell" style="border-color:black; ${displayStyle}"></td>`;
                 } else {
                     rowHtml += `<td class="cn pt-3-half" contenteditable="true" style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 600; border-color: black; text-align: center; ${displayStyle}"></td>`;
                 }
@@ -4788,55 +4846,159 @@ function updateRowEyeButtonState() {
 
 
 
-    newOkayBtn.addEventListener('click', async () => {
-            document.getElementById('confirmationPopup').style.display = 'none';
-            document.getElementById('overlay').style.display = 'none';
+   newOkayBtn.addEventListener('click', async () => {
+           document.getElementById('confirmationPopup').style.display = 'none';
+           document.getElementById('overlay').style.display = 'none';
 
-            // Reset popup text and buttons back to default generic state
-            setTimeout(() => {
-                const popup = document.getElementById('confirmationPopup');
-                if (popup) {
-                    document.getElementById('popup_title').innerText = "Confirm Action";
-                    document.getElementById('popup_main_text').innerText = "";
-                    document.getElementById('popup_sub_text').innerText = "";
+           // Reset popup text and buttons back to default generic state
+           setTimeout(() => {
+               const popup = document.getElementById('confirmationPopup');
+               if (popup) {
+                   document.getElementById('popup_title').innerText = "Confirm Action";
+                   document.getElementById('popup_main_text').innerText = "";
+                   document.getElementById('popup_sub_text').innerText = "";
 
-                    // Restore buttons for next time
-                    document.getElementById('back_btn').style.display = 'inline-block';
-                    document.getElementById('okay_btn').innerText = 'Confirm';
-                }
-            }, 200);
+                   // Restore buttons for next time
+                   document.getElementById('back_btn').style.display = 'inline-block';
+                   document.getElementById('okay_btn').innerText = 'Confirm';
+               }
+           }, 200);
 
-            if (pendingExportAction === "alertOnly") {
-                pendingExportAction = null;
+           if (pendingExportAction === "alertOnly") {
+               pendingExportAction = null;
 
-                // YAHAN HATEGA LOADER USER KE OKAY CLICK PAR
-                const targetLoader = document.getElementById("localTouchLoader");
-                if (targetLoader) targetLoader.style.display = "none";
-                touchInProgress = false;
+               // YAHAN HATEGA LOADER USER KE OKAY CLICK PAR
+               const targetLoader = document.getElementById("localTouchLoader");
+               if (targetLoader) targetLoader.style.display = "none";
+               touchInProgress = false;
 
-                return;
-            }else if (pendingExportAction === "download") {
-                pendingExportAction = null;
-                downloadTableAsJSON('myTable');
+               return;
+           } else if (pendingExportAction === "download") {
+               pendingExportAction = null;
+               downloadTableAsJSON('myTable');
 
-            } else if (pendingExportAction === "algoQA") {
-                pendingExportAction = null;
-                await sendTableDataToAPI("myTable");
+           } else if (pendingExportAction === "algoQA") {
+               pendingExportAction = null;
+               await sendTableDataToAPI("myTable");
 
-            } else if (pendingExportAction === "deleteRow") {
-                pendingExportAction = null;
-                if (rowToDelete) {
-                    rowToDelete.remove();
-                    rowToDelete = null;
-                    updateRowNumbers();
-                    applyPagination();
-                    const tbody = document.getElementById('myTable');
-                    if (tbody && tbody.querySelectorAll('tr').length < 5) adjustEmptyRows();
-                }
-            } else {
-                await executeResetAction();
-            }
-        });
+           } else if (pendingExportAction === "deleteRow") {
+               pendingExportAction = null;
+
+               if (rowToDelete) {
+                   // Remove the row from the DOM
+                   rowToDelete.remove();
+                   rowToDelete = null;
+
+                   // Check remaining rows across the entire table
+                   const remainingRows = document.querySelectorAll('#myTable tr:not(.empty-excel-row):not(.no-results-row)');
+
+                   const pageNameInput = document.getElementById('pagename_searchbox');
+
+                   if (remainingRows.length === 0) {
+                       // If no rows are left anywhere in the table, clear input and open for typing a new page name
+                       if (window.setGlobalPageName) {
+                           window.setGlobalPageName("");
+                       }
+
+                       if (pageNameInput) {
+                           pageNameInput.readOnly = false;
+                           pageNameInput.style.cursor = 'text';
+                           pageNameInput.focus();
+
+                           // Swap the icons to show Confirm/Cancel
+                           const addIcon = document.querySelector('.add-page-icon');
+                           const editIcon = document.querySelector('.edit-icon');
+                           const dropIcon = document.querySelector('.dropdown-icon');
+                           const confirmIcon = document.querySelector('.confirm-edit-icon');
+                           const cancelIcon = document.querySelector('.cancel-edit-icon');
+
+                           if (addIcon) addIcon.style.display = 'none';
+                           if (editIcon) editIcon.style.display = 'none';
+                           if (dropIcon) dropIcon.style.display = 'none';
+                           if (confirmIcon) confirmIcon.style.display = 'inline-block';
+                           if (cancelIcon) cancelIcon.style.display = 'inline-block';
+                       }
+                   } else {
+                       // Rows still exist from other pages! Automatically switch to the first available page name found
+                       const firstAvailablePage = remainingRows[0].querySelector(".page")?.innerText.trim() || "";
+                       if (window.setGlobalPageName && firstAvailablePage) {
+                           window.setGlobalPageName(firstAvailablePage);
+                       }
+                   }
+
+                   updateRowNumbers();
+                   applyPagination();
+
+                   const tbody = document.getElementById('myTable');
+                   if (tbody && tbody.querySelectorAll('tr').length < 5) adjustEmptyRows();
+               }
+
+           // --- MULTI-DELETE LOGIC ---
+           } else if (pendingExportAction === "bulkDelete") {
+               pendingExportAction = null;
+
+               if (window.pendingBulkDeleteRows && window.pendingBulkDeleteRows.length > 0) {
+                   // Remove all checked rows
+                   window.pendingBulkDeleteRows.forEach(row => row.remove());
+
+                   // Clear payload
+                   window.pendingBulkDeleteRows = null;
+
+                   // Uncheck Header
+                   const headerCheckbox = document.getElementById('selectAllCheckbox');
+                   if (headerCheckbox) headerCheckbox.checked = false;
+
+                   // Check remaining rows across the entire table
+                   const remainingRows = document.querySelectorAll('#myTable tr:not(.empty-excel-row):not(.no-results-row)');
+                   const pageNameInput = document.getElementById('pagename_searchbox');
+
+                   if (remainingRows.length === 0) {
+                       // If no rows are left anywhere in the table, clear input and open for typing a new page name
+                       if (window.setGlobalPageName) {
+                           window.setGlobalPageName("");
+                       }
+
+                       if (pageNameInput) {
+                           pageNameInput.readOnly = false;
+                           pageNameInput.style.cursor = 'text';
+                           pageNameInput.focus();
+                       }
+
+                       const addIcon = document.querySelector('.add-page-icon');
+                       const editIcon = document.querySelector('.edit-icon');
+                       const dropIcon = document.querySelector('.dropdown-icon');
+                       const confirmIcon = document.querySelector('.confirm-edit-icon');
+                       const cancelIcon = document.querySelector('.cancel-edit-icon');
+
+                       if (addIcon) addIcon.style.display = 'none';
+                       if (editIcon) editIcon.style.display = 'none';
+                       if (dropIcon) dropIcon.style.display = 'none';
+                       if (confirmIcon) confirmIcon.style.display = 'inline-block';
+                       if (cancelIcon) cancelIcon.style.display = 'inline-block';
+                   } else {
+                       // Rows still exist from other pages! Automatically switch to the first available page name found
+                       const firstAvailablePage = remainingRows[0].querySelector(".page")?.innerText.trim() || "";
+                       if (window.setGlobalPageName && firstAvailablePage) {
+                           window.setGlobalPageName(firstAvailablePage);
+                       }
+                   }
+
+                   // Clean up view
+                   updateRowNumbers();
+                   applyPagination();
+                   const tbody = document.getElementById('myTable');
+                   if (tbody && tbody.querySelectorAll('tr').length < 5) adjustEmptyRows();
+
+                   // Auto-disable multi-delete mode to safely restore standard view
+                   const toggleMultiDeleteOpt = document.getElementById('toggleMultiDeleteOpt');
+                   if (toggleMultiDeleteOpt && isMultiDeleteMode) {
+                       toggleMultiDeleteOpt.click();
+                   }
+               }
+           } else {
+               await executeResetAction();
+           }
+       });
 
 
 
@@ -5300,8 +5462,8 @@ function applyPagination() {
     // Get all real data rows (exclude empty placeholder rows & error rows)
     const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
 
-    // Filter out rows hidden by the search feature
-    const activeRows = allDataRows.filter(row => !row.classList.contains('search-hidden'));
+    // Filter out rows hidden by the search feature AND the new page name filter
+    const activeRows = allDataRows.filter(row => !row.classList.contains('search-hidden') && !row.classList.contains('page-hidden'));
     const totalRows = activeRows.length;
 
     const rppSelect = document.getElementById('rows_per_page');
@@ -5319,8 +5481,8 @@ function applyPagination() {
 
     // Apply the display hiding/showing
     allDataRows.forEach(row => {
-        if (row.classList.contains('search-hidden')) {
-            row.style.display = 'none'; // Keep hidden by search
+        if (row.classList.contains('search-hidden') || row.classList.contains('page-hidden')) {
+            row.style.display = 'none'; // Keep hidden by search or page filter
         } else {
             const activeIndex = activeRows.indexOf(row);
             // Show if it falls within current page chunk, otherwise hide
@@ -5417,17 +5579,22 @@ function flashPageNameError() {
 //Page Name lock/unlock logic
 function initPageNameLogic() {
     const pageNameInput = document.getElementById('pagename_searchbox');
+    const addPageIcon = document.querySelector('.add-page-icon');
     const editPenIcon = document.querySelector('.edit-icon');
     const confirmIcon = document.querySelector('.confirm-edit-icon');
     const cancelIcon = document.querySelector('.cancel-edit-icon');
     const errorIconWrapper = document.querySelector('.error-icon-wrapper');
     const dropdownIcon = document.querySelector('.dropdown-icon');
+    const dropdownMenu = document.getElementById('pageNameDropdown');
     const badgeWrapper = document.querySelector('.screen-name-badge');
     const badgeLabel = document.querySelector('.badge-label');
     const resetButton = document.getElementById('reset');
 
     let previousPageName = "";
-    let isEditMode = false; // Track if we are actively editing vs normal typing
+    let isEditMode = false;
+    let isRenameMode = false;
+    let renameTarget = "";
+    let lastConfirmedPageName = pageNameInput ? pageNameInput.value.trim() : "";
 
     if (!pageNameInput) return;
 
@@ -5442,29 +5609,189 @@ function initPageNameLogic() {
         badgeLabel.style.backgroundColor = '#4285F4';
         if (errorIconWrapper) errorIconWrapper.style.display = 'none';
 
-        // NEW: Only show the dropdown icon if we are NOT actively in edit mode
         if (!isEditMode && dropdownIcon) {
             dropdownIcon.style.display = 'inline-block';
         }
     }
 
-    // 1. Live Validation: Works for BOTH Normal Entry and Edit Mode
+    // HELPER: Filter Table by Active Page Name
+    function applyPageNameFilter(pageName) {
+        const tableBody = document.getElementById('myTable');
+        if (!tableBody) return;
+        const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
+
+        allDataRows.forEach(row => {
+            const pageCell = row.querySelector('.page');
+            if (pageCell) {
+                const cellText = pageCell.innerText.trim();
+                // NEW: Show rows matching the selected page, OR if "All" is selected, show everything
+                if (pageName === "" || pageName === "All" || cellText === pageName) {
+                    row.classList.remove('page-hidden');
+                } else {
+                    row.classList.add('page-hidden');
+                }
+            }
+        });
+
+        currentPage = 1;
+        applyPagination(); // Refresh view
+        updateRowNumbers(); // Re-index visible rows
+    }
+
+    // EXPOSED GLOBAL SETTER (Used by the Deletion Handler)
+    window.setGlobalPageName = function(name) {
+        pageNameInput.value = name;
+        lastConfirmedPageName = name;
+        applyPageNameFilter(name);
+    };
+
+    // DROPDOWN CLICK LOGIC
+        if (dropdownIcon && dropdownMenu) {
+            dropdownIcon.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (isEditMode) return;
+
+                const tableBody = document.getElementById('myTable');
+                const pageCells = tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row) .page');
+                const uniquePages = new Set();
+
+                pageCells.forEach(cell => {
+                    const val = cell.innerText.trim();
+                    if(val) uniquePages.add(val);
+                });
+
+                if (uniquePages.size === 0) {
+                    dropdownMenu.style.display = 'none';
+                    return; // Nothing to show
+                }
+
+                dropdownMenu.innerHTML = '';
+
+                // Get the current active value to highlight it in the list
+                const currentActivePage = pageNameInput.value.trim();
+
+                // Inject "All" option if more than 1 unique page exists
+                if (uniquePages.size > 1) {
+                    const allItem = document.createElement('div');
+                    allItem.innerText = "All";
+                    allItem.style.padding = '8px 12px';
+                    allItem.style.cursor = 'pointer';
+                    allItem.style.borderBottom = '2px solid #e2e4e8';
+                    allItem.style.fontSize = '12px';
+                    allItem.style.textAlign = 'left';
+
+                    // Dynamically style based on selection
+                    if (currentActivePage === "All" || currentActivePage === "") {
+                        allItem.style.color = '#4285F4';
+                        allItem.style.fontWeight = '700';
+                        allItem.style.backgroundColor = '#f4f7fc'; // Subtle active background
+                    } else {
+                        allItem.style.color = '#333';
+                        allItem.style.fontWeight = '600';
+                        allItem.style.backgroundColor = 'transparent';
+                    }
+
+                    allItem.addEventListener('mouseover', () => allItem.style.backgroundColor = '#eef6fd');
+                    allItem.addEventListener('mouseout', () => {
+                        allItem.style.backgroundColor = (currentActivePage === "All" || currentActivePage === "") ? '#f4f7fc' : 'transparent';
+                    });
+
+                    allItem.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        pageNameInput.value = "All";
+                        lastConfirmedPageName = "All";
+                        applyPageNameFilter("All");
+                        dropdownMenu.style.display = 'none';
+
+                        pageNameInput.readOnly = true;
+                        pageNameInput.style.cursor = 'default';
+                        isEditMode = false;
+                        restoreValidBlueState();
+
+                        if (confirmIcon) confirmIcon.style.display = 'none';
+                        if (cancelIcon) cancelIcon.style.display = 'none';
+                        if (addPageIcon) addPageIcon.style.display = 'inline-block';
+                        if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+
+                        // Hide the edit pen because you cannot "rename" the All view
+                        if (editPenIcon) editPenIcon.style.display = 'none';
+                    });
+                    dropdownMenu.appendChild(allItem);
+                }
+
+                // Inject the rest of the dynamic pages
+                uniquePages.forEach(page => {
+                    const item = document.createElement('div');
+                    item.innerText = page;
+                    item.style.padding = '8px 12px';
+                    item.style.cursor = 'pointer';
+                    item.style.borderBottom = '1px solid #f0f0f0';
+                    item.style.fontSize = '12px';
+                    item.style.textAlign = 'left';
+
+                    // Dynamically style based on selection
+                    if (currentActivePage === page) {
+                        item.style.color = '#4285F4';
+                        item.style.fontWeight = '700';
+                        item.style.backgroundColor = '#f4f7fc'; // Subtle active background
+                    } else {
+                        item.style.color = '#333';
+                        item.style.fontWeight = '500';
+                        item.style.backgroundColor = 'transparent';
+                    }
+
+                    item.addEventListener('mouseover', () => item.style.backgroundColor = '#eef6fd');
+                    item.addEventListener('mouseout', () => {
+                        item.style.backgroundColor = (currentActivePage === page) ? '#f4f7fc' : 'transparent';
+                    });
+
+                    item.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        pageNameInput.value = page;
+                        lastConfirmedPageName = page;
+                        applyPageNameFilter(page);
+                        dropdownMenu.style.display = 'none';
+
+                        pageNameInput.readOnly = true;
+                        pageNameInput.style.cursor = 'default';
+                        isEditMode = false;
+                        restoreValidBlueState();
+
+                        if (confirmIcon) confirmIcon.style.display = 'none';
+                        if (cancelIcon) cancelIcon.style.display = 'none';
+                        if (addPageIcon) addPageIcon.style.display = 'inline-block';
+                        if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+
+                        // Restore the pen icon since a normal page is selected
+                        if (editPenIcon) editPenIcon.style.display = 'inline-block';
+                    });
+                    dropdownMenu.appendChild(item);
+                });
+
+                dropdownMenu.style.display = dropdownMenu.style.display === 'none' ? 'block' : 'none';
+            });
+
+            // Hide dropdown when clicking elsewhere
+            document.addEventListener('click', (e) => {
+                if (!dropdownMenu.contains(e.target) && e.target !== dropdownIcon) {
+                    dropdownMenu.style.display = 'none';
+                }
+            });
+        }
+
     pageNameInput.addEventListener('input', function() {
         if (!pageNameInput.readOnly) {
-            // If it's invalid AND they have typed something
             if (!isValidPageName(this.value) && this.value !== "") {
-                // Hide ALL controls, show red info
                 if (confirmIcon) confirmIcon.style.display = 'none';
                 if (cancelIcon) cancelIcon.style.display = 'none';
+                if (addPageIcon) addPageIcon.style.display = 'none';
                 if (editPenIcon) editPenIcon.style.display = 'none';
                 if (dropdownIcon) dropdownIcon.style.display = 'none';
 
                 if (errorIconWrapper) errorIconWrapper.style.display = 'inline-flex';
                 badgeWrapper.style.borderColor = '#dc3545';
                 badgeLabel.style.backgroundColor = '#dc3545';
-
             } else {
-                // If it's valid, restore the blue styling
                 restoreValidBlueState();
 
                 if (isEditMode) {
@@ -5472,35 +5799,61 @@ function initPageNameLogic() {
                         if (confirmIcon) confirmIcon.style.display = 'inline-block';
                         if (cancelIcon) cancelIcon.style.display = 'inline-block';
                     }
+                    if (addPageIcon) addPageIcon.style.display = 'none';
                     if (editPenIcon) editPenIcon.style.display = 'none';
-                    if (dropdownIcon) dropdownIcon.style.display = 'none'; // Keep hidden
+                    if (dropdownIcon) dropdownIcon.style.display = 'none';
                 } else {
                     if (confirmIcon) confirmIcon.style.display = 'none';
                     if (cancelIcon) cancelIcon.style.display = 'none';
+                    if (addPageIcon) addPageIcon.style.display = 'inline-block';
                     if (editPenIcon) editPenIcon.style.display = 'inline-block';
                 }
             }
         }
     });
 
-    // 2. Lock input on blur (Clicking away)
     pageNameInput.addEventListener('blur', function() {
         setTimeout(() => {
             if (isEditMode) return;
-
             if (this.value.trim() !== '' && isValidPageName(this.value)) {
                 this.readOnly = true;
                 this.style.cursor = 'default';
-
-                if (editPenIcon) editPenIcon.style.display = 'inline-block';
+                if (addPageIcon) addPageIcon.style.display = 'inline-block';
                 if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
                 if (confirmIcon) confirmIcon.style.display = 'none';
                 if (cancelIcon) cancelIcon.style.display = 'none';
+
+                // Keep pen hidden if "All" is active
+                if (pageNameInput.value === "All") {
+                    if (editPenIcon) editPenIcon.style.display = 'none';
+                } else {
+                    if (editPenIcon) editPenIcon.style.display = 'inline-block';
+                }
             }
         }, 150);
     });
 
-    // 3. Edit (Pen) Icon Logic
+    // --- CREATE NEW PAGE (PLUS ICON) ---
+    if (addPageIcon) {
+        addPageIcon.addEventListener('click', function() {
+            isEditMode = true;
+            isRenameMode = false;
+            previousPageName = pageNameInput.value;
+
+            pageNameInput.value = ""; // Clear for typing new page name
+            pageNameInput.readOnly = false;
+            pageNameInput.style.cursor = 'text';
+            pageNameInput.focus();
+
+            addPageIcon.style.display = 'none';
+            editPenIcon.style.display = 'none';
+            if (dropdownIcon) dropdownIcon.style.display = 'none';
+            if (confirmIcon) confirmIcon.style.display = 'inline-block';
+            if (cancelIcon) cancelIcon.style.display = 'inline-block';
+        });
+    }
+
+    // --- RENAME EXISTING PAGE (PEN ICON) ---
     if (editPenIcon) {
         editPenIcon.addEventListener('click', function() {
             if (pageNameInput.value.trim() === '') {
@@ -5509,96 +5862,125 @@ function initPageNameLogic() {
                 return;
             }
 
-            isEditMode = true; // Enter Edit Mode
+            isEditMode = true;
+            isRenameMode = true;
             previousPageName = pageNameInput.value;
+            renameTarget = pageNameInput.value.trim(); // Target name in table
 
             pageNameInput.readOnly = false;
             pageNameInput.style.cursor = 'text';
             pageNameInput.focus();
 
+            addPageIcon.style.display = 'none';
             editPenIcon.style.display = 'none';
-            if (dropdownIcon) dropdownIcon.style.display = 'none'; // Hide dropdown
+            if (dropdownIcon) dropdownIcon.style.display = 'none';
             if (confirmIcon) confirmIcon.style.display = 'inline-block';
             if (cancelIcon) cancelIcon.style.display = 'inline-block';
         });
     }
 
-    // 4. Confirm Edit (Right mark) Logic
     if (confirmIcon) {
         confirmIcon.addEventListener('click', function() {
-            // Prevent confirming if manually cleared all text
+            // Restore last page name if cleared entirely
             if (pageNameInput.value.trim() === '') {
-                pageNameInput.focus();
-                flashPageNameError();
-                showCustomAlert("Missing Information", "Please enter Page Name.");
-                return;
-            }
-
-            if (!isValidPageName(pageNameInput.value)) {
+                pageNameInput.value = lastConfirmedPageName;
+            } else if (!isValidPageName(pageNameInput.value)) {
                 pageNameInput.focus();
                 flashPageNameError();
                 showCustomAlert("Invalid Format", "Please provide a valid Page Name without special characters.");
                 return;
             }
 
+            const newName = pageNameInput.value.trim();
+
+            // IF IN RENAME MODE: Update all elements in the table matching the old name
+            if (isRenameMode && renameTarget !== "" && renameTarget !== newName) {
+                const tableBody = document.getElementById('myTable');
+                if (tableBody) {
+                    const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
+                    allDataRows.forEach(row => {
+                        const pageCell = row.querySelector('.page');
+                        if (pageCell && pageCell.innerText.trim() === renameTarget) {
+                            pageCell.innerText = newName;
+                        }
+                    });
+                }
+            }
+
+            // Save state & Apply Table Filter
+            lastConfirmedPageName = newName;
+            applyPageNameFilter(lastConfirmedPageName);
+
             pageNameInput.readOnly = true;
             pageNameInput.style.cursor = 'default';
-            isEditMode = false; // Exit Edit Mode
+            isEditMode = false;
 
             confirmIcon.style.display = 'none';
             cancelIcon.style.display = 'none';
+            if (addPageIcon) addPageIcon.style.display = 'inline-block';
             if (editPenIcon) editPenIcon.style.display = 'inline-block';
             if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
         });
     }
 
-    // 5. Cancel Edit (Cross mark) Logic
     function triggerCancel() {
-        pageNameInput.value = previousPageName;
+        if (pageNameInput.value.trim() === '') {
+             pageNameInput.value = lastConfirmedPageName;
+        } else {
+             pageNameInput.value = previousPageName;
+        }
+
+        applyPageNameFilter(pageNameInput.value);
+
         pageNameInput.readOnly = true;
         pageNameInput.style.cursor = 'default';
-        isEditMode = false; // Exit Edit Mode
-
-        restoreValidBlueState(); // Clear any red error formatting immediately
+        isEditMode = false;
+        restoreValidBlueState();
 
         if (confirmIcon) confirmIcon.style.display = 'none';
         if (cancelIcon) cancelIcon.style.display = 'none';
-        if (editPenIcon) editPenIcon.style.display = 'inline-block';
+        if (addPageIcon) addPageIcon.style.display = 'inline-block';
         if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+
+        // NEW: Keep pen hidden if we reverted back to the "All" view
+        if (pageNameInput.value === "All") {
+            if (editPenIcon) editPenIcon.style.display = 'none';
+        } else {
+            if (editPenIcon) editPenIcon.style.display = 'inline-block';
+        }
     }
 
     if (cancelIcon) {
         cancelIcon.addEventListener('click', triggerCancel);
     }
 
-    // 6. Enter & Escape Keys Support
     pageNameInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             if (this.value.trim() === '') {
-                flashPageNameError();
-                showCustomAlert("Missing Information", "Please enter Page Name.");
+                if (confirmIcon && confirmIcon.style.display !== 'none') confirmIcon.click();
             } else if (!isValidPageName(this.value) && this.value !== "") {
                 flashPageNameError();
             } else if (confirmIcon && confirmIcon.style.display !== 'none') {
-                confirmIcon.click(); // Trigger confirm edit
+                confirmIcon.click();
             } else if (this.value.trim() !== '' && isValidPageName(this.value)) {
-                this.blur(); // Trigger normal lock
+                this.blur();
             }
         } else if (e.key === 'Escape' && isEditMode) {
-            triggerCancel(); // Allows user to cancel even if cross is hidden by an error state
+            triggerCancel();
         }
     });
 
-    // 7. Reset Button Overrides
     if (resetButton) {
         resetButton.addEventListener('click', function() {
             pageNameInput.value = '';
+            lastConfirmedPageName = '';
             pageNameInput.readOnly = false;
             pageNameInput.style.cursor = 'text';
             isEditMode = false;
 
             restoreValidBlueState();
 
+            if (addPageIcon) addPageIcon.style.display = 'inline-block';
             if (editPenIcon) editPenIcon.style.display = 'inline-block';
             if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
             if (confirmIcon) confirmIcon.style.display = 'none';
@@ -6022,3 +6404,165 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 });
+
+// ==========================================
+// MULTI-DELETE (BULK DELETE) LOGIC ENGINE
+// ==========================================
+let isMultiDeleteMode = false;
+
+// 1. Right-Click Context Menu Logic for the Delete Header
+const deleteHeader = document.getElementById('delete_header');
+const deleteContextMenu = document.getElementById('deleteContextMenu');
+const toggleMultiDeleteOpt = document.getElementById('toggleMultiDeleteOpt');
+
+if (deleteHeader) {
+    deleteHeader.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (deleteContextMenu) {
+            const menuWidth = 140;
+            const posX = (e.clientX + menuWidth > window.innerWidth) ? e.clientX - menuWidth : e.clientX;
+            deleteContextMenu.style.left = `${posX}px`;
+            deleteContextMenu.style.top = `${e.clientY}px`;
+            deleteContextMenu.style.display = "block";
+        }
+    });
+}
+
+// Hide context menu on outside click
+document.addEventListener('click', (e) => {
+    if (deleteContextMenu && !deleteContextMenu.contains(e.target)) {
+        deleteContextMenu.style.display = "none";
+    }
+});
+
+// 2. Toggle Multi-Delete Mode
+if (toggleMultiDeleteOpt) {
+    toggleMultiDeleteOpt.addEventListener('click', () => {
+        // If we are about to ENABLE multi-delete, check if the table actually contains data first
+        if (!isMultiDeleteMode) {
+            if (typeof hasValidTableData === 'function' && !hasValidTableData('myTable')) {
+                showCustomAlert("No Data Found", "There is no data available in the table to perform multi-delete.", "info");
+                if (deleteContextMenu) deleteContextMenu.style.display = "none";
+                return; // Halt execution, do not enable mode
+            }
+        }
+
+        isMultiDeleteMode = !isMultiDeleteMode;
+
+        const bulkDeleteBtn = document.getElementById('bulk_delete_btn');
+        const headerCheckbox = document.getElementById('selectAllCheckbox');
+        const headerTrashIcon = document.getElementById('headerDeleteIcon');
+        const dataDeleteCells = document.querySelectorAll('#myTable tr:not(.empty-excel-row):not(.no-results-row) .delete-cell');
+
+        if (isMultiDeleteMode) {
+            // Enable Mode
+            toggleMultiDeleteOpt.innerText = "Disable Multi-Delete";
+            if(bulkDeleteBtn) bulkDeleteBtn.style.setProperty("display", "inline-flex", "important");
+            if(headerCheckbox) headerCheckbox.style.display = "inline-block";
+            if(headerTrashIcon) headerTrashIcon.style.display = "none";
+
+            // Swap icons in rows
+            dataDeleteCells.forEach(cell => {
+                const cb = cell.querySelector('.bulk-delete-cb');
+                const trash = cell.querySelector('.deleteBtn');
+                if (cb) { cb.style.display = "inline-block"; cb.checked = false; }
+                if (trash) trash.style.display = "none";
+            });
+            if (headerCheckbox) headerCheckbox.checked = false;
+
+        } else {
+            // Disable Mode
+            toggleMultiDeleteOpt.innerText = "Enable Multi-Delete";
+            if(bulkDeleteBtn) bulkDeleteBtn.style.setProperty("display", "none", "important");
+            if(headerCheckbox) headerCheckbox.style.display = "none";
+            if(headerTrashIcon) headerTrashIcon.style.display = "inline-block";
+
+            // Swap icons in rows back to normal
+            dataDeleteCells.forEach(cell => {
+                const cb = cell.querySelector('.bulk-delete-cb');
+                const trash = cell.querySelector('.deleteBtn');
+                if (cb) cb.style.display = "none";
+                if (trash) trash.style.display = "inline-block";
+            });
+        }
+
+        if (deleteContextMenu) deleteContextMenu.style.display = "none";
+    });
+}
+
+// 3. Header "Select All" Logic
+const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', (e) => {
+        const isChecked = e.target.checked;
+        const visibleRows = document.querySelectorAll('#myTable tr:not(.empty-excel-row):not(.no-results-row):not(.page-hidden):not(.search-hidden)');
+
+        visibleRows.forEach(row => {
+            const cb = row.querySelector('.bulk-delete-cb');
+            if (cb) cb.checked = isChecked;
+        });
+    });
+}
+
+// 4. Execute "Delete Selected" Button
+const bulkDeleteBtn = document.getElementById('bulk_delete_btn');
+if (bulkDeleteBtn) {
+    bulkDeleteBtn.addEventListener('click', () => {
+        const checkedBoxes = document.querySelectorAll('.bulk-delete-cb:checked');
+
+        if (checkedBoxes.length === 0) {
+            showCustomAlert("No Rows Selected", "Please select at least one row to delete.", "info");
+            return;
+        }
+
+        // Tally up total elements vs selected elements per page
+        let affectedPages = {}; // How many are selected per page
+        let totalPagesCount = {}; // How many totally exist per page
+
+        const allDataRows = document.querySelectorAll('#myTable tr:not(.empty-excel-row):not(.no-results-row)');
+
+        allDataRows.forEach(r => {
+            const pCell = r.querySelector(".page");
+            const pageName = pCell ? pCell.innerText.trim() : "";
+
+            if (pageName && pageName !== "") {
+                totalPagesCount[pageName] = (totalPagesCount[pageName] || 0) + 1;
+
+                const cb = r.querySelector(".bulk-delete-cb");
+                if (cb && cb.checked) {
+                    affectedPages[pageName] = (affectedPages[pageName] || 0) + 1;
+                }
+            }
+        });
+
+        // Determine if any page is getting fully wiped out
+        let pagesToBeWiped = [];
+        for (let p in affectedPages) {
+            if (affectedPages[p] === totalPagesCount[p]) {
+                pagesToBeWiped.push(p);
+            }
+        }
+
+        // Build Confirmation Text
+        let mainText = `Are you sure you want to delete the ${checkedBoxes.length} selected row(s)?`;
+        let subText = `This action cannot be undone.`;
+
+        if (pagesToBeWiped.length > 0) {
+            subText += `<br><br><strong style="color: #d9534f; font-size: 11px;">Warning: Deleting these will also fully delete the following page(s): "${pagesToBeWiped.join('", "')}".</strong>`;
+        }
+
+        document.getElementById('back_btn').style.display = 'inline-block';
+        document.getElementById('okay_btn').innerText = 'Confirm';
+        document.getElementById('popup_title').innerText = "Confirm Bulk Deletion";
+        document.getElementById('popup_main_text').innerHTML = mainText;
+        document.getElementById('popup_sub_text').innerHTML = subText;
+
+        pendingExportAction = "bulkDelete";
+
+        // Pass payload of checked boxes to the global scope so the Confirm handler can access it
+        window.pendingBulkDeleteRows = Array.from(checkedBoxes).map(cb => cb.closest('tr'));
+
+        document.getElementById('confirmationPopup').style.display = 'block';
+        document.getElementById('overlay').style.display = 'block';
+    });
+}
