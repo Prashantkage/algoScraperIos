@@ -5667,26 +5667,28 @@ function initScenarioOutlineLogic() {
     }
 
     soInput.addEventListener('input', function() {
-        if (!soInput.readOnly) {
-            if (!isGlobalPageNameValid(this.value) && this.value !== "") {
-                if (soConfirmIcon) soConfirmIcon.style.display = 'none';
-                if (soCancelIcon) soCancelIcon.style.display = 'none'; // Cross mark gayab
-                if (soBar) soBar.style.borderColor = '#dc3545';
-                if (soLabel) soLabel.style.backgroundColor = '#dc3545';
-                if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'inline-flex'; // Red error icon aa jayega
-            } else {
-                restoreValidSOBlueState();
-                if (isSOEditMode) {
-                    if (this.value.trim() !== '') {
-                        if (soConfirmIcon) soConfirmIcon.style.display = 'inline-block';
-                    } else {
-                        if (soConfirmIcon) soConfirmIcon.style.display = 'none';
+            if (!soInput.readOnly) {
+                // Invalid Format Check
+                if (!isGlobalPageNameValid(this.value) && this.value !== "") {
+                    if (soConfirmIcon) soConfirmIcon.style.display = 'none';
+                    if (soCancelIcon) soCancelIcon.style.display = 'none'; // <-- THIS HIDES THE CROSS MARK
+
+                    if (soBar) soBar.style.borderColor = '#dc3545';
+                    if (soLabel) soLabel.style.backgroundColor = '#dc3545';
+                    if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'inline-flex'; // <-- THIS SHOWS THE RED ERROR ICON
+                } else {
+                    restoreValidSOBlueState();
+                    if (isSOEditMode) {
+                        if (this.value.trim() !== '') {
+                            if (soConfirmIcon) soConfirmIcon.style.display = 'inline-block';
+                        } else {
+                            if (soConfirmIcon) soConfirmIcon.style.display = 'none';
+                        }
+                        if (soCancelIcon) soCancelIcon.style.display = 'inline-block';
                     }
-                    if (soCancelIcon) soCancelIcon.style.display = 'inline-block';
                 }
             }
-        }
-    });
+        });
 
     if (soEditIcon) {
         soEditIcon.addEventListener('click', function() {
@@ -5858,95 +5860,162 @@ document.addEventListener("DOMContentLoaded", () => {
     const scenarioOutlineBar = document.getElementById("scenarioOutlineBar");
     const scenarioOutlineText = document.getElementById("scenarioOutlineText");
 
-    if (recordScenarioBtn && addScenarioBtn) {
+    // Validation Utility Functions
+    function validatePageName(val) {
+        if (!val || val.trim() === '') return "Page Name is required";
+        if (typeof isGlobalPageNameValid === 'function' && !isGlobalPageNameValid(val)) {
+            return "Page Name must start with a letter and can contain only letters, numbers, _, and single spaces.";
+        }
+        return "";
+    }
 
-        // Initial State: Show "Record Scenario", hide "Add Scenario"
+    function validateScenarioName(val) {
+        if (!val || val.trim() === '') return "Scenario Name is required";
+        if (val.trim().length < 3) return "Scenario Name must be at least 3 characters";
+        const regex = /^[A-Za-z][A-Za-z0-9_]*(\s[A-Za-z0-9_]+)*$/;
+        if (!regex.test(val)) return "Scenario Name must start with a letter and can contain only letters, numbers, _, and single spaces.";
+        return "";
+    }
+
+    function validateScenarioOutline(val) {
+        if (!val || val.trim() === '') return "Scenario Outline is required";
+        return "";
+    }
+
+    function showError(inputEl, iconId, textId, message) {
+        inputEl.classList.add("input-error-border");
+        const icon = document.getElementById(iconId);
+        const text = document.getElementById(textId);
+        if (icon) icon.style.display = "flex";
+        if (text) text.innerText = message;
+    }
+
+    function clearError(inputEl, iconId) {
+        inputEl.classList.remove("input-error-border");
+        const icon = document.getElementById(iconId);
+        if (icon) icon.style.display = "none";
+    }
+
+    if (recordScenarioBtn && addScenarioBtn) {
+        // Initial State
         recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
         addScenarioBtn.style.setProperty("display", "none", "important");
 
-        // 1. SEPARATE REUSABLE FUNCTION: Opens the modal and prepares the fields
-                function openScenarioModal() {
-                    const pageNameValue = pageNameInput ? pageNameInput.value : "";
+        // Failsafe: Ensure readonly is removed if it wasn't updated in HTML
+        if (recPageNameInput) {
+            recPageNameInput.removeAttribute("readonly");
+        }
 
-                    // Step A: Strict Global Validation Check
-                    if (!isGlobalPageNameValid(pageNameValue)) {
-                        handleInvalidPageNameAttempt();
-                        return; // Stop execution, do not open modal
-                    }
+        // Live validation listeners for real-time feedback
+        if(recPageNameInput) {
+            recPageNameInput.addEventListener("input", function() {
+                const errorMsg = validatePageName(this.value);
+                if (errorMsg) showError(this, "rec_page_error_icon", "rec_page_error_text", errorMsg);
+                else clearError(this, "rec_page_error_icon");
+            });
+        }
 
-            // Step B: Populate the disabled Page Name field in the modal
-            if (recPageNameInput) {
-                recPageNameInput.value = pageNameValue;
+        if(recScenarioNameInput) {
+            recScenarioNameInput.addEventListener("input", function() {
+                const errorMsg = validateScenarioName(this.value);
+                if (errorMsg) showError(this, "rec_scenario_error_icon", "rec_scenario_error_text", errorMsg);
+                else clearError(this, "rec_scenario_error_icon");
+            });
+        }
+
+        if(recScenarioOutlineInput) {
+            recScenarioOutlineInput.addEventListener("input", function() {
+                const errorMsg = validateScenarioOutline(this.value);
+                if (errorMsg) showError(this, "rec_outline_error_icon", "rec_outline_error_text", errorMsg);
+                else clearError(this, "rec_outline_error_icon");
+            });
+        }
+
+        function openScenarioModal() {
+            const pageNameValue = pageNameInput ? pageNameInput.value : "";
+
+            if (!isGlobalPageNameValid(pageNameValue)) {
+                handleInvalidPageNameAttempt();
+                return;
             }
 
-            // Step C: Clear the Scenario Name and Outline fields, reset their borders
+            // Populate the modal's Page Name field with the value from the main searchbox
+            if (recPageNameInput) {
+                recPageNameInput.value = pageNameValue;
+                clearError(recPageNameInput, "rec_page_error_icon");
+            }
+
+            // Reset other fields & clear errors on open
             if (recScenarioNameInput) {
                 recScenarioNameInput.value = "";
-                recScenarioNameInput.style.borderColor = "#ccc";
+                clearError(recScenarioNameInput, "rec_scenario_error_icon");
             }
             if (recScenarioOutlineInput) {
                 recScenarioOutlineInput.value = "";
-                recScenarioOutlineInput.style.borderColor = "#ccc";
+                clearError(recScenarioOutlineInput, "rec_outline_error_icon");
             }
 
-            // Step D: Show the modal and the background overlay
             if (recordModal) recordModal.style.display = "block";
             if (overlay) overlay.style.display = "block";
         }
 
-        // 2. Attach the shared function to BOTH buttons
         recordScenarioBtn.addEventListener("click", openScenarioModal);
         addScenarioBtn.addEventListener("click", openScenarioModal);
 
-        // 3. Handle Close Button inside the Modal
         if (recCloseBtn) {
             recCloseBtn.addEventListener("click", () => {
                 if (recordModal) recordModal.style.display = "none";
                 if (overlay) overlay.style.display = "none";
 
-                // Only hide the Outline Bar if we are canceling the FIRST "Record Scenario" click.
-                // If "Add Scenario" is currently visible, it means a scenario is already active, so keep the bar visible.
                 if (addScenarioBtn.style.display === "none" && scenarioOutlineBar) {
                     scenarioOutlineBar.style.display = "none";
                 }
             });
         }
 
-        // 4. Handle Start Recording Button inside the Modal
         if (recStartBtn) {
             recStartBtn.addEventListener("click", () => {
                 let isValid = true;
 
-                // Validate Scenario Name
-                if (recScenarioNameInput.value.trim() === "") {
-                    recScenarioNameInput.style.borderColor = "red";
-                    isValid = false;
-                } else {
-                    recScenarioNameInput.style.borderColor = "#ccc";
+                // Validate Page Name upon submit
+                if (recPageNameInput) {
+                    const pageError = validatePageName(recPageNameInput.value);
+                    if (pageError) {
+                        showError(recPageNameInput, "rec_page_error_icon", "rec_page_error_text", pageError);
+                        isValid = false;
+                    }
                 }
 
-                // Validate Scenario Outline
-                if (recScenarioOutlineInput.value.trim() === "") {
-                    recScenarioOutlineInput.style.borderColor = "red";
+                // Validate Scenario Name upon submit
+                const nameError = validateScenarioName(recScenarioNameInput.value);
+                if (nameError) {
+                    showError(recScenarioNameInput, "rec_scenario_error_icon", "rec_scenario_error_text", nameError);
                     isValid = false;
-                } else {
-                    recScenarioOutlineInput.style.borderColor = "#ccc";
                 }
 
-                // Stop if any field is empty
-                if (!isValid) return;
+                // Validate Scenario Outline upon submit
+                const outlineError = validateScenarioOutline(recScenarioOutlineInput.value);
+                if (outlineError) {
+                    showError(recScenarioOutlineInput, "rec_outline_error_icon", "rec_outline_error_text", outlineError);
+                    isValid = false;
+                }
 
-                // Success: Hide modal
+                if (!isValid) return; // Halt if validation fails
+
+                // Sync the edited Modal Page Name back to the Main Page Name Input
+                if (pageNameInput && recPageNameInput) {
+                    pageNameInput.value = recPageNameInput.value.trim();
+                }
+
+                // Success State execution
                 if (recordModal) recordModal.style.display = "none";
                 if (overlay) overlay.style.display = "none";
 
-                // Populate and display inline scenario text next to Download button
-                                if (scenarioOutlineBar && scenarioOutlineText) {
-                                    scenarioOutlineText.value = recScenarioOutlineInput.value.trim();
-                                    scenarioOutlineBar.style.display = "inline-flex";
-                                }
+                if (scenarioOutlineBar && scenarioOutlineText) {
+                    scenarioOutlineText.value = recScenarioOutlineInput.value.trim();
+                    scenarioOutlineBar.style.display = "inline-flex";
+                }
 
-                // Swap buttons: Hide "Record Scenario", Show "Add Scenario"
                 recordScenarioBtn.style.setProperty("display", "none", "important");
                 addScenarioBtn.style.setProperty("display", "inline-flex", "important");
             });

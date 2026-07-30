@@ -571,41 +571,53 @@
 </div>
 
 <!-- Custom Record Scenario Modal -->
-<div class="custom-modal" id="recordScenarioModal" style="display: none; width: 380px; background: #ffffff; border: 2px solid #00AEEF; border-radius: 8px; overflow: hidden; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+<div class="custom-modal" id="recordScenarioModal" style="display: none; width: 380px; background: #ffffff; border: 2px solid #00AEEF; border-radius: 8px; overflow: visible; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
     <!-- Black Header with Blue Border -->
-    <div style="background: #000000; border-bottom: 2px solid #00AEEF; padding: 10px 16px; display: flex; align-items: center;">
+    <div style="background: #000000; border-bottom: 2px solid #00AEEF; padding: 10px 16px; display: flex; align-items: center; border-radius: 6px 6px 0 0;">
         <span style="color: #ffffff; font-size: 14px; font-weight: 600;">Record Scenario</span>
     </div>
 
-    <!-- Modal Body with White Background & Increased Gap -->
-    <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; background: #ffffff; color: #333333;">
+    <!-- Modal Body -->
+    <div style="padding: 24px 20px 16px 20px; display: flex; flex-direction: column; gap: 20px; background: #ffffff; color: #333333; border-radius: 0 0 6px 6px;">
 
-        <!-- Page Name Field (Pre-filled & Disabled/Required) -->
-        <div style="display: flex; flex-direction: column; gap: 1px;">
-            <label style="font-size: 11px; font-weight: 600; color: #555; margin-bottom: 0px;">Page Name *</label>
-            <input type="text" id="rec_pagename" readonly style="margin-top: 0px !important; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; font-size: 12px; color: #333;">
+        <!-- Page Name Field -->
+        <div class="floating-group">
+            <input type="text" id="rec_pagename" class="floating-input" placeholder=" ">
+            <label class="floating-label">Page Name *</label>
+            <div id="rec_page_error_icon" class="rec-error-icon">
+                <svg viewBox="0 0 24 24" fill="#d9534f" style="width: 18px; height: 18px;">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                </svg>
+                <div class="rec-error-tooltip" id="rec_page_error_text"></div>
+            </div>
         </div>
 
-        <!-- Scenario Name Field (Required) -->
-        <div style="display: flex; flex-direction: column; gap: 1px;">
-            <label style="font-size: 11px; font-weight: 600; color: #555; margin-bottom: 0px;">Scenario Name *</label>
-            <input type="text" id="rec_scenarioname" placeholder="Enter scenario name.." style="margin-top: 0px !important; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">
+        <!-- Scenario Name Field -->
+        <div class="floating-group">
+            <input type="text" id="rec_scenarioname" class="floating-input" placeholder=" ">
+            <label class="floating-label">Scenario Name *</label>
+            <div id="rec_scenario_error_icon" class="rec-error-icon">
+                <svg viewBox="0 0 24 24" fill="#d9534f" style="width: 18px; height: 18px;">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                </svg>
+                <div class="rec-error-tooltip" id="rec_scenario_error_text"></div>
+            </div>
         </div>
 
-        <!-- Scenario Outline Field (Required) -->
-        <div style="display: flex; flex-direction: column; gap: 1px;">
-            <label style="font-size: 11px; font-weight: 600; color: #555; margin-bottom: 0px;">Scenario Outline *</label>
-            <textarea id="rec_scenariooutline" placeholder="Enter scenario outline.." rows="2.5" style="margin-top: 0px !important; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; resize: none;"></textarea>
+        <!-- Scenario Outline Field -->
+        <div class="floating-group">
+            <textarea id="rec_scenariooutline" class="floating-input" rows="2.5" placeholder=" "></textarea>
+            <label class="floating-label">Scenario Outline *</label>
+            <div id="rec_outline_error_icon" class="rec-error-icon">
+                <svg viewBox="0 0 24 24" fill="#d9534f" style="width: 18px; height: 18px;">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                </svg>
+                <div class="rec-error-tooltip" id="rec_outline_error_text"></div>
+            </div>
         </div>
-
-        <!-- Checkbox for screenshots -->
-        <!--        <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">-->
-        <!--            <input type="checkbox" id="rec_capturescreenshots" style="width: 14px; height: 14px; accent-color: #00AEEF; cursor: pointer;">-->
-        <!--            <label for="rec_capturescreenshots" style="font-size: 11px; font-weight: 500; color: #333; margin: 0; cursor: pointer;">Capture Screenshots while recording</label>-->
-        <!--        </div>-->
 
         <!-- Actions Footer -->
-        <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 8px;">
+        <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 4px;">
             <button id="rec_close_btn" class="pill-btn" style="flex: 1; background-color: #555555; color: #fff; height: 30px !important; font-size: 12px;">Close</button>
             <button id="rec_start_btn" class="pill-btn" style="flex: 1; background-color: #00AEEF; color: #fff; height: 30px !important; font-size: 12px;">Start Recording</button>
         </div>

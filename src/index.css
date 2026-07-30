@@ -1901,7 +1901,7 @@ th .resizer:hover {
     color: #19a9ff !important;
     font-size: 11px !important;
     font-weight: 700 !important;
-    width: 450px !important;
+    width: 350px !important;
     margin: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
@@ -2107,4 +2107,225 @@ th .resizer:hover {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
+}
+
+
+/* --- Record Scenario Modal Validation Styles --- */
+.rec-error-icon {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: none; /* Hidden by default until error */
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.rec-error-tooltip {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    background-color: #333333;
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    font-weight: 500;
+    white-space: normal;
+    width: max-content;
+    max-width: 250px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 10001;
+    text-align: left;
+    pointer-events: none;
+}
+
+/* Upward pointing arrow for the dark tooltip */
+.rec-error-tooltip::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    right: 8px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent transparent #333333 transparent;
+}
+
+/* Show tooltip when hovering over the red 'i' icon */
+.rec-error-icon:hover .rec-error-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Error border class toggled via JS */
+.input-error-border {
+    border-color: #d9534f !important;
+}
+
+/* --- Floating Label Styles --- */
+.floating-group {
+    position: relative;
+    width: 100%;
+}
+
+.floating-input {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important; /* Overrides old global margins */
+    padding: 12px 32px 12px 12px !important; /* Extra padding on right for the error icon */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+    background-color: transparent;
+    outline: none;
+    box-sizing: border-box !important;
+    transition: border-color 0.2s ease;
+    color: #333;
+}
+
+/* Specific styling so textarea placeholder doesn't overlap weirdly */
+textarea.floating-input {
+    resize: none !important;
+    padding-top: 12px !important;
+    font-family: inherit !important;
+    height: auto !important;
+    line-height: 1.4 !important;
+    display: block !important;
+}
+
+.floating-label {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #ffffff; /* White background breaks the border line */
+    padding: 0 4px;
+    color: #777;
+    font-size: 12px;
+    font-weight: 500;
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+/* Offset label specifically when it's inside a taller textarea */
+textarea.floating-input ~ .floating-label {
+    top: 20px;
+}
+
+/* MAGIC TRICK: Float the label on focus OR when there is text typed */
+.floating-input:focus ~ .floating-label,
+.floating-input:not(:placeholder-shown) ~ .floating-label {
+    top: 0;
+    transform: translateY(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+}
+
+/* Focused Input Styling */
+.floating-input:focus {
+    border-color: #00AEEF;
+}
+.floating-input:focus ~ .floating-label {
+    color: #00AEEF;
+}
+
+/* Readonly Page Name specific styling */
+.floating-input[readonly] {
+    background-color: #f5f5f5;
+    cursor: default;
+}
+.floating-input[readonly] ~ .floating-label {
+    /* Gradient matches white modal background above border, grey input below */
+    background: linear-gradient(to bottom, #ffffff 50%, #f5f5f5 50%);
+}
+
+/* --- Error State Integration --- */
+.floating-input.input-error-border {
+    border-color: #d9534f !important;
+}
+
+/* When error triggers, label text also goes red */
+.floating-input.input-error-border ~ .floating-label,
+.floating-input.input-error-border:focus ~ .floating-label {
+    color: #d9534f !important;
+}
+
+/* --- Error Tooltip Layout --- */
+.rec-error-icon {
+    position: absolute;
+    right: 12px; /* Increased right spacing to perfectly match standard input padding */
+    top: 50%;
+    transform: translateY(-50%);
+    display: none; /* Hidden until error triggers */
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    background-color: #ffffff; /* Ensures long text typed behind it doesn't bleed through */
+    border-radius: 50%; /* Keeps the background strictly circular behind the icon */
+}
+
+/* Push icon down for textarea with consistent spacing */
+textarea.floating-input ~ .rec-error-icon {
+    top: auto;
+    bottom: 12px;
+    transform: none;
+}
+
+.rec-error-tooltip {
+    position: absolute;
+    right: -8px; /* Aligns pointer beautifully with the icon */
+    top: calc(100% + 10px);
+    background-color: #ffffff !important; /* White background as requested */
+    color: #1f2937 !important; /* Dark grey text for readability */
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #c5c9d0 !important; /* Soft grey border */
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: normal;
+    width: max-content;
+    max-width: 250px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); /* Light shadow */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 10001;
+    text-align: left;
+    pointer-events: none;
+}
+
+/* Upward pointing arrow - Outer Border */
+.rec-error-tooltip::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    right: 12px;
+    border-width: 7px;
+    border-style: solid;
+    border-color: transparent transparent #c5c9d0 transparent;
+}
+
+/* Upward pointing arrow - Inner White Triangle */
+.rec-error-tooltip::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    right: 13px; /* 1px offset for the inner border */
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent transparent #ffffff transparent;
+}
+
+.rec-error-icon:hover .rec-error-tooltip {
+    opacity: 1;
+    visibility: visible;
 }
