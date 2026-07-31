@@ -1431,37 +1431,46 @@ document.getElementById("Scrape").addEventListener('click', async () => {
 
     async function onTableClick(e) {
 
-        // 1. DELETE ROW HANDLER
-        if (e.target.classList.contains("deleteBtn")) {
-                    const targetRow = e.target.closest("tr");
-                    if (!targetRow) return;
+            // 1. DELETE ROW HANDLER
+            if (e.target.classList.contains("deleteBtn")) {
+                const targetRow = e.target.closest("tr");
+                if (!targetRow) return;
 
-                    // A. Extract Control Name dynamically from the row
-                    const cnCell = targetRow.querySelector(".cn");
-                    let controlName = cnCell && cnCell.innerText.trim() !== "" ? cnCell.innerText.trim() : null;
+                // A. Extract Control Name & Page Name dynamically from the row
+                const cnCell = targetRow.querySelector(".cn");
+                const pageCell = targetRow.querySelector(".page"); // Extract page name cell
 
-                    let mainText = controlName
-                        ? `Are you sure you want to delete<br>"${controlName}"?`
-                        : `Are you sure you want to delete this row?`;
+                let controlName = cnCell && cnCell.innerText.trim() !== "" ? cnCell.innerText.trim() : null;
+                let pageName = pageCell && pageCell.innerText.trim() !== "" ? pageCell.innerText.trim() : null;
 
-                    // B. Inject text into the modal
-                    document.getElementById('back_btn').style.display = 'inline-block';
-                    document.getElementById('okay_btn').innerText = 'Confirm';
-
-                    document.getElementById('popup_title').innerText = "Confirm Deletion";
-                    document.getElementById('popup_main_text').innerHTML = mainText;
-                    document.getElementById('popup_sub_text').innerHTML = "This action cannot be undone.";
-
-                    // C. Set action state and store the row reference
-                    pendingExportAction = "deleteRow";
-                    rowToDelete = targetRow;
-
-                    // D. Show the popup
-                    document.getElementById('confirmationPopup').style.display = 'block';
-                    document.getElementById('overlay').style.display = 'block';
-
-                    return;
+                // B. Build the confirmation text to include the Page Name
+                let mainText;
+                if (controlName && pageName) {
+                    mainText = `Are you sure you want to delete<br>"${controlName}" from "${pageName}"?`;
+                } else if (controlName) {
+                    mainText = `Are you sure you want to delete<br>"${controlName}"?`;
+                } else {
+                    mainText = `Are you sure you want to delete this row?`;
                 }
+
+                // C. Inject text into the modal
+                document.getElementById('back_btn').style.display = 'inline-block';
+                document.getElementById('okay_btn').innerText = 'Confirm';
+
+                document.getElementById('popup_title').innerText = "Confirm Deletion";
+                document.getElementById('popup_main_text').innerHTML = mainText;
+                document.getElementById('popup_sub_text').innerHTML = "This action cannot be undone.";
+
+                // D. Set action state and store the row reference
+                pendingExportAction = "deleteRow";
+                rowToDelete = targetRow;
+
+                // E. Show the popup
+                document.getElementById('confirmationPopup').style.display = 'block';
+                document.getElementById('overlay').style.display = 'block';
+
+                return;
+            }
 
         // 2. SHOW ELEMENT HANDLER
         if (e.target.id && e.target.id.startsWith("info_")) {
@@ -4900,45 +4909,50 @@ function updateRowEyeButtonState() {
                }
 
            // --- EXPLICIT PAGE DELETE LOGIC ---
-           } else if (pendingExportAction === "deletePage") {
-               pendingExportAction = null;
-               const page = window.pageToDelete;
+                      } else if (pendingExportAction === "deletePage") {
+                          pendingExportAction = null;
+                          const page = window.pageToDelete;
 
-               if (page) {
-                   // 1. Remove the page from the global memory bank
-                   if (window.registeredPageNames) {
-                       window.registeredPageNames.delete(page);
-                   }
+                          if (page) {
+                              // 1. Remove the page from the global memory bank
+                              if (window.registeredPageNames) {
+                                  window.registeredPageNames.delete(page);
+                              }
 
-                   // 2. Remove all rows associated with this specific page
-                   const tableBody = document.getElementById('myTable');
-                   if (tableBody) {
-                       const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
-                       allDataRows.forEach(row => {
-                           const pageCell = row.querySelector('.page');
-                           if (pageCell && pageCell.innerText.trim() === page) {
-                               row.remove();
-                           }
-                       });
+                              // NEW: Ensure Scenario Outline & Name are wiped from memory completely
+                              if (window.pageScenarioData) {
+                                  delete window.pageScenarioData[page];
+                              }
 
-                       updateRowNumbers();
-                       applyPagination();
-                       if (typeof adjustEmptyRows === 'function') requestAnimationFrame(adjustEmptyRows);
-                   }
+                              // 2. Remove all rows associated with this specific page
+                              const tableBody = document.getElementById('myTable');
+                              if (tableBody) {
+                                  const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
+                                  allDataRows.forEach(row => {
+                                      const pageCell = row.querySelector('.page');
+                                      if (pageCell && pageCell.innerText.trim() === page) {
+                                          row.remove();
+                                      }
+                                  });
 
-                   // 3. If the user just deleted the active page they were currently viewing, switch back to 'All'
-                   const pageNameInput = document.getElementById('pagename_searchbox');
-                   if (pageNameInput && pageNameInput.value.trim() === page) {
-                       if (window.setGlobalPageName) window.setGlobalPageName("All");
+                                  updateRowNumbers();
+                                  applyPagination();
+                                  if (typeof adjustEmptyRows === 'function') requestAnimationFrame(adjustEmptyRows);
+                              }
 
-                       pageNameInput.readOnly = true;
-                       pageNameInput.style.cursor = 'default';
+                              // 3. If the user just deleted the active page they were currently viewing, switch back to 'All'
+                              const pageNameInput = document.getElementById('pagename_searchbox');
+                              if (pageNameInput && pageNameInput.value.trim() === page) {
+                                  if (window.setGlobalPageName) window.setGlobalPageName("All");
 
-                       const editPenIcon = document.querySelector('.edit-icon');
-                       if (editPenIcon) editPenIcon.style.display = 'none'; // Cannot rename 'All'
-                   }
-                   window.pageToDelete = null;
-               }
+                                  pageNameInput.readOnly = true;
+                                  pageNameInput.style.cursor = 'default';
+
+                                  const editPenIcon = document.querySelector('.edit-icon');
+                                  if (editPenIcon) editPenIcon.style.display = 'none'; // Cannot rename 'All'
+                              }
+                              window.pageToDelete = null;
+                          }
 
            // --- GENERAL RESET LOGIC ---
            } else {
@@ -5546,12 +5560,10 @@ function initPageNameLogic() {
 
     if (!pageNameInput) return;
 
-    // HELPER: Validate Page Name Format
     function isValidPageName(name) {
         return isGlobalPageNameValid(name);
     }
 
-    // HELPER: Revert UI to valid standard blue state
     function restoreValidBlueState() {
         badgeWrapper.style.borderColor = '#4285F4';
         badgeLabel.style.backgroundColor = '#4285F4';
@@ -5562,7 +5574,6 @@ function initPageNameLogic() {
         }
     }
 
-    // HELPER: Filter Table by Active Page Name
     function applyPageNameFilter(pageName) {
         const tableBody = document.getElementById('myTable');
         if (!tableBody) return;
@@ -5581,11 +5592,10 @@ function initPageNameLogic() {
         });
 
         currentPage = 1;
-        applyPagination(); // Refresh view
-        updateRowNumbers(); // Re-index visible rows
+        applyPagination();
+        updateRowNumbers();
     }
 
-    // EXPOSED GLOBAL SETTER
     window.setGlobalPageName = function(name) {
         if (!window.registeredPageNames) window.registeredPageNames = new Set();
         if (name && name !== "All" && isValidPageName(name)) {
@@ -5594,182 +5604,242 @@ function initPageNameLogic() {
         pageNameInput.value = name;
         lastConfirmedPageName = name;
         applyPageNameFilter(name);
+
+        const scenarioOutlineBar = document.getElementById("scenarioOutlineBar");
+        const scenarioOutlineText = document.getElementById("scenarioOutlineText");
+        const addScenarioBtn = document.getElementById("addScenarioBtn");
+        const recordScenarioBtn = document.getElementById("recordScenarioBtn");
+        const soEditIcon = document.getElementById("so_edit_icon");
+        const pageEditIcon = document.querySelector(".edit-icon");
+
+        if (name === "All") {
+            if (pageEditIcon) pageEditIcon.style.display = 'none';
+            if (pageNameInput) {
+                pageNameInput.readOnly = true;
+                pageNameInput.style.cursor = 'default';
+            }
+
+            if (scenarioOutlineBar && scenarioOutlineText) {
+                scenarioOutlineBar.style.display = "inline-flex";
+                scenarioOutlineText.value = "All";
+                scenarioOutlineText.readOnly = true;
+                scenarioOutlineText.style.cursor = 'default';
+
+                if (recordScenarioBtn) recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
+                if (addScenarioBtn) addScenarioBtn.style.setProperty("display", "none", "important");
+                if (soEditIcon) soEditIcon.style.display = 'none';
+            }
+        } else {
+            if (pageEditIcon) pageEditIcon.style.display = 'inline-block';
+
+            if (scenarioOutlineBar && scenarioOutlineText) {
+                if (window.pageScenarioData && window.pageScenarioData[name] && window.pageScenarioData[name].scenarioOutline) {
+                    scenarioOutlineText.value = window.pageScenarioData[name].scenarioOutline;
+                    scenarioOutlineBar.style.display = "inline-flex";
+
+                    if (recordScenarioBtn) recordScenarioBtn.style.setProperty("display", "none", "important");
+                    if (addScenarioBtn) addScenarioBtn.style.setProperty("display", "inline-flex", "important");
+                    if (soEditIcon) soEditIcon.style.display = 'inline-block';
+                } else {
+                    scenarioOutlineBar.style.display = "inline-flex";
+                    scenarioOutlineText.value = "";
+
+                    if (recordScenarioBtn) recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
+                    if (addScenarioBtn) addScenarioBtn.style.setProperty("display", "none", "important");
+                    if (soEditIcon) soEditIcon.style.display = 'inline-block';
+                }
+            }
+        }
     };
 
-    // DROPDOWN CLICK LOGIC (Reads from Memory & Adds Trash Icons)
-    if (dropdownIcon && dropdownMenu) {
-        dropdownIcon.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (isEditMode) return;
+    // --- MODERN DROPDOWN HOVER LOGIC ---
+        if (dropdownIcon && dropdownMenu) {
+            let pageDropdownTimer; // Timer to hold the delay
 
-            if (!window.registeredPageNames) window.registeredPageNames = new Set();
+            // 1. Show on Hover (Icon)
+            dropdownIcon.addEventListener('mouseenter', function(e) {
+                clearTimeout(pageDropdownTimer); // Stop it from closing if returning
+                if (isEditMode) return;
 
-            // Auto-save current input if valid
-            const currentActivePage = pageNameInput.value.trim();
-            if (currentActivePage && isValidPageName(currentActivePage) && currentActivePage !== "All") {
-                window.registeredPageNames.add(currentActivePage);
-            }
-
-            // Read from Global Memory
-            const uniquePages = new Set(window.registeredPageNames);
-
-            // Failsafe: Include any legacy cells currently in the table
-            const tableBody = document.getElementById('myTable');
-            if (tableBody) {
-                const pageCells = tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row) .page');
-                pageCells.forEach(cell => {
-                    const val = cell.innerText.trim();
-                    if(val) uniquePages.add(val);
-                });
-            }
-
-            if (uniquePages.size === 0) {
-                dropdownMenu.style.display = 'none';
-                return;
-            }
-
-            dropdownMenu.innerHTML = '';
-
-            // Inject "All" option if more than 1 unique page exists
-            if (uniquePages.size > 1) {
-                const allItem = document.createElement('div');
-                allItem.innerText = "All";
-                allItem.style.padding = '8px 12px';
-                allItem.style.cursor = 'pointer';
-                allItem.style.borderBottom = '2px solid #e2e4e8';
-                allItem.style.fontSize = '12px';
-                allItem.style.textAlign = 'left';
-
-                if (currentActivePage === "All" || currentActivePage === "") {
-                    allItem.style.color = '#4285F4';
-                    allItem.style.fontWeight = '700';
-                    allItem.style.backgroundColor = '#f4f7fc';
-                } else {
-                    allItem.style.color = '#333';
-                    allItem.style.fontWeight = '600';
-                    allItem.style.backgroundColor = 'transparent';
+                if (!window.registeredPageNames) window.registeredPageNames = new Set();
+                const currentActivePage = pageNameInput.value.trim();
+                if (currentActivePage && isValidPageName(currentActivePage) && currentActivePage !== "All") {
+                    window.registeredPageNames.add(currentActivePage);
                 }
 
-                allItem.addEventListener('mouseover', () => allItem.style.backgroundColor = '#eef6fd');
-                allItem.addEventListener('mouseout', () => {
-                    allItem.style.backgroundColor = (currentActivePage === "All" || currentActivePage === "") ? '#f4f7fc' : 'transparent';
-                });
-
-                allItem.addEventListener('click', (ev) => {
-                    ev.stopPropagation();
-                    window.setGlobalPageName("All");
-                    dropdownMenu.style.display = 'none';
-
-                    pageNameInput.readOnly = true;
-                    pageNameInput.style.cursor = 'default';
-                    isEditMode = false;
-                    restoreValidBlueState();
-
-                    if (confirmIcon) confirmIcon.style.display = 'none';
-                    if (cancelIcon) cancelIcon.style.display = 'none';
-                    if (addPageIcon) addPageIcon.style.display = 'inline-block';
-                    if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
-                    if (editPenIcon) editPenIcon.style.display = 'none'; // Cannot rename 'All'
-                });
-                dropdownMenu.appendChild(allItem);
-            }
-
-            // Inject the rest of the dynamic pages with Trash Icons
-            uniquePages.forEach(page => {
-                const item = document.createElement('div');
-                item.style.display = 'flex';
-                item.style.justifyContent = 'space-between';
-                item.style.alignItems = 'center';
-                item.style.padding = '8px 12px';
-                item.style.cursor = 'pointer';
-                item.style.borderBottom = '1px solid #f0f0f0';
-                item.style.fontSize = '12px';
-                item.style.textAlign = 'left';
-
-                const textSpan = document.createElement('span');
-                textSpan.innerText = page;
-
-                if (currentActivePage === page) {
-                    item.style.color = '#4285F4';
-                    item.style.fontWeight = '700';
-                    item.style.backgroundColor = '#f4f7fc';
-                } else {
-                    item.style.color = '#333';
-                    item.style.fontWeight = '500';
-                    item.style.backgroundColor = 'transparent';
+                const uniquePages = new Set(window.registeredPageNames);
+                const tableBody = document.getElementById('myTable');
+                if (tableBody) {
+                    const pageCells = tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row) .page');
+                    pageCells.forEach(cell => {
+                        const val = cell.innerText.trim();
+                        if(val) uniquePages.add(val);
+                    });
                 }
 
-                item.addEventListener('mouseover', () => item.style.backgroundColor = '#eef6fd');
-                item.addEventListener('mouseout', () => {
-                    item.style.backgroundColor = (currentActivePage === page) ? '#f4f7fc' : 'transparent';
-                });
-
-                item.addEventListener('click', (ev) => {
-                    ev.stopPropagation();
-                    window.setGlobalPageName(page);
+                if (uniquePages.size === 0) {
                     dropdownMenu.style.display = 'none';
+                    return;
+                }
 
-                    pageNameInput.readOnly = true;
-                    pageNameInput.style.cursor = 'default';
-                    isEditMode = false;
-                    restoreValidBlueState();
+                dropdownMenu.innerHTML = '';
 
-                    if (confirmIcon) confirmIcon.style.display = 'none';
-                    if (cancelIcon) cancelIcon.style.display = 'none';
-                    if (addPageIcon) addPageIcon.style.display = 'inline-block';
-                    if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
-                    if (editPenIcon) editPenIcon.style.display = 'inline-block';
+                // Render "All"
+                if (uniquePages.size > 1) {
+                    const allItem = document.createElement('div');
+                    allItem.innerText = "All";
+                    allItem.style.padding = '8px 12px';
+                    allItem.style.margin = '2px 4px';
+                    allItem.style.borderRadius = '6px';
+                    allItem.style.cursor = 'pointer';
+                    allItem.style.fontSize = '12px';
+                    allItem.style.textAlign = 'left';
+                    allItem.style.transition = 'background-color 0.2s ease';
+
+                    if (currentActivePage === "All" || currentActivePage === "") {
+                        allItem.style.color = '#4285F4';
+                        allItem.style.fontWeight = '700';
+                        allItem.style.backgroundColor = '#eef6fd';
+                    } else {
+                        allItem.style.color = '#333';
+                        allItem.style.fontWeight = '600';
+                        allItem.style.backgroundColor = 'transparent';
+                    }
+
+                    allItem.addEventListener('mouseover', () => allItem.style.backgroundColor = '#f4f7fc');
+                    allItem.addEventListener('mouseout', () => {
+                        allItem.style.backgroundColor = (currentActivePage === "All" || currentActivePage === "") ? '#eef6fd' : 'transparent';
+                    });
+
+                    allItem.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        window.setGlobalPageName("All");
+                        dropdownMenu.style.display = 'none';
+
+                        pageNameInput.readOnly = true;
+                        pageNameInput.style.cursor = 'default';
+                        isEditMode = false;
+                        restoreValidBlueState();
+
+                        if (confirmIcon) confirmIcon.style.display = 'none';
+                        if (cancelIcon) cancelIcon.style.display = 'none';
+                        if (addPageIcon) addPageIcon.style.display = 'inline-block';
+                        if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+                        if (editPenIcon) editPenIcon.style.display = 'none';
+                    });
+                    dropdownMenu.appendChild(allItem);
+                }
+
+                // Render Page Options
+                uniquePages.forEach(page => {
+                    const item = document.createElement('div');
+                    item.style.display = 'flex';
+                    item.style.justifyContent = 'space-between';
+                    item.style.alignItems = 'center';
+                    item.style.padding = '8px 12px';
+                    item.style.margin = '2px 4px';
+                    item.style.borderRadius = '6px';
+                    item.style.cursor = 'pointer';
+                    item.style.fontSize = '12px';
+                    item.style.textAlign = 'left';
+                    item.style.transition = 'background-color 0.2s ease';
+
+                    const textSpan = document.createElement('span');
+                    textSpan.innerText = page;
+
+                    if (currentActivePage === page) {
+                        item.style.color = '#4285F4';
+                        item.style.fontWeight = '700';
+                        item.style.backgroundColor = '#eef6fd';
+                    } else {
+                        item.style.color = '#333';
+                        item.style.fontWeight = '500';
+                        item.style.backgroundColor = 'transparent';
+                    }
+
+                    item.addEventListener('mouseover', () => item.style.backgroundColor = '#f4f7fc');
+                    item.addEventListener('mouseout', () => {
+                        item.style.backgroundColor = (currentActivePage === page) ? '#eef6fd' : 'transparent';
+                    });
+
+                    item.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        window.setGlobalPageName(page);
+                        dropdownMenu.style.display = 'none';
+
+                        pageNameInput.readOnly = true;
+                        pageNameInput.style.cursor = 'default';
+                        isEditMode = false;
+                        restoreValidBlueState();
+
+                        if (confirmIcon) confirmIcon.style.display = 'none';
+                        if (cancelIcon) cancelIcon.style.display = 'none';
+                        if (addPageIcon) addPageIcon.style.display = 'inline-block';
+                        if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+                        if (editPenIcon) editPenIcon.style.display = 'inline-block';
+                    });
+
+                    // Trash Icon
+                    const delIcon = document.createElement('div');
+                    delIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #dc3545; transition: transform 0.1s;"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+                    delIcon.style.padding = '4px';
+                    delIcon.style.marginRight = '-4px';
+                    delIcon.style.borderRadius = '4px';
+                    delIcon.title = "Delete Page";
+
+                    delIcon.addEventListener('mouseover', () => {
+                        delIcon.style.backgroundColor = '#f8d7da';
+                        delIcon.querySelector('svg').style.transform = 'scale(1.1)';
+                    });
+                    delIcon.addEventListener('mouseout', () => {
+                        delIcon.style.backgroundColor = 'transparent';
+                        delIcon.querySelector('svg').style.transform = 'scale(1)';
+                    });
+
+                    delIcon.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        pendingExportAction = "deletePage";
+                        window.pageToDelete = page;
+
+                        document.getElementById('back_btn').style.display = 'inline-block';
+                        document.getElementById('okay_btn').innerText = 'Confirm';
+                        document.getElementById('popup_title').innerText = "Confirm Page Deletion";
+                        document.getElementById('popup_main_text').innerHTML = `Are you sure you want to delete the page <b>"${page}"</b>?`;
+                        document.getElementById('popup_sub_text').innerHTML = `All scraped elements mapped to this page will also be removed.`;
+
+                        document.getElementById('confirmationPopup').style.display = 'block';
+                        document.getElementById('overlay').style.display = 'block';
+
+                        dropdownMenu.style.display = 'none';
+                    });
+
+                    item.appendChild(textSpan);
+                    item.appendChild(delIcon);
+                    dropdownMenu.appendChild(item);
                 });
 
-                // --- NEW TRASH ICON ---
-                const delIcon = document.createElement('div');
-                delIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #dc3545; transition: transform 0.1s;"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
-                delIcon.style.padding = '4px';
-                delIcon.style.marginRight = '-4px';
-                delIcon.style.borderRadius = '4px';
-                delIcon.title = "Delete Page";
-
-                delIcon.addEventListener('mouseover', () => {
-                    delIcon.style.backgroundColor = '#f8d7da';
-                    delIcon.querySelector('svg').style.transform = 'scale(1.1)';
-                });
-                delIcon.addEventListener('mouseout', () => {
-                    delIcon.style.backgroundColor = 'transparent';
-                    delIcon.querySelector('svg').style.transform = 'scale(1)';
-                });
-
-                delIcon.addEventListener('click', (ev) => {
-                    ev.stopPropagation();
-
-                    pendingExportAction = "deletePage";
-                    window.pageToDelete = page; // Pass to the okay button handler
-
-                    document.getElementById('back_btn').style.display = 'inline-block';
-                    document.getElementById('okay_btn').innerText = 'Confirm';
-                    document.getElementById('popup_title').innerText = "Confirm Page Deletion";
-                    document.getElementById('popup_main_text').innerHTML = `Are you sure you want to delete the page <b>"${page}"</b>?`;
-                    document.getElementById('popup_sub_text').innerHTML = `All scraped elements mapped to this page will also be removed.`;
-
-                    document.getElementById('confirmationPopup').style.display = 'block';
-                    document.getElementById('overlay').style.display = 'block';
-
-                    dropdownMenu.style.display = 'none';
-                });
-
-                item.appendChild(textSpan);
-                item.appendChild(delIcon);
-                dropdownMenu.appendChild(item);
+                dropdownMenu.style.display = 'block';
             });
 
-            dropdownMenu.style.display = dropdownMenu.style.display === 'none' ? 'block' : 'none';
-        });
+            // 2. Start timer when leaving the icon
+            dropdownIcon.addEventListener('mouseleave', function() {
+                pageDropdownTimer = setTimeout(() => {
+                    dropdownMenu.style.display = 'none';
+                }, 200); // 500ms gap allowance
+            });
 
-        document.addEventListener('click', (e) => {
-            if (!dropdownMenu.contains(e.target) && e.target !== dropdownIcon) {
-                dropdownMenu.style.display = 'none';
-            }
-        });
-    }
+            // 3. Keep menu open if mouse enters the dropdown itself
+            dropdownMenu.addEventListener('mouseenter', function() {
+                clearTimeout(pageDropdownTimer);
+            });
+
+            // 4. Hide menu when mouse finally leaves the dropdown
+            dropdownMenu.addEventListener('mouseleave', function() {
+                pageDropdownTimer = setTimeout(() => {
+                    dropdownMenu.style.display = 'none';
+                }, 300);
+            });
+        }
 
     pageNameInput.addEventListener('input', function() {
         if (!pageNameInput.readOnly) {
@@ -5883,11 +5953,9 @@ function initPageNameLogic() {
             if (!window.registeredPageNames) window.registeredPageNames = new Set();
 
             if (isRenameMode && renameTarget !== "" && renameTarget !== newName) {
-                // Rename in Memory
                 window.registeredPageNames.delete(renameTarget);
                 window.registeredPageNames.add(newName);
 
-                // Rename in Table
                 const tableBody = document.getElementById('myTable');
                 if (tableBody) {
                     const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
@@ -6017,11 +6085,12 @@ function flashScenarioOutlineError() {
     }
 }
 
+
 function initScenarioOutlineLogic() {
     const soInput = document.getElementById('scenarioOutlineText');
     const soEditIcon = document.getElementById('so_edit_icon');
-    const soDeleteIcon = document.getElementById('so_delete_icon');
     const soDropdownIcon = document.getElementById('so_dropdown_icon');
+    const soDropdownMenu = document.getElementById('scenarioOutlineDropdown');
     const soConfirmIcon = document.getElementById('so_confirm_icon');
     const soCancelIcon = document.getElementById('so_cancel_icon');
     const soErrorIconWrapper = document.getElementById('so_error_icon_wrapper');
@@ -6038,31 +6107,225 @@ function initScenarioOutlineLogic() {
         if (soBar) soBar.style.borderColor = '#4285F4';
         if (soLabel) soLabel.style.backgroundColor = '#4285F4';
         if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'none';
+
+        if (!isSOEditMode && soDropdownIcon) {
+            soDropdownIcon.style.display = 'inline-block';
+        }
     }
 
-    soInput.addEventListener('input', function() {
-            if (!soInput.readOnly) {
-                // Invalid Format Check
-                if (!isGlobalPageNameValid(this.value) && this.value !== "") {
-                    if (soConfirmIcon) soConfirmIcon.style.display = 'none';
-                    if (soCancelIcon) soCancelIcon.style.display = 'none'; // <-- THIS HIDES THE CROSS MARK
+   // --- MODERN DROPDOWN HOVER LOGIC ---
+      if (soDropdownIcon && soDropdownMenu) {
+          let soDropdownTimer; // Timer to hold the delay
 
-                    if (soBar) soBar.style.borderColor = '#dc3545';
-                    if (soLabel) soLabel.style.backgroundColor = '#dc3545';
-                    if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'inline-flex'; // <-- THIS SHOWS THE RED ERROR ICON
-                } else {
-                    restoreValidSOBlueState();
-                    if (isSOEditMode) {
-                        if (this.value.trim() !== '') {
-                            if (soConfirmIcon) soConfirmIcon.style.display = 'inline-block';
-                        } else {
-                            if (soConfirmIcon) soConfirmIcon.style.display = 'none';
-                        }
-                        if (soCancelIcon) soCancelIcon.style.display = 'inline-block';
+          // 1. Show on Hover (Icon)
+          soDropdownIcon.addEventListener('mouseenter', function(e) {
+              clearTimeout(soDropdownTimer); // Stop it from closing if returning
+              if (isSOEditMode) return;
+
+              if (!window.pageScenarioData || Object.keys(window.pageScenarioData).length === 0) {
+                  soDropdownMenu.style.display = 'none';
+                  return;
+              }
+
+              const currentActivePage = document.getElementById('pagename_searchbox').value.trim();
+              soDropdownMenu.innerHTML = '';
+              let hasItems = false;
+
+              const validPages = Object.keys(window.pageScenarioData).filter(p => window.pageScenarioData[p] && window.pageScenarioData[p].scenarioOutline);
+
+              if (validPages.length === 0) {
+                  soDropdownMenu.style.display = 'none';
+                  return;
+              }
+
+              // Render "All" option
+              if (validPages.length > 1) {
+                  const allItem = document.createElement('div');
+                  allItem.innerText = "All";
+                  allItem.style.padding = '8px 12px';
+                  allItem.style.margin = '2px 4px';
+                  allItem.style.borderRadius = '6px';
+                  allItem.style.cursor = 'pointer';
+                  allItem.style.fontSize = '12px';
+                  allItem.style.textAlign = 'left';
+                  allItem.style.transition = 'background-color 0.2s ease';
+
+                  if (currentActivePage === "All" || currentActivePage === "") {
+                      allItem.style.color = '#4285F4';
+                      allItem.style.fontWeight = '700';
+                      allItem.style.backgroundColor = '#eef6fd';
+                  } else {
+                      allItem.style.color = '#333';
+                      allItem.style.fontWeight = '600';
+                      allItem.style.backgroundColor = 'transparent';
+                  }
+
+                  allItem.addEventListener('mouseover', () => allItem.style.backgroundColor = '#f4f7fc');
+                  allItem.addEventListener('mouseout', () => {
+                      allItem.style.backgroundColor = (currentActivePage === "All" || currentActivePage === "") ? '#eef6fd' : 'transparent';
+                  });
+
+                  allItem.addEventListener('click', (ev) => {
+                      ev.stopPropagation();
+                      window.setGlobalPageName("All");
+                      soDropdownMenu.style.display = 'none';
+
+                      const soInput = document.getElementById('scenarioOutlineText');
+                      if (soInput) {
+                          soInput.readOnly = true;
+                          soInput.style.cursor = 'default';
+                      }
+                      isSOEditMode = false;
+                      restoreValidSOBlueState();
+
+                      const soConfirmIcon = document.getElementById('so_confirm_icon');
+                      const soCancelIcon = document.getElementById('so_cancel_icon');
+                      const soEditIcon = document.getElementById('so_edit_icon');
+
+                      if (soConfirmIcon) soConfirmIcon.style.display = 'none';
+                      if (soCancelIcon) soCancelIcon.style.display = 'none';
+                      if (soDropdownIcon) soDropdownIcon.style.display = 'inline-block';
+                      if (soEditIcon) soEditIcon.style.display = 'none';
+                  });
+
+                  soDropdownMenu.appendChild(allItem);
+                  hasItems = true;
+              }
+
+              // Render Scenario Options
+              validPages.forEach(page => {
+                  hasItems = true;
+                  const scenarioData = window.pageScenarioData[page];
+                  const outlineText = scenarioData.scenarioOutline;
+
+                  const item = document.createElement('div');
+                  item.style.display = 'flex';
+                  item.style.justifyContent = 'space-between';
+                  item.style.alignItems = 'center';
+                  item.style.padding = '8px 12px';
+                  item.style.margin = '2px 4px';
+                  item.style.borderRadius = '6px';
+                  item.style.cursor = 'pointer';
+                  item.style.fontSize = '12px';
+                  item.style.textAlign = 'left';
+                  item.style.transition = 'background-color 0.2s ease';
+
+                  const textSpan = document.createElement('span');
+                  textSpan.innerText = outlineText.length > 30 ? outlineText.substring(0, 30) + '...' : outlineText;
+                  textSpan.title = `Page: ${page}\nOutline: ${outlineText}`;
+
+                  if (currentActivePage === page) {
+                      item.style.color = '#4285F4';
+                      item.style.fontWeight = '700';
+                      item.style.backgroundColor = '#eef6fd';
+                  } else {
+                      item.style.color = '#333';
+                      item.style.fontWeight = '500';
+                      item.style.backgroundColor = 'transparent';
+                  }
+
+                  item.addEventListener('mouseover', () => item.style.backgroundColor = '#f4f7fc');
+                  item.addEventListener('mouseout', () => {
+                      item.style.backgroundColor = (currentActivePage === page) ? '#eef6fd' : 'transparent';
+                  });
+
+                  item.addEventListener('click', (ev) => {
+                      ev.stopPropagation();
+                      window.setGlobalPageName(page);
+                      soDropdownMenu.style.display = 'none';
+                  });
+
+                  // Trash Icon
+                  const delIcon = document.createElement('div');
+                  delIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #dc3545; transition: transform 0.1s;"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+                  delIcon.style.padding = '4px';
+                  delIcon.style.marginRight = '-4px';
+                  delIcon.style.borderRadius = '4px';
+                  delIcon.title = "Delete Scenario & Page";
+
+                  delIcon.addEventListener('mouseover', () => {
+                      delIcon.style.backgroundColor = '#f8d7da';
+                      delIcon.querySelector('svg').style.transform = 'scale(1.1)';
+                  });
+                  delIcon.addEventListener('mouseout', () => {
+                      delIcon.style.backgroundColor = 'transparent';
+                      delIcon.querySelector('svg').style.transform = 'scale(1)';
+                  });
+
+                  delIcon.addEventListener('click', (ev) => {
+                      ev.stopPropagation();
+                      pendingExportAction = "deletePage";
+                      window.pageToDelete = page;
+
+                      document.getElementById('back_btn').style.display = 'inline-block';
+                      document.getElementById('okay_btn').innerText = 'Confirm';
+                      document.getElementById('popup_title').innerText = "Confirm Deletion";
+                      document.getElementById('popup_main_text').innerHTML = `Are you sure you want to delete this Scenario Outline?`;
+                      document.getElementById('popup_sub_text').innerHTML = `The associated page <b>"${page}"</b> and all its scraped elements will also be permanently deleted.`;
+
+                      document.getElementById('confirmationPopup').style.display = 'block';
+                      document.getElementById('overlay').style.display = 'block';
+
+                      soDropdownMenu.style.display = 'none';
+                  });
+
+                  item.appendChild(textSpan);
+                  item.appendChild(delIcon);
+                  soDropdownMenu.appendChild(item);
+              });
+
+              if (!hasItems) {
+                  soDropdownMenu.style.display = 'none';
+                  return;
+              }
+
+              soDropdownMenu.style.display = 'block';
+          });
+
+          // 2. Start timer when leaving the icon
+          soDropdownIcon.addEventListener('mouseleave', function() {
+              soDropdownTimer = setTimeout(() => {
+                  soDropdownMenu.style.display = 'none';
+              }, 500); // 500ms gap allowance
+          });
+
+          // 3. Keep menu open if mouse enters the dropdown itself
+          soDropdownMenu.addEventListener('mouseenter', function() {
+              clearTimeout(soDropdownTimer);
+          });
+
+          // 4. Hide menu when mouse finally leaves the dropdown
+          soDropdownMenu.addEventListener('mouseleave', function() {
+              soDropdownTimer = setTimeout(() => {
+                  soDropdownMenu.style.display = 'none';
+              }, 200);
+          });
+      }
+
+    soInput.addEventListener('input', function() {
+        if (!soInput.readOnly) {
+            if (!isGlobalPageNameValid(this.value) && this.value !== "") {
+                if (soConfirmIcon) soConfirmIcon.style.display = 'none';
+                if (soCancelIcon) soCancelIcon.style.display = 'none';
+                if (soDropdownIcon) soDropdownIcon.style.display = 'none';
+
+                if (soBar) soBar.style.borderColor = '#dc3545';
+                if (soLabel) soLabel.style.backgroundColor = '#dc3545';
+                if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'inline-flex';
+            } else {
+                restoreValidSOBlueState();
+                if (isSOEditMode) {
+                    if (this.value.trim() !== '') {
+                        if (soConfirmIcon) soConfirmIcon.style.display = 'inline-block';
+                    } else {
+                        if (soConfirmIcon) soConfirmIcon.style.display = 'none';
                     }
+                    if (soCancelIcon) soCancelIcon.style.display = 'inline-block';
+                    if (soDropdownIcon) soDropdownIcon.style.display = 'none';
                 }
             }
-        });
+        }
+    });
 
     if (soEditIcon) {
         soEditIcon.addEventListener('click', function() {
@@ -6074,7 +6337,6 @@ function initScenarioOutlineLogic() {
             soInput.focus();
 
             soEditIcon.style.display = 'none';
-            if (soDeleteIcon) soDeleteIcon.style.display = 'none';
             if (soDropdownIcon) soDropdownIcon.style.display = 'none';
             if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'none';
 
@@ -6103,12 +6365,19 @@ function initScenarioOutlineLogic() {
             soInput.style.cursor = 'default';
             isSOEditMode = false;
 
+            const currentActivePage = document.getElementById('pagename_searchbox').value.trim();
+            if (currentActivePage && currentActivePage !== "All" && window.pageScenarioData) {
+                if (!window.pageScenarioData[currentActivePage]) {
+                    window.pageScenarioData[currentActivePage] = { scenarioName: "", scenarioOutline: "" };
+                }
+                window.pageScenarioData[currentActivePage].scenarioOutline = soInput.value.trim();
+            }
+
             if (soConfirmIcon) soConfirmIcon.style.display = 'none';
             if (soCancelIcon) soCancelIcon.style.display = 'none';
             if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'none';
 
             if (soEditIcon) soEditIcon.style.display = 'inline-block';
-            if (soDeleteIcon) soDeleteIcon.style.display = 'inline-block';
             if (soDropdownIcon) soDropdownIcon.style.display = 'inline-block';
         });
     }
@@ -6126,7 +6395,6 @@ function initScenarioOutlineLogic() {
         if (soErrorIconWrapper) soErrorIconWrapper.style.display = 'none';
 
         if (soEditIcon) soEditIcon.style.display = 'inline-block';
-        if (soDeleteIcon) soDeleteIcon.style.display = 'inline-block';
         if (soDropdownIcon) soDropdownIcon.style.display = 'inline-block';
     }
 
@@ -6149,11 +6417,6 @@ function initScenarioOutlineLogic() {
         }
     });
 }
-
-
-
-
-
 
 
 // Bind dropdown change event and initialize our methods
@@ -6349,12 +6612,24 @@ document.addEventListener("DOMContentLoaded", () => {
                 recPageNameInput.value = pageNameValue;
                 clearError(recPageNameInput, "rec_page_error_icon");
             }
+
+            // --- NEW: Retrieve BOTH Scenario Name and Outline from memory ---
+            let savedScenarioName = "";
+            let savedScenarioOutline = "";
+
+            if (window.pageScenarioData && window.pageScenarioData[pageNameValue]) {
+                savedScenarioName = window.pageScenarioData[pageNameValue].scenarioName || "";
+                savedScenarioOutline = window.pageScenarioData[pageNameValue].scenarioOutline || "";
+            }
+
             if (recScenarioNameInput) {
-                recScenarioNameInput.value = "";
+                // Only pre-fill if we are in RECORD (edit) mode. If ADD (new), leave blank.
+                recScenarioNameInput.value = (mode === "RECORD") ? savedScenarioName : "";
                 clearError(recScenarioNameInput, "rec_scenario_error_icon");
             }
+
             if (recScenarioOutlineInput) {
-                recScenarioOutlineInput.value = "";
+                recScenarioOutlineInput.value = (mode === "RECORD") ? savedScenarioOutline : "";
                 clearError(recScenarioOutlineInput, "rec_outline_error_icon");
             }
 
@@ -6398,80 +6673,104 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (recStartBtn) {
-            recStartBtn.addEventListener("click", () => {
-                let isValid = true;
+           recStartBtn.addEventListener("click", () => {
+               let isValid = true;
 
-                if (recPageNameInput) {
-                    const pageError = validatePageName(recPageNameInput.value);
-                    if (pageError) {
-                        showError(recPageNameInput, "rec_page_error_icon", "rec_page_error_text", pageError);
-                        isValid = false;
-                    }
-                }
+               if (recPageNameInput) {
+                   const pageError = validatePageName(recPageNameInput.value);
+                   if (pageError) {
+                       showError(recPageNameInput, "rec_page_error_icon", "rec_page_error_text", pageError);
+                       isValid = false;
+                   }
+               }
 
-                const nameError = validateScenarioName(recScenarioNameInput.value);
-                if (nameError) {
-                    showError(recScenarioNameInput, "rec_scenario_error_icon", "rec_scenario_error_text", nameError);
-                    isValid = false;
-                }
+               const nameError = validateScenarioName(recScenarioNameInput.value);
+               if (nameError) {
+                   showError(recScenarioNameInput, "rec_scenario_error_icon", "rec_scenario_error_text", nameError);
+                   isValid = false;
+               }
 
-                const outlineError = validateScenarioOutline(recScenarioOutlineInput.value);
-                if (outlineError) {
-                    showError(recScenarioOutlineInput, "rec_outline_error_icon", "rec_outline_error_text", outlineError);
-                    isValid = false;
-                }
+               const outlineError = validateScenarioOutline(recScenarioOutlineInput.value);
+               if (outlineError) {
+                   showError(recScenarioOutlineInput, "rec_outline_error_icon", "rec_outline_error_text", outlineError);
+                   isValid = false;
+               }
 
-                if (!isValid) return;
+               if (!isValid) return;
 
-                const newPageName = recPageNameInput.value.trim();
+               const newPageName = recPageNameInput.value.trim();
+               const newScenarioName = recScenarioNameInput.value.trim(); // NEW: Grab Scenario Name
+               const newScenarioOutline = recScenarioOutlineInput.value.trim(); // NEW: Grab Scenario Outline
 
-                // Make sure global memory array exists
-                if (!window.registeredPageNames) window.registeredPageNames = new Set();
+               // Make sure global memory objects exist
+               if (!window.registeredPageNames) window.registeredPageNames = new Set();
+               if (!window.pageScenarioData) window.pageScenarioData = {}; // NEW: Ensure object exists
 
-                // --- RECORD vs ADD MEMORY LOGIC ---
-                if (currentScenarioMode === "RECORD") {
+               // --- RECORD vs ADD MEMORY LOGIC ---
+               if (currentScenarioMode === "RECORD") {
 
-                    // RECORD: Delete old name from memory, save new name.
-                    // (Table UI is already updated via the real-time input event)
-                    if (initialModalPageName !== "" && initialModalPageName !== newPageName) {
-                        window.registeredPageNames.delete(initialModalPageName);
-                        window.registeredPageNames.add(newPageName);
-                    } else if (initialModalPageName === newPageName && newPageName !== "") {
-                        window.registeredPageNames.add(newPageName);
-                    }
+                   // RECORD: Delete old name from memory, save new name.
+                   if (initialModalPageName !== "" && initialModalPageName !== newPageName) {
+                       window.registeredPageNames.delete(initialModalPageName);
+                       window.registeredPageNames.add(newPageName);
 
-                } else if (currentScenarioMode === "ADD") {
+                       // NEW: Transfer scenario data to the new page name
+                       window.pageScenarioData[newPageName] = {
+                           scenarioName: newScenarioName,
+                           scenarioOutline: newScenarioOutline
+                       };
+                       delete window.pageScenarioData[initialModalPageName]; // Clean up old memory
 
-                    // ADD: Keep old name, save new name. DO NOT touch old table cells.
-                    if (initialModalPageName !== "") {
-                        window.registeredPageNames.add(initialModalPageName);
-                    }
-                    if (newPageName !== "") {
-                        window.registeredPageNames.add(newPageName);
-                    }
-                }
+                   } else if (initialModalPageName === newPageName && newPageName !== "") {
+                       window.registeredPageNames.add(newPageName);
 
-                // Update the main top searchbox and filter so the user sees the new page context
-                if (pageNameInput) {
-                    pageNameInput.value = newPageName;
-                    if (window.setGlobalPageName) {
-                        window.setGlobalPageName(newPageName);
-                    }
-                }
+                       // NEW: Update existing page data
+                       window.pageScenarioData[newPageName] = {
+                           scenarioName: newScenarioName,
+                           scenarioOutline: newScenarioOutline
+                       };
+                   }
 
-                // Close Popup
-                if (recordModal) recordModal.style.display = "none";
-                if (overlay) overlay.style.display = "none";
+               } else if (currentScenarioMode === "ADD") {
 
-                if (scenarioOutlineBar && scenarioOutlineText) {
-                    scenarioOutlineText.value = recScenarioOutlineInput.value.trim();
-                    scenarioOutlineBar.style.display = "inline-flex";
-                }
+                   // ADD: Keep old name, save new name. DO NOT touch old table cells.
+                   if (initialModalPageName !== "") {
+                       window.registeredPageNames.add(initialModalPageName);
+                   }
+                   if (newPageName !== "") {
+                       window.registeredPageNames.add(newPageName);
 
-                // Swap buttons
-                recordScenarioBtn.style.setProperty("display", "none", "important");
-                addScenarioBtn.style.setProperty("display", "inline-flex", "important");
-            });
+                       // NEW: Save data for newly added page
+                       window.pageScenarioData[newPageName] = {
+                           scenarioName: newScenarioName,
+                           scenarioOutline: newScenarioOutline
+                       };
+                   }
+               }
+
+               // Update the main top searchbox and filter so the user sees the new page context
+               // Note: Calling window.setGlobalPageName here automatically renders the outline we just saved!
+               if (pageNameInput) {
+                   pageNameInput.value = newPageName;
+                   if (window.setGlobalPageName) {
+                       window.setGlobalPageName(newPageName);
+                   }
+               }
+
+               // Close Popup
+               if (recordModal) recordModal.style.display = "none";
+               if (overlay) overlay.style.display = "none";
+
+               // Update main UI components
+               if (scenarioOutlineBar && scenarioOutlineText) {
+                   scenarioOutlineText.value = newScenarioOutline;
+                   scenarioOutlineBar.style.display = "inline-flex";
+               }
+
+               // Swap buttons
+               recordScenarioBtn.style.setProperty("display", "none", "important");
+               addScenarioBtn.style.setProperty("display", "inline-flex", "important");
+           });
         }
     }
 });

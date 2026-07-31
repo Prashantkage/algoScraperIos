@@ -120,8 +120,8 @@
                     <!-- Existing Dropdown Icon -->
                     <svg class="dropdown-icon" viewBox="0 0 10 6" style="cursor: pointer;"><polygon points="0,0 10,0 5,6" fill="#888888"></polygon></svg>
 
-                    <!-- Dropdown Menu Container -->
-                    <div id="pageNameDropdown" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; max-height: 150px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-width: 150px; margin-top: 5px;"></div>
+                    <!-- NEW: Modern Page Name Dropdown Menu -->
+                    <div id="pageNameDropdown" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #eaeaea; border-radius: 8px; max-height: 220px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.1); min-width: 160px; margin-top: 8px; padding: 6px;"></div>
                 </div>
             </div>
 
@@ -338,23 +338,18 @@
         <span class="scenario-label" id="so_badge_label">Scenario Outline</span>
         <div class="scenario-content">
 
-            <!-- Input box with 450px width applied via CSS -->
-            <input type="text" id="scenarioOutlineText" class="scenario-input" readonly>
+            <!-- Input box with black text color override -->
+            <input type="text" id="scenarioOutlineText" class="scenario-input" style="color: #333 !important; font-weight: 600;" readonly>
 
-            <div class="scenario-icons-wrapper">
+            <div class="scenario-icons-wrapper" style="position: relative;">
                 <!-- Dropdown Arrow Icon -->
-                <svg id="so_dropdown_icon" class="scenario-dropdown-icon" viewBox="0 0 10 6">
+                <svg id="so_dropdown_icon" class="scenario-dropdown-icon" viewBox="0 0 10 6" style="cursor: pointer;">
                     <polygon points="0,0 10,0 5,6" fill="#555555"></polygon>
                 </svg>
 
                 <!-- Edit Icon (Pen) -->
                 <svg id="so_edit_icon" class="scenario-icon blue-icon" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                </svg>
-
-                <!-- Delete Icon (Trash) -->
-                <svg id="so_delete_icon" class="scenario-icon blue-icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                 </svg>
 
                 <!-- Confirm (Right) Mark Icon (Hidden by default) -->
@@ -372,7 +367,12 @@
                         Scenario Outline can accept alphanumeric, single space between words and underscore starting with alphabet and numbers and underscore
                     </div>
                 </div>
+
+                <!-- NEW: Modern Scenario Outline Dropdown Menu -->
+                <div id="scenarioOutlineDropdown" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #eaeaea; border-radius: 8px; max-height: 220px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.1); min-width: 260px; margin-top: 8px; padding: 6px;"></div>
             </div>
+
+
         </div>
     </div>
 
