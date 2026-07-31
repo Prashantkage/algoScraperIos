@@ -1432,53 +1432,31 @@ document.getElementById("Scrape").addEventListener('click', async () => {
     async function onTableClick(e) {
 
         // 1. DELETE ROW HANDLER
-         if (e.target.classList.contains("deleteBtn")) {
+        if (e.target.classList.contains("deleteBtn")) {
                     const targetRow = e.target.closest("tr");
                     if (!targetRow) return;
 
-                    // A. Extract Control Name and Page Name dynamically from the row
+                    // A. Extract Control Name dynamically from the row
                     const cnCell = targetRow.querySelector(".cn");
-                    const pageCell = targetRow.querySelector(".page");
-
-                    // Grab the text, or fallback if the field is empty
                     let controlName = cnCell && cnCell.innerText.trim() !== "" ? cnCell.innerText.trim() : null;
-                    let pageName = pageCell && pageCell.innerText.trim() !== "" ? pageCell.innerText.trim() : "this page";
 
-                    // B. NEW: Count how many elements share this exact Page Name
-                    const allDataRows = document.querySelectorAll('#myTable tr:not(.empty-excel-row):not(.no-results-row)');
-                    let samePageCount = 0;
-                    allDataRows.forEach(r => {
-                        const pCell = r.querySelector(".page");
-                        if (pCell && pCell.innerText.trim() === pageName) {
-                            samePageCount++;
-                        }
-                    });
-
-                    // C. Format the text according to the situation
                     let mainText = controlName
                         ? `Are you sure you want to delete<br>"${controlName}"?`
                         : `Are you sure you want to delete this row?`;
 
-                    let subText = `It will be removed from "${pageName}".`;
-
-                    // D. NEW: Append strict warning if this is the last element for this page
-                    if (samePageCount === 1 && pageName !== "this page") {
-                        subText += `<br><strong style="color: #d9534f; font-size: 11px;">Warning: This is the last element. Deleting this will also delete the page "${pageName}".</strong>`;
-                    }
-
-                    // E. Inject text into the modal
+                    // B. Inject text into the modal
                     document.getElementById('back_btn').style.display = 'inline-block';
                     document.getElementById('okay_btn').innerText = 'Confirm';
 
                     document.getElementById('popup_title').innerText = "Confirm Deletion";
                     document.getElementById('popup_main_text').innerHTML = mainText;
-                    document.getElementById('popup_sub_text').innerHTML = subText; // Using innerHTML to safely render the bold <strong> tag
+                    document.getElementById('popup_sub_text').innerHTML = "This action cannot be undone.";
 
-                    // F. Set action state and store the row reference
+                    // C. Set action state and store the row reference
                     pendingExportAction = "deleteRow";
                     rowToDelete = targetRow;
 
-                    // G. Show the popup
+                    // D. Show the popup
                     document.getElementById('confirmationPopup').style.display = 'block';
                     document.getElementById('overlay').style.display = 'block';
 
@@ -4846,6 +4824,7 @@ function updateRowEyeButtonState() {
 
 
 
+   //popup okay button
    newOkayBtn.addEventListener('click', async () => {
            document.getElementById('confirmationPopup').style.display = 'none';
            document.getElementById('overlay').style.display = 'none';
@@ -4884,47 +4863,10 @@ function updateRowEyeButtonState() {
            } else if (pendingExportAction === "deleteRow") {
                pendingExportAction = null;
 
+               // Row deletion no longer automatically deletes the page name or switches views
                if (rowToDelete) {
-                   // Remove the row from the DOM
                    rowToDelete.remove();
                    rowToDelete = null;
-
-                   // Check remaining rows across the entire table
-                   const remainingRows = document.querySelectorAll('#myTable tr:not(.empty-excel-row):not(.no-results-row)');
-
-                   const pageNameInput = document.getElementById('pagename_searchbox');
-
-                   if (remainingRows.length === 0) {
-                       // If no rows are left anywhere in the table, clear input and open for typing a new page name
-                       if (window.setGlobalPageName) {
-                           window.setGlobalPageName("");
-                       }
-
-                       if (pageNameInput) {
-                           pageNameInput.readOnly = false;
-                           pageNameInput.style.cursor = 'text';
-                           pageNameInput.focus();
-
-                           // Swap the icons to show Confirm/Cancel
-                           const addIcon = document.querySelector('.add-page-icon');
-                           const editIcon = document.querySelector('.edit-icon');
-                           const dropIcon = document.querySelector('.dropdown-icon');
-                           const confirmIcon = document.querySelector('.confirm-edit-icon');
-                           const cancelIcon = document.querySelector('.cancel-edit-icon');
-
-                           if (addIcon) addIcon.style.display = 'none';
-                           if (editIcon) editIcon.style.display = 'none';
-                           if (dropIcon) dropIcon.style.display = 'none';
-                           if (confirmIcon) confirmIcon.style.display = 'inline-block';
-                           if (cancelIcon) cancelIcon.style.display = 'inline-block';
-                       }
-                   } else {
-                       // Rows still exist from other pages! Automatically switch to the first available page name found
-                       const firstAvailablePage = remainingRows[0].querySelector(".page")?.innerText.trim() || "";
-                       if (window.setGlobalPageName && firstAvailablePage) {
-                           window.setGlobalPageName(firstAvailablePage);
-                       }
-                   }
 
                    updateRowNumbers();
                    applyPagination();
@@ -4937,64 +4879,68 @@ function updateRowEyeButtonState() {
            } else if (pendingExportAction === "bulkDelete") {
                pendingExportAction = null;
 
+               // Bulk deletion no longer automatically deletes the page name or switches views
                if (window.pendingBulkDeleteRows && window.pendingBulkDeleteRows.length > 0) {
-                   // Remove all checked rows
                    window.pendingBulkDeleteRows.forEach(row => row.remove());
-
-                   // Clear payload
                    window.pendingBulkDeleteRows = null;
 
-                   // Uncheck Header
                    const headerCheckbox = document.getElementById('selectAllCheckbox');
                    if (headerCheckbox) headerCheckbox.checked = false;
 
-                   // Check remaining rows across the entire table
-                   const remainingRows = document.querySelectorAll('#myTable tr:not(.empty-excel-row):not(.no-results-row)');
-                   const pageNameInput = document.getElementById('pagename_searchbox');
-
-                   if (remainingRows.length === 0) {
-                       // If no rows are left anywhere in the table, clear input and open for typing a new page name
-                       if (window.setGlobalPageName) {
-                           window.setGlobalPageName("");
-                       }
-
-                       if (pageNameInput) {
-                           pageNameInput.readOnly = false;
-                           pageNameInput.style.cursor = 'text';
-                           pageNameInput.focus();
-                       }
-
-                       const addIcon = document.querySelector('.add-page-icon');
-                       const editIcon = document.querySelector('.edit-icon');
-                       const dropIcon = document.querySelector('.dropdown-icon');
-                       const confirmIcon = document.querySelector('.confirm-edit-icon');
-                       const cancelIcon = document.querySelector('.cancel-edit-icon');
-
-                       if (addIcon) addIcon.style.display = 'none';
-                       if (editIcon) editIcon.style.display = 'none';
-                       if (dropIcon) dropIcon.style.display = 'none';
-                       if (confirmIcon) confirmIcon.style.display = 'inline-block';
-                       if (cancelIcon) cancelIcon.style.display = 'inline-block';
-                   } else {
-                       // Rows still exist from other pages! Automatically switch to the first available page name found
-                       const firstAvailablePage = remainingRows[0].querySelector(".page")?.innerText.trim() || "";
-                       if (window.setGlobalPageName && firstAvailablePage) {
-                           window.setGlobalPageName(firstAvailablePage);
-                       }
-                   }
-
-                   // Clean up view
                    updateRowNumbers();
                    applyPagination();
+
                    const tbody = document.getElementById('myTable');
                    if (tbody && tbody.querySelectorAll('tr').length < 5) adjustEmptyRows();
 
-                   // Auto-disable multi-delete mode to safely restore standard view
                    const toggleMultiDeleteOpt = document.getElementById('toggleMultiDeleteOpt');
                    if (toggleMultiDeleteOpt && isMultiDeleteMode) {
                        toggleMultiDeleteOpt.click();
                    }
                }
+
+           // --- EXPLICIT PAGE DELETE LOGIC ---
+           } else if (pendingExportAction === "deletePage") {
+               pendingExportAction = null;
+               const page = window.pageToDelete;
+
+               if (page) {
+                   // 1. Remove the page from the global memory bank
+                   if (window.registeredPageNames) {
+                       window.registeredPageNames.delete(page);
+                   }
+
+                   // 2. Remove all rows associated with this specific page
+                   const tableBody = document.getElementById('myTable');
+                   if (tableBody) {
+                       const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
+                       allDataRows.forEach(row => {
+                           const pageCell = row.querySelector('.page');
+                           if (pageCell && pageCell.innerText.trim() === page) {
+                               row.remove();
+                           }
+                       });
+
+                       updateRowNumbers();
+                       applyPagination();
+                       if (typeof adjustEmptyRows === 'function') requestAnimationFrame(adjustEmptyRows);
+                   }
+
+                   // 3. If the user just deleted the active page they were currently viewing, switch back to 'All'
+                   const pageNameInput = document.getElementById('pagename_searchbox');
+                   if (pageNameInput && pageNameInput.value.trim() === page) {
+                       if (window.setGlobalPageName) window.setGlobalPageName("All");
+
+                       pageNameInput.readOnly = true;
+                       pageNameInput.style.cursor = 'default';
+
+                       const editPenIcon = document.querySelector('.edit-icon');
+                       if (editPenIcon) editPenIcon.style.display = 'none'; // Cannot rename 'All'
+                   }
+                   window.pageToDelete = null;
+               }
+
+           // --- GENERAL RESET LOGIC ---
            } else {
                await executeResetAction();
            }
@@ -5022,6 +4968,8 @@ function updateRowEyeButtonState() {
     // Encapsulated Reset Function
     function executeResetAction() {
             try {
+
+
                 // 1. Safely hide status bars and errors
                 const statusBar = document.getElementById('sttus_bar_div');
                 if (statusBar) statusBar.style.display = 'none';
@@ -5576,7 +5524,7 @@ function flashPageNameError() {
     }
 }
 
-//Page Name lock/unlock logic
+//Page Name lock/unlock logic drop down of page
 function initPageNameLogic() {
     const pageNameInput = document.getElementById('pagename_searchbox');
     const addPageIcon = document.querySelector('.add-page-icon');
@@ -5624,7 +5572,6 @@ function initPageNameLogic() {
             const pageCell = row.querySelector('.page');
             if (pageCell) {
                 const cellText = pageCell.innerText.trim();
-                // NEW: Show rows matching the selected page, OR if "All" is selected, show everything
                 if (pageName === "" || pageName === "All" || cellText === pageName) {
                     row.classList.remove('page-hidden');
                 } else {
@@ -5638,146 +5585,191 @@ function initPageNameLogic() {
         updateRowNumbers(); // Re-index visible rows
     }
 
-    // EXPOSED GLOBAL SETTER (Used by the Deletion Handler)
+    // EXPOSED GLOBAL SETTER
     window.setGlobalPageName = function(name) {
+        if (!window.registeredPageNames) window.registeredPageNames = new Set();
+        if (name && name !== "All" && isValidPageName(name)) {
+            window.registeredPageNames.add(name);
+        }
         pageNameInput.value = name;
         lastConfirmedPageName = name;
         applyPageNameFilter(name);
     };
 
-    // DROPDOWN CLICK LOGIC
-        if (dropdownIcon && dropdownMenu) {
-            dropdownIcon.addEventListener('click', function(e) {
-                e.stopPropagation();
-                if (isEditMode) return;
+    // DROPDOWN CLICK LOGIC (Reads from Memory & Adds Trash Icons)
+    if (dropdownIcon && dropdownMenu) {
+        dropdownIcon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (isEditMode) return;
 
-                const tableBody = document.getElementById('myTable');
+            if (!window.registeredPageNames) window.registeredPageNames = new Set();
+
+            // Auto-save current input if valid
+            const currentActivePage = pageNameInput.value.trim();
+            if (currentActivePage && isValidPageName(currentActivePage) && currentActivePage !== "All") {
+                window.registeredPageNames.add(currentActivePage);
+            }
+
+            // Read from Global Memory
+            const uniquePages = new Set(window.registeredPageNames);
+
+            // Failsafe: Include any legacy cells currently in the table
+            const tableBody = document.getElementById('myTable');
+            if (tableBody) {
                 const pageCells = tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row) .page');
-                const uniquePages = new Set();
-
                 pageCells.forEach(cell => {
                     const val = cell.innerText.trim();
                     if(val) uniquePages.add(val);
                 });
+            }
 
-                if (uniquePages.size === 0) {
-                    dropdownMenu.style.display = 'none';
-                    return; // Nothing to show
+            if (uniquePages.size === 0) {
+                dropdownMenu.style.display = 'none';
+                return;
+            }
+
+            dropdownMenu.innerHTML = '';
+
+            // Inject "All" option if more than 1 unique page exists
+            if (uniquePages.size > 1) {
+                const allItem = document.createElement('div');
+                allItem.innerText = "All";
+                allItem.style.padding = '8px 12px';
+                allItem.style.cursor = 'pointer';
+                allItem.style.borderBottom = '2px solid #e2e4e8';
+                allItem.style.fontSize = '12px';
+                allItem.style.textAlign = 'left';
+
+                if (currentActivePage === "All" || currentActivePage === "") {
+                    allItem.style.color = '#4285F4';
+                    allItem.style.fontWeight = '700';
+                    allItem.style.backgroundColor = '#f4f7fc';
+                } else {
+                    allItem.style.color = '#333';
+                    allItem.style.fontWeight = '600';
+                    allItem.style.backgroundColor = 'transparent';
                 }
 
-                dropdownMenu.innerHTML = '';
-
-                // Get the current active value to highlight it in the list
-                const currentActivePage = pageNameInput.value.trim();
-
-                // Inject "All" option if more than 1 unique page exists
-                if (uniquePages.size > 1) {
-                    const allItem = document.createElement('div');
-                    allItem.innerText = "All";
-                    allItem.style.padding = '8px 12px';
-                    allItem.style.cursor = 'pointer';
-                    allItem.style.borderBottom = '2px solid #e2e4e8';
-                    allItem.style.fontSize = '12px';
-                    allItem.style.textAlign = 'left';
-
-                    // Dynamically style based on selection
-                    if (currentActivePage === "All" || currentActivePage === "") {
-                        allItem.style.color = '#4285F4';
-                        allItem.style.fontWeight = '700';
-                        allItem.style.backgroundColor = '#f4f7fc'; // Subtle active background
-                    } else {
-                        allItem.style.color = '#333';
-                        allItem.style.fontWeight = '600';
-                        allItem.style.backgroundColor = 'transparent';
-                    }
-
-                    allItem.addEventListener('mouseover', () => allItem.style.backgroundColor = '#eef6fd');
-                    allItem.addEventListener('mouseout', () => {
-                        allItem.style.backgroundColor = (currentActivePage === "All" || currentActivePage === "") ? '#f4f7fc' : 'transparent';
-                    });
-
-                    allItem.addEventListener('click', (ev) => {
-                        ev.stopPropagation();
-                        pageNameInput.value = "All";
-                        lastConfirmedPageName = "All";
-                        applyPageNameFilter("All");
-                        dropdownMenu.style.display = 'none';
-
-                        pageNameInput.readOnly = true;
-                        pageNameInput.style.cursor = 'default';
-                        isEditMode = false;
-                        restoreValidBlueState();
-
-                        if (confirmIcon) confirmIcon.style.display = 'none';
-                        if (cancelIcon) cancelIcon.style.display = 'none';
-                        if (addPageIcon) addPageIcon.style.display = 'inline-block';
-                        if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
-
-                        // Hide the edit pen because you cannot "rename" the All view
-                        if (editPenIcon) editPenIcon.style.display = 'none';
-                    });
-                    dropdownMenu.appendChild(allItem);
-                }
-
-                // Inject the rest of the dynamic pages
-                uniquePages.forEach(page => {
-                    const item = document.createElement('div');
-                    item.innerText = page;
-                    item.style.padding = '8px 12px';
-                    item.style.cursor = 'pointer';
-                    item.style.borderBottom = '1px solid #f0f0f0';
-                    item.style.fontSize = '12px';
-                    item.style.textAlign = 'left';
-
-                    // Dynamically style based on selection
-                    if (currentActivePage === page) {
-                        item.style.color = '#4285F4';
-                        item.style.fontWeight = '700';
-                        item.style.backgroundColor = '#f4f7fc'; // Subtle active background
-                    } else {
-                        item.style.color = '#333';
-                        item.style.fontWeight = '500';
-                        item.style.backgroundColor = 'transparent';
-                    }
-
-                    item.addEventListener('mouseover', () => item.style.backgroundColor = '#eef6fd');
-                    item.addEventListener('mouseout', () => {
-                        item.style.backgroundColor = (currentActivePage === page) ? '#f4f7fc' : 'transparent';
-                    });
-
-                    item.addEventListener('click', (ev) => {
-                        ev.stopPropagation();
-                        pageNameInput.value = page;
-                        lastConfirmedPageName = page;
-                        applyPageNameFilter(page);
-                        dropdownMenu.style.display = 'none';
-
-                        pageNameInput.readOnly = true;
-                        pageNameInput.style.cursor = 'default';
-                        isEditMode = false;
-                        restoreValidBlueState();
-
-                        if (confirmIcon) confirmIcon.style.display = 'none';
-                        if (cancelIcon) cancelIcon.style.display = 'none';
-                        if (addPageIcon) addPageIcon.style.display = 'inline-block';
-                        if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
-
-                        // Restore the pen icon since a normal page is selected
-                        if (editPenIcon) editPenIcon.style.display = 'inline-block';
-                    });
-                    dropdownMenu.appendChild(item);
+                allItem.addEventListener('mouseover', () => allItem.style.backgroundColor = '#eef6fd');
+                allItem.addEventListener('mouseout', () => {
+                    allItem.style.backgroundColor = (currentActivePage === "All" || currentActivePage === "") ? '#f4f7fc' : 'transparent';
                 });
 
-                dropdownMenu.style.display = dropdownMenu.style.display === 'none' ? 'block' : 'none';
+                allItem.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    window.setGlobalPageName("All");
+                    dropdownMenu.style.display = 'none';
+
+                    pageNameInput.readOnly = true;
+                    pageNameInput.style.cursor = 'default';
+                    isEditMode = false;
+                    restoreValidBlueState();
+
+                    if (confirmIcon) confirmIcon.style.display = 'none';
+                    if (cancelIcon) cancelIcon.style.display = 'none';
+                    if (addPageIcon) addPageIcon.style.display = 'inline-block';
+                    if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+                    if (editPenIcon) editPenIcon.style.display = 'none'; // Cannot rename 'All'
+                });
+                dropdownMenu.appendChild(allItem);
+            }
+
+            // Inject the rest of the dynamic pages with Trash Icons
+            uniquePages.forEach(page => {
+                const item = document.createElement('div');
+                item.style.display = 'flex';
+                item.style.justifyContent = 'space-between';
+                item.style.alignItems = 'center';
+                item.style.padding = '8px 12px';
+                item.style.cursor = 'pointer';
+                item.style.borderBottom = '1px solid #f0f0f0';
+                item.style.fontSize = '12px';
+                item.style.textAlign = 'left';
+
+                const textSpan = document.createElement('span');
+                textSpan.innerText = page;
+
+                if (currentActivePage === page) {
+                    item.style.color = '#4285F4';
+                    item.style.fontWeight = '700';
+                    item.style.backgroundColor = '#f4f7fc';
+                } else {
+                    item.style.color = '#333';
+                    item.style.fontWeight = '500';
+                    item.style.backgroundColor = 'transparent';
+                }
+
+                item.addEventListener('mouseover', () => item.style.backgroundColor = '#eef6fd');
+                item.addEventListener('mouseout', () => {
+                    item.style.backgroundColor = (currentActivePage === page) ? '#f4f7fc' : 'transparent';
+                });
+
+                item.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    window.setGlobalPageName(page);
+                    dropdownMenu.style.display = 'none';
+
+                    pageNameInput.readOnly = true;
+                    pageNameInput.style.cursor = 'default';
+                    isEditMode = false;
+                    restoreValidBlueState();
+
+                    if (confirmIcon) confirmIcon.style.display = 'none';
+                    if (cancelIcon) cancelIcon.style.display = 'none';
+                    if (addPageIcon) addPageIcon.style.display = 'inline-block';
+                    if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+                    if (editPenIcon) editPenIcon.style.display = 'inline-block';
+                });
+
+                // --- NEW TRASH ICON ---
+                const delIcon = document.createElement('div');
+                delIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px; color: #dc3545; transition: transform 0.1s;"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+                delIcon.style.padding = '4px';
+                delIcon.style.marginRight = '-4px';
+                delIcon.style.borderRadius = '4px';
+                delIcon.title = "Delete Page";
+
+                delIcon.addEventListener('mouseover', () => {
+                    delIcon.style.backgroundColor = '#f8d7da';
+                    delIcon.querySelector('svg').style.transform = 'scale(1.1)';
+                });
+                delIcon.addEventListener('mouseout', () => {
+                    delIcon.style.backgroundColor = 'transparent';
+                    delIcon.querySelector('svg').style.transform = 'scale(1)';
+                });
+
+                delIcon.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+
+                    pendingExportAction = "deletePage";
+                    window.pageToDelete = page; // Pass to the okay button handler
+
+                    document.getElementById('back_btn').style.display = 'inline-block';
+                    document.getElementById('okay_btn').innerText = 'Confirm';
+                    document.getElementById('popup_title').innerText = "Confirm Page Deletion";
+                    document.getElementById('popup_main_text').innerHTML = `Are you sure you want to delete the page <b>"${page}"</b>?`;
+                    document.getElementById('popup_sub_text').innerHTML = `All scraped elements mapped to this page will also be removed.`;
+
+                    document.getElementById('confirmationPopup').style.display = 'block';
+                    document.getElementById('overlay').style.display = 'block';
+
+                    dropdownMenu.style.display = 'none';
+                });
+
+                item.appendChild(textSpan);
+                item.appendChild(delIcon);
+                dropdownMenu.appendChild(item);
             });
 
-            // Hide dropdown when clicking elsewhere
-            document.addEventListener('click', (e) => {
-                if (!dropdownMenu.contains(e.target) && e.target !== dropdownIcon) {
-                    dropdownMenu.style.display = 'none';
-                }
-            });
-        }
+            dropdownMenu.style.display = dropdownMenu.style.display === 'none' ? 'block' : 'none';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!dropdownMenu.contains(e.target) && e.target !== dropdownIcon) {
+                dropdownMenu.style.display = 'none';
+            }
+        });
+    }
 
     pageNameInput.addEventListener('input', function() {
         if (!pageNameInput.readOnly) {
@@ -5823,7 +5815,6 @@ function initPageNameLogic() {
                 if (confirmIcon) confirmIcon.style.display = 'none';
                 if (cancelIcon) cancelIcon.style.display = 'none';
 
-                // Keep pen hidden if "All" is active
                 if (pageNameInput.value === "All") {
                     if (editPenIcon) editPenIcon.style.display = 'none';
                 } else {
@@ -5833,14 +5824,13 @@ function initPageNameLogic() {
         }, 150);
     });
 
-    // --- CREATE NEW PAGE (PLUS ICON) ---
     if (addPageIcon) {
         addPageIcon.addEventListener('click', function() {
             isEditMode = true;
             isRenameMode = false;
             previousPageName = pageNameInput.value;
 
-            pageNameInput.value = ""; // Clear for typing new page name
+            pageNameInput.value = "";
             pageNameInput.readOnly = false;
             pageNameInput.style.cursor = 'text';
             pageNameInput.focus();
@@ -5853,7 +5843,6 @@ function initPageNameLogic() {
         });
     }
 
-    // --- RENAME EXISTING PAGE (PEN ICON) ---
     if (editPenIcon) {
         editPenIcon.addEventListener('click', function() {
             if (pageNameInput.value.trim() === '') {
@@ -5865,7 +5854,7 @@ function initPageNameLogic() {
             isEditMode = true;
             isRenameMode = true;
             previousPageName = pageNameInput.value;
-            renameTarget = pageNameInput.value.trim(); // Target name in table
+            renameTarget = pageNameInput.value.trim();
 
             pageNameInput.readOnly = false;
             pageNameInput.style.cursor = 'text';
@@ -5881,7 +5870,6 @@ function initPageNameLogic() {
 
     if (confirmIcon) {
         confirmIcon.addEventListener('click', function() {
-            // Restore last page name if cleared entirely
             if (pageNameInput.value.trim() === '') {
                 pageNameInput.value = lastConfirmedPageName;
             } else if (!isValidPageName(pageNameInput.value)) {
@@ -5892,9 +5880,14 @@ function initPageNameLogic() {
             }
 
             const newName = pageNameInput.value.trim();
+            if (!window.registeredPageNames) window.registeredPageNames = new Set();
 
-            // IF IN RENAME MODE: Update all elements in the table matching the old name
             if (isRenameMode && renameTarget !== "" && renameTarget !== newName) {
+                // Rename in Memory
+                window.registeredPageNames.delete(renameTarget);
+                window.registeredPageNames.add(newName);
+
+                // Rename in Table
                 const tableBody = document.getElementById('myTable');
                 if (tableBody) {
                     const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
@@ -5905,11 +5898,11 @@ function initPageNameLogic() {
                         }
                     });
                 }
+            } else {
+                window.registeredPageNames.add(newName);
             }
 
-            // Save state & Apply Table Filter
-            lastConfirmedPageName = newName;
-            applyPageNameFilter(lastConfirmedPageName);
+            window.setGlobalPageName(newName);
 
             pageNameInput.readOnly = true;
             pageNameInput.style.cursor = 'default';
@@ -5942,7 +5935,6 @@ function initPageNameLogic() {
         if (addPageIcon) addPageIcon.style.display = 'inline-block';
         if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
 
-        // NEW: Keep pen hidden if we reverted back to the "All" view
         if (pageNameInput.value === "All") {
             if (editPenIcon) editPenIcon.style.display = 'none';
         } else {
@@ -6242,7 +6234,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const scenarioOutlineBar = document.getElementById("scenarioOutlineBar");
     const scenarioOutlineText = document.getElementById("scenarioOutlineText");
 
-    // Validation Utility Functions
+    // Tracks if we are "Renaming" (Record) or "Creating New" (Add)
+    let currentScenarioMode = "";
+    let initialModalPageName = "";
+    let liveTrackingName = ""; // Used to safely track real-time keystroke changes
+
     function validatePageName(val) {
         if (!val || val.trim() === '') return "Page Name is required";
         if (typeof isGlobalPageNameValid === 'function' && !isGlobalPageNameValid(val)) {
@@ -6261,6 +6257,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function validateScenarioOutline(val) {
         if (!val || val.trim() === '') return "Scenario Outline is required";
+        if (val.trim().length < 3) return "Scenario Outline must be at least 3 characters";
         return "";
     }
 
@@ -6283,17 +6280,39 @@ document.addEventListener("DOMContentLoaded", () => {
         recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
         addScenarioBtn.style.setProperty("display", "none", "important");
 
-        // Failsafe: Ensure readonly is removed if it wasn't updated in HTML
         if (recPageNameInput) {
             recPageNameInput.removeAttribute("readonly");
         }
 
-        // Live validation listeners for real-time feedback
+        // Live validation and REAL-TIME updating logic
         if(recPageNameInput) {
             recPageNameInput.addEventListener("input", function() {
                 const errorMsg = validatePageName(this.value);
                 if (errorMsg) showError(this, "rec_page_error_icon", "rec_page_error_text", errorMsg);
                 else clearError(this, "rec_page_error_icon");
+
+                // --- REAL-TIME RENAME: Only happens if user clicked Record Scenario ---
+                if (currentScenarioMode === "RECORD") {
+                    const newPageName = this.value;
+
+                    // Update main input instantly
+                    if (pageNameInput) pageNameInput.value = newPageName;
+
+                    // Update matching table cells instantly
+                    const tableBody = document.getElementById('myTable');
+                    if (tableBody && liveTrackingName !== "") {
+                        const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
+                        allDataRows.forEach(row => {
+                            const pageCell = row.querySelector('.page');
+                            // Only update cells that match our current active track
+                            if (pageCell && pageCell.innerText.trim() === liveTrackingName) {
+                                pageCell.innerText = newPageName;
+                            }
+                        });
+                    }
+                    // Sync the tracker so the next keystroke finds the right cells
+                    liveTrackingName = newPageName;
+                }
             });
         }
 
@@ -6313,21 +6332,23 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        function openScenarioModal() {
-            const pageNameValue = pageNameInput ? pageNameInput.value : "";
+        function openScenarioModal(mode) {
+            currentScenarioMode = mode;
+            const pageNameValue = pageNameInput ? pageNameInput.value.trim() : "";
 
             if (!isGlobalPageNameValid(pageNameValue)) {
                 handleInvalidPageNameAttempt();
                 return;
             }
 
-            // Populate the modal's Page Name field with the value from the main searchbox
+            // Capture the initial name exactly as it was when the modal opened
+            initialModalPageName = pageNameValue;
+            liveTrackingName = pageNameValue;
+
             if (recPageNameInput) {
                 recPageNameInput.value = pageNameValue;
                 clearError(recPageNameInput, "rec_page_error_icon");
             }
-
-            // Reset other fields & clear errors on open
             if (recScenarioNameInput) {
                 recScenarioNameInput.value = "";
                 clearError(recScenarioNameInput, "rec_scenario_error_icon");
@@ -6341,11 +6362,32 @@ document.addEventListener("DOMContentLoaded", () => {
             if (overlay) overlay.style.display = "block";
         }
 
-        recordScenarioBtn.addEventListener("click", openScenarioModal);
-        addScenarioBtn.addEventListener("click", openScenarioModal);
+        // Pass 'RECORD' or 'ADD' so the system knows what to do
+        recordScenarioBtn.addEventListener("click", () => openScenarioModal("RECORD"));
+        addScenarioBtn.addEventListener("click", () => openScenarioModal("ADD"));
+
+        // Helper to undo real-time changes if the user clicks "Cancel" or "Close"
+        function revertRealTimeChanges() {
+            if (currentScenarioMode === "RECORD" && liveTrackingName !== initialModalPageName) {
+                if (pageNameInput) pageNameInput.value = initialModalPageName;
+                const tableBody = document.getElementById('myTable');
+                if (tableBody) {
+                    const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
+                    allDataRows.forEach(row => {
+                        const pageCell = row.querySelector('.page');
+                        if (pageCell && pageCell.innerText.trim() === liveTrackingName) {
+                            pageCell.innerText = initialModalPageName;
+                        }
+                    });
+                }
+                liveTrackingName = initialModalPageName;
+            }
+        }
 
         if (recCloseBtn) {
             recCloseBtn.addEventListener("click", () => {
+                revertRealTimeChanges(); // Undo any typing if canceled
+
                 if (recordModal) recordModal.style.display = "none";
                 if (overlay) overlay.style.display = "none";
 
@@ -6359,7 +6401,6 @@ document.addEventListener("DOMContentLoaded", () => {
             recStartBtn.addEventListener("click", () => {
                 let isValid = true;
 
-                // Validate Page Name upon submit
                 if (recPageNameInput) {
                     const pageError = validatePageName(recPageNameInput.value);
                     if (pageError) {
@@ -6368,28 +6409,57 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
 
-                // Validate Scenario Name upon submit
                 const nameError = validateScenarioName(recScenarioNameInput.value);
                 if (nameError) {
                     showError(recScenarioNameInput, "rec_scenario_error_icon", "rec_scenario_error_text", nameError);
                     isValid = false;
                 }
 
-                // Validate Scenario Outline upon submit
                 const outlineError = validateScenarioOutline(recScenarioOutlineInput.value);
                 if (outlineError) {
                     showError(recScenarioOutlineInput, "rec_outline_error_icon", "rec_outline_error_text", outlineError);
                     isValid = false;
                 }
 
-                if (!isValid) return; // Halt if validation fails
+                if (!isValid) return;
 
-                // Sync the edited Modal Page Name back to the Main Page Name Input
-                if (pageNameInput && recPageNameInput) {
-                    pageNameInput.value = recPageNameInput.value.trim();
+                const newPageName = recPageNameInput.value.trim();
+
+                // Make sure global memory array exists
+                if (!window.registeredPageNames) window.registeredPageNames = new Set();
+
+                // --- RECORD vs ADD MEMORY LOGIC ---
+                if (currentScenarioMode === "RECORD") {
+
+                    // RECORD: Delete old name from memory, save new name.
+                    // (Table UI is already updated via the real-time input event)
+                    if (initialModalPageName !== "" && initialModalPageName !== newPageName) {
+                        window.registeredPageNames.delete(initialModalPageName);
+                        window.registeredPageNames.add(newPageName);
+                    } else if (initialModalPageName === newPageName && newPageName !== "") {
+                        window.registeredPageNames.add(newPageName);
+                    }
+
+                } else if (currentScenarioMode === "ADD") {
+
+                    // ADD: Keep old name, save new name. DO NOT touch old table cells.
+                    if (initialModalPageName !== "") {
+                        window.registeredPageNames.add(initialModalPageName);
+                    }
+                    if (newPageName !== "") {
+                        window.registeredPageNames.add(newPageName);
+                    }
                 }
 
-                // Success State execution
+                // Update the main top searchbox and filter so the user sees the new page context
+                if (pageNameInput) {
+                    pageNameInput.value = newPageName;
+                    if (window.setGlobalPageName) {
+                        window.setGlobalPageName(newPageName);
+                    }
+                }
+
+                // Close Popup
                 if (recordModal) recordModal.style.display = "none";
                 if (overlay) overlay.style.display = "none";
 
@@ -6398,6 +6468,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     scenarioOutlineBar.style.display = "inline-flex";
                 }
 
+                // Swap buttons
                 recordScenarioBtn.style.setProperty("display", "none", "important");
                 addScenarioBtn.style.setProperty("display", "inline-flex", "important");
             });
@@ -6508,61 +6579,29 @@ if (selectAllCheckbox) {
 const bulkDeleteBtn = document.getElementById('bulk_delete_btn');
 if (bulkDeleteBtn) {
     bulkDeleteBtn.addEventListener('click', () => {
-        const checkedBoxes = document.querySelectorAll('.bulk-delete-cb:checked');
+            const checkedBoxes = document.querySelectorAll('.bulk-delete-cb:checked');
 
-        if (checkedBoxes.length === 0) {
-            showCustomAlert("No Rows Selected", "Please select at least one row to delete.", "info");
-            return;
-        }
-
-        // Tally up total elements vs selected elements per page
-        let affectedPages = {}; // How many are selected per page
-        let totalPagesCount = {}; // How many totally exist per page
-
-        const allDataRows = document.querySelectorAll('#myTable tr:not(.empty-excel-row):not(.no-results-row)');
-
-        allDataRows.forEach(r => {
-            const pCell = r.querySelector(".page");
-            const pageName = pCell ? pCell.innerText.trim() : "";
-
-            if (pageName && pageName !== "") {
-                totalPagesCount[pageName] = (totalPagesCount[pageName] || 0) + 1;
-
-                const cb = r.querySelector(".bulk-delete-cb");
-                if (cb && cb.checked) {
-                    affectedPages[pageName] = (affectedPages[pageName] || 0) + 1;
-                }
+            if (checkedBoxes.length === 0) {
+                showCustomAlert("No Rows Selected", "Please select at least one row to delete.", "info");
+                return;
             }
+
+            // Build Confirmation Text without page-wiping warnings
+            let mainText = `Are you sure you want to delete the ${checkedBoxes.length} selected row(s)?`;
+            let subText = `This action cannot be undone.`;
+
+            document.getElementById('back_btn').style.display = 'inline-block';
+            document.getElementById('okay_btn').innerText = 'Confirm';
+            document.getElementById('popup_title').innerText = "Confirm Bulk Deletion";
+            document.getElementById('popup_main_text').innerHTML = mainText;
+            document.getElementById('popup_sub_text').innerHTML = subText;
+
+            pendingExportAction = "bulkDelete";
+
+            // Pass payload of checked boxes to the global scope so the Confirm handler can access it
+            window.pendingBulkDeleteRows = Array.from(checkedBoxes).map(cb => cb.closest('tr'));
+
+            document.getElementById('confirmationPopup').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
         });
-
-        // Determine if any page is getting fully wiped out
-        let pagesToBeWiped = [];
-        for (let p in affectedPages) {
-            if (affectedPages[p] === totalPagesCount[p]) {
-                pagesToBeWiped.push(p);
-            }
-        }
-
-        // Build Confirmation Text
-        let mainText = `Are you sure you want to delete the ${checkedBoxes.length} selected row(s)?`;
-        let subText = `This action cannot be undone.`;
-
-        if (pagesToBeWiped.length > 0) {
-            subText += `<br><br><strong style="color: #d9534f; font-size: 11px;">Warning: Deleting these will also fully delete the following page(s): "${pagesToBeWiped.join('", "')}".</strong>`;
-        }
-
-        document.getElementById('back_btn').style.display = 'inline-block';
-        document.getElementById('okay_btn').innerText = 'Confirm';
-        document.getElementById('popup_title').innerText = "Confirm Bulk Deletion";
-        document.getElementById('popup_main_text').innerHTML = mainText;
-        document.getElementById('popup_sub_text').innerHTML = subText;
-
-        pendingExportAction = "bulkDelete";
-
-        // Pass payload of checked boxes to the global scope so the Confirm handler can access it
-        window.pendingBulkDeleteRows = Array.from(checkedBoxes).map(cb => cb.closest('tr'));
-
-        document.getElementById('confirmationPopup').style.display = 'block';
-        document.getElementById('overlay').style.display = 'block';
-    });
 }
