@@ -2,14 +2,13 @@
     const wd = require("selenium-webdriver");
     const fs = require('fs');
     const path = require('path');
-    const { app } = require('electron');
-    const { ipcRenderer } = require('electron');
+    const { app, ipcRenderer } = require('electron');
 
     const os = require('os');
     const { exec } = require('child_process');
     var folderPath;
-    By = wd.By,
-      until = wd.until;
+    const By = wd.By;
+    const until = wd.until;
     var initialData = [];
     var driver;
     var imgTagFlag = false;
@@ -710,7 +709,9 @@ document.getElementById("Scrape").addEventListener('click', async () => {
         controlNameLists = [];
 
         // 2. DUPLICATE PAGE NAME CHECK
-        if (!screenNameList.includes(pagename_searchbox_Field)) {
+        // Sync before check
+        if (typeof syncRegisteredPageNames === 'function') syncRegisteredPageNames();
+        if (!window.registeredPageNames || !window.registeredPageNames.has(pagename_searchbox_Field)) {
 
             var plateformOption = plateformName.options[plateformName.selectedIndex].text;
             document.getElementById('sttus_bar_div').style.display = 'none';
@@ -835,8 +836,8 @@ document.getElementById("Scrape").addEventListener('click', async () => {
             }
 
             var pageSource = await driver.getPageSource();
-            parser = new DOMParser();
-            xmlDoc = parser.parseFromString(pageSource, "text/xml");
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(pageSource, "text/xml");
             window.xmlDoc = xmlDoc;
             showElementHover = false;
 
@@ -2411,7 +2412,7 @@ function createAndAppendTable(dtControls) {
             emptyRows[emptyRows.length - 1].remove();
         }
 
-        td_id = i;
+        let td_id = i;
 
                 // 1. Define available Control Types (Comprehensive & Alphabetical) All Control Types
                    const allControlTypes = [
@@ -3175,13 +3176,13 @@ function createAndAppendTable(dtControls) {
           const screenshot = Buffer.from(data, "base64");
             fs.writeFileSync(`${folderPath}/ss_${count}.png`, screenshot);
           let img = document.createElement("img");
-            img.src = `${folderPath}/ss_${count}.png`;
+          img.src = `${folderPath}/ss_${count}.png`;
           img.id = "ss";
-          style.maxWidth = "100%";
-          style.maxHeight = "100%";
-          style.width = "100%";
-          style.height = "100%";
-          style.objectFit = "contain";
+          img.style.maxWidth = "100%";
+          img.style.maxHeight = "100%";
+          img.style.width = "100%";
+          img.style.height = "100%";
+          img.style.objectFit = "contain";
           document.getElementById("image-container_ss").appendChild(img);
           lastClickedImg = img; // Set the last clicked image
           count = count + 1;
@@ -4242,6 +4243,9 @@ function getAllPossibleXPaths(node) {
 function isGlobalPageNameValid(name) {
     if (!name || name.trim() === '') return false; // Empty is invalid
 
+    // 1. Minimum 3 Characters Check
+    if (name.trim().length < 3) return false;
+
     // NEW: Reserve "All" so it cannot be used as a real scraped page name
     if (name.trim().toLowerCase() === 'all') return false;
 
@@ -4254,6 +4258,28 @@ function isGlobalPageNameValid(name) {
     return true;
 }
 
+function syncRegisteredPageNames() {
+    if (!window.registeredPageNames) window.registeredPageNames = new Set();
+    // REMOVED the .clear() command so we don't wipe out empty pages!
+
+    // 1. Sync from existing table rows
+    const tableBody = document.getElementById('myTable');
+    if (tableBody) {
+        const pageCells = tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row) .page');
+        pageCells.forEach(cell => {
+            const val = cell.innerText.trim();
+            if (val && val !== "All") window.registeredPageNames.add(val);
+        });
+    }
+
+    // 2. Sync from Scenario Data memory (keeps empty pages alive if they have scenario data)
+    if (window.pageScenarioData) {
+        Object.keys(window.pageScenarioData).forEach(p => {
+            if (p && p !== "All") window.registeredPageNames.add(p);
+        });
+    }
+}
+
 function handleInvalidPageNameAttempt() {
     const pageNameInput = document.getElementById('pagename_searchbox');
     if (pageNameInput) {
@@ -4263,7 +4289,7 @@ function handleInvalidPageNameAttempt() {
     if (typeof flashPageNameError === "function") flashPageNameError(); // Flashes the badge red
 
     // NEW: Updated alert text to mention "All" is reserved
-    showCustomAlert("Invalid Page Name", "Please enter a valid Page Name.It can accept alphanumeric characters, a single space between words, and must start with an alphabet.", "warning");
+    showCustomAlert("Invalid Page Name", "Please enter a valid Page Name. It must be at least 3 characters, can accept alphanumeric characters, a single space between words, and must start with an alphabet.", "warning");
 }
 
 
@@ -5561,7 +5587,21 @@ function initPageNameLogic() {
     if (!pageNameInput) return;
 
     function isValidPageName(name) {
-        return isGlobalPageNameValid(name);
+        if (!isGlobalPageNameValid(name)) return false;
+
+        // Duplicate Check (only when creating or renaming)
+        if (isEditMode) {
+            const trimmedName = name.trim();
+            // Sync before check to be absolutely sure
+            syncRegisteredPageNames();
+
+            // If renaming, ignore the original name
+            if (isRenameMode && trimmedName === renameTarget) return true;
+
+            if (window.registeredPageNames && window.registeredPageNames.has(trimmedName)) return false;
+        }
+
+        return true;
     }
 
     function restoreValidBlueState() {
@@ -5620,14 +5660,21 @@ function initPageNameLogic() {
             }
 
             if (scenarioOutlineBar && scenarioOutlineText) {
-                scenarioOutlineBar.style.display = "inline-flex";
-                scenarioOutlineText.value = "All";
-                scenarioOutlineText.readOnly = true;
-                scenarioOutlineText.style.cursor = 'default';
+                // Check if any scenario data exists in the project
+                const hasAnyScenario = window.pageScenarioData && Object.values(window.pageScenarioData).some(data => data && data.scenarioOutline);
 
-                if (recordScenarioBtn) recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
-                if (addScenarioBtn) addScenarioBtn.style.setProperty("display", "none", "important");
-                if (soEditIcon) soEditIcon.style.display = 'none';
+                if (hasAnyScenario) {
+                    scenarioOutlineBar.style.display = "inline-flex";
+                    scenarioOutlineText.value = "All";
+                    scenarioOutlineText.readOnly = true;
+                    scenarioOutlineText.style.cursor = 'default';
+
+                    if (recordScenarioBtn) recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
+                    if (addScenarioBtn) addScenarioBtn.style.setProperty("display", "none", "important");
+                    if (soEditIcon) soEditIcon.style.display = 'none';
+                } else {
+                    scenarioOutlineBar.style.display = "none";
+                }
             }
         } else {
             if (pageEditIcon) pageEditIcon.style.display = 'inline-block';
@@ -5641,7 +5688,8 @@ function initPageNameLogic() {
                     if (addScenarioBtn) addScenarioBtn.style.setProperty("display", "inline-flex", "important");
                     if (soEditIcon) soEditIcon.style.display = 'inline-block';
                 } else {
-                    scenarioOutlineBar.style.display = "inline-flex";
+                    // Hide the bar if no scenario data exists for this specific page
+                    scenarioOutlineBar.style.display = "none";
                     scenarioOutlineText.value = "";
 
                     if (recordScenarioBtn) recordScenarioBtn.style.setProperty("display", "inline-flex", "important");
@@ -5842,60 +5890,93 @@ function initPageNameLogic() {
         }
 
     pageNameInput.addEventListener('input', function() {
-        if (!pageNameInput.readOnly) {
-            if (!isValidPageName(this.value) && this.value !== "") {
-                if (confirmIcon) confirmIcon.style.display = 'none';
-                if (cancelIcon) cancelIcon.style.display = 'none';
-                if (addPageIcon) addPageIcon.style.display = 'none';
-                if (editPenIcon) editPenIcon.style.display = 'none';
-                if (dropdownIcon) dropdownIcon.style.display = 'none';
+            const val = this.value;
+            const errorTooltip = errorIconWrapper ? errorIconWrapper.querySelector('.error-info-tooltip') : null;
 
-                if (errorIconWrapper) errorIconWrapper.style.display = 'inline-flex';
-                badgeWrapper.style.borderColor = '#dc3545';
-                badgeLabel.style.backgroundColor = '#dc3545';
-            } else {
-                restoreValidBlueState();
+            if (!pageNameInput.readOnly) {
+                let errorMsg = "";
+                let isValid = true;
+                const trimmedName = val.trim();
 
-                if (isEditMode) {
-                    if (this.value.trim() !== '') {
-                        if (confirmIcon) confirmIcon.style.display = 'inline-block';
-                        if (cancelIcon) cancelIcon.style.display = 'inline-block';
+                // 1. Real-Time Validation Checks
+                if (trimmedName === "") {
+                    errorMsg = "Page Name cannot be empty.";
+                    isValid = false;
+                } else if (trimmedName.length < 3) {
+                    errorMsg = "Page Name must be at least 3 characters.";
+                    isValid = false;
+                } else if (!isGlobalPageNameValid(val)) {
+                    errorMsg = "Invalid Format: Must start with a letter and contain only alphanumeric chars or single spaces.";
+                    isValid = false;
+                } else if (isEditMode) {
+
+                    // Gather all known pages from memory to prevent ANY duplicates
+                    let allKnownPages = new Set(window.registeredPageNames || []);
+
+                    // Include pages that have scenario data but might not be in the table
+                    if (window.pageScenarioData) {
+                        Object.keys(window.pageScenarioData).forEach(p => allKnownPages.add(p));
                     }
+
+                    // CRITICAL FIX: Include the page we just navigated away from via the '+' icon.
+                    // If the table was empty, the sync function forgets it, causing the duplicate bug.
+                    if (typeof previousPageName !== 'undefined' && previousPageName && previousPageName !== "All") {
+                        allKnownPages.add(previousPageName);
+                    }
+
+                    // Check for duplicates (Case-Insensitive for better UX)
+                    let isDuplicate = false;
+                    for (let existingPage of allKnownPages) {
+                        if (existingPage.toLowerCase() === trimmedName.toLowerCase()) {
+                            // If we are renaming (pencil icon), it's allowed to match its own original name
+                            if (!(isRenameMode && typeof renameTarget !== 'undefined' && renameTarget.toLowerCase() === trimmedName.toLowerCase())) {
+                                isDuplicate = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (isDuplicate) {
+                        errorMsg = "Page Name already exists.";
+                        isValid = false;
+                    }
+                }
+
+                // 2. Real-Time UI Updates based on Validation State
+                if (!isValid) {
+                    // INVALID STATE: Hide Confirm (Green Check), Show Cancel (Red X)
+                    if (confirmIcon) confirmIcon.style.display = 'none';
+                    if (cancelIcon) cancelIcon.style.display = 'inline-block';
+
                     if (addPageIcon) addPageIcon.style.display = 'none';
                     if (editPenIcon) editPenIcon.style.display = 'none';
                     if (dropdownIcon) dropdownIcon.style.display = 'none';
+
+                    if (errorIconWrapper) {
+                        errorIconWrapper.style.display = 'inline-flex';
+                        if (errorTooltip) errorTooltip.innerText = errorMsg;
+                    }
+
+                    // Real-time Red error styling
+                    if (badgeWrapper) badgeWrapper.style.borderColor = '#dc3545';
+                    if (badgeLabel) badgeLabel.style.backgroundColor = '#dc3545';
                 } else {
-                    if (confirmIcon) confirmIcon.style.display = 'none';
-                    if (cancelIcon) cancelIcon.style.display = 'none';
-                    if (addPageIcon) addPageIcon.style.display = 'inline-block';
-                    if (editPenIcon) editPenIcon.style.display = 'inline-block';
-                }
-            }
-        }
-    });
+                    // VALID STATE: Show Confirm (Green Check) and Cancel (Red X)
+                    restoreValidBlueState();
 
-    pageNameInput.addEventListener('blur', function() {
-        setTimeout(() => {
-            if (isEditMode) return;
-            if (this.value.trim() !== '' && isValidPageName(this.value)) {
-                this.readOnly = true;
-                this.style.cursor = 'default';
-                if (addPageIcon) addPageIcon.style.display = 'inline-block';
-                if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
-                if (confirmIcon) confirmIcon.style.display = 'none';
-                if (cancelIcon) cancelIcon.style.display = 'none';
+                    if (confirmIcon) confirmIcon.style.display = 'inline-block';
+                    if (cancelIcon) cancelIcon.style.display = 'inline-block';
 
-                if (pageNameInput.value === "All") {
+                    if (addPageIcon) addPageIcon.style.display = 'none';
                     if (editPenIcon) editPenIcon.style.display = 'none';
-                } else {
-                    if (editPenIcon) editPenIcon.style.display = 'inline-block';
+                    if (dropdownIcon) dropdownIcon.style.display = 'none';
                 }
             }
-        }, 150);
-    });
+        });
 
     if (addPageIcon) {
         addPageIcon.addEventListener('click', function() {
+            syncRegisteredPageNames();
             isEditMode = true;
             isRenameMode = false;
             previousPageName = pageNameInput.value;
@@ -5915,6 +5996,7 @@ function initPageNameLogic() {
 
     if (editPenIcon) {
         editPenIcon.addEventListener('click', function() {
+            syncRegisteredPageNames();
             if (pageNameInput.value.trim() === '') {
                 pageNameInput.focus();
                 flashPageNameError();
@@ -5939,50 +6021,58 @@ function initPageNameLogic() {
     }
 
     if (confirmIcon) {
-        confirmIcon.addEventListener('click', function() {
-            if (pageNameInput.value.trim() === '') {
-                pageNameInput.value = lastConfirmedPageName;
-            } else if (!isValidPageName(pageNameInput.value)) {
-                pageNameInput.focus();
-                flashPageNameError();
-                showCustomAlert("Invalid Format", "Please provide a valid Page Name without special characters.");
-                return;
-            }
-
-            const newName = pageNameInput.value.trim();
-            if (!window.registeredPageNames) window.registeredPageNames = new Set();
-
-            if (isRenameMode && renameTarget !== "" && renameTarget !== newName) {
-                window.registeredPageNames.delete(renameTarget);
-                window.registeredPageNames.add(newName);
-
-                const tableBody = document.getElementById('myTable');
-                if (tableBody) {
-                    const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
-                    allDataRows.forEach(row => {
-                        const pageCell = row.querySelector('.page');
-                        if (pageCell && pageCell.innerText.trim() === renameTarget) {
-                            pageCell.innerText = newName;
-                        }
-                    });
+            confirmIcon.addEventListener('click', function() {
+                if (pageNameInput.value.trim() === '') {
+                    pageNameInput.value = lastConfirmedPageName;
+                } else if (!isValidPageName(pageNameInput.value)) {
+                    pageNameInput.focus();
+                    flashPageNameError();
+                    showCustomAlert("Invalid Format", "Please provide a valid Page Name without special characters.");
+                    return;
                 }
-            } else {
-                window.registeredPageNames.add(newName);
-            }
 
-            window.setGlobalPageName(newName);
+                const newName = pageNameInput.value.trim();
+                if (!window.registeredPageNames) window.registeredPageNames = new Set();
 
-            pageNameInput.readOnly = true;
-            pageNameInput.style.cursor = 'default';
-            isEditMode = false;
+                if (isRenameMode && renameTarget !== "" && renameTarget !== newName) {
+                    // 1. Rename in Page Memory
+                    window.registeredPageNames.delete(renameTarget);
+                    window.registeredPageNames.add(newName);
 
-            confirmIcon.style.display = 'none';
-            cancelIcon.style.display = 'none';
-            if (addPageIcon) addPageIcon.style.display = 'inline-block';
-            if (editPenIcon) editPenIcon.style.display = 'inline-block';
-            if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
-        });
-    }
+                    // 2. Transfer Scenario Outline Data to the new name
+                    if (window.pageScenarioData && window.pageScenarioData[renameTarget]) {
+                        window.pageScenarioData[newName] = window.pageScenarioData[renameTarget];
+                        delete window.pageScenarioData[renameTarget];
+                    }
+
+                    // 3. Update Table Cells
+                    const tableBody = document.getElementById('myTable');
+                    if (tableBody) {
+                        const allDataRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-excel-row):not(.no-results-row)'));
+                        allDataRows.forEach(row => {
+                            const pageCell = row.querySelector('.page');
+                            if (pageCell && pageCell.innerText.trim() === renameTarget) {
+                                pageCell.innerText = newName;
+                            }
+                        });
+                    }
+                } else {
+                    window.registeredPageNames.add(newName);
+                }
+
+                window.setGlobalPageName(newName);
+
+                pageNameInput.readOnly = true;
+                pageNameInput.style.cursor = 'default';
+                isEditMode = false;
+
+                confirmIcon.style.display = 'none';
+                cancelIcon.style.display = 'none';
+                if (addPageIcon) addPageIcon.style.display = 'inline-block';
+                if (editPenIcon) editPenIcon.style.display = 'inline-block';
+                if (dropdownIcon) dropdownIcon.style.display = 'inline-block';
+            });
+        }
 
     function triggerCancel() {
         if (pageNameInput.value.trim() === '') {
@@ -5991,7 +6081,7 @@ function initPageNameLogic() {
              pageNameInput.value = previousPageName;
         }
 
-        applyPageNameFilter(pageNameInput.value);
+        window.setGlobalPageName(pageNameInput.value);
 
         pageNameInput.readOnly = true;
         pageNameInput.style.cursor = 'default';
@@ -6504,6 +6594,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function validatePageName(val) {
         if (!val || val.trim() === '') return "Page Name is required";
+        if (val.trim().length < 3) return "Page Name must be at least 3 characters";
+
+        // Check if page already exists
+        const trimmedName = val.trim();
+        if (window.registeredPageNames && window.registeredPageNames.has(trimmedName)) {
+            // If in Record Scenario mode (renaming current page), allow it.
+            // But if in Add Scenario mode (new page), it must be unique.
+            if (!(currentScenarioMode === "RECORD" && trimmedName === initialModalPageName)) {
+                return "Page Name already exists.";
+            }
+        }
+
         if (typeof isGlobalPageNameValid === 'function' && !isGlobalPageNameValid(val)) {
             return "Page Name must start with a letter and can contain only letters, numbers, _, and single spaces.";
         }
