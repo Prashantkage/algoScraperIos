@@ -3555,8 +3555,20 @@ function createAndAppendTable(dtControls) {
 
     document.getElementById("refreshBtn").addEventListener("click", async () => {
 
-            const container = document.getElementById("image-container");
-            const globalOverlay = document.getElementById("overlay");
+                // --- NEW LOGIC: If session is empty (e.g. after Reset), act as Launch Application ---
+                if (!driver) {
+                    const runBtn = document.getElementById('Run');
+                    if (runBtn && !runBtn.disabled) {
+                        runBtn.click(); // Automatically trigger the Launch process
+                    } else {
+                        showCustomAlert("Cannot Launch", "Please make sure you are authenticated and all application details are filled.", "warning");
+                    }
+                    return; // Stop the refresh script here and let the Launch script take over
+                }
+                // -----------------------------------------------------------------------------------
+
+                const container = document.getElementById("image-container");
+                const globalOverlay = document.getElementById("overlay");
             const appRunningPopup = document.getElementById("AppRunningPopup");
 
             // 1. Keep the global blocker windows turned off
@@ -5110,14 +5122,27 @@ function updateRowEyeButtonState() {
 
                 // 8. Restore Button States Perfectly
 
-                // STAY DISABLED: "Launch Application" stays locked because session is already active
-                const runBtn = document.getElementById('Run');
-                if (runBtn) {
-                    runBtn.disabled = true;
-                    runBtn.style.backgroundColor = '#B6B6B4';
-                }
+                                // ENABLE "Launch Application" so the user can start a new session
+                                const runBtn = document.getElementById('Run');
+                                if (runBtn) {
+                                    runBtn.disabled = false;
+                                    runBtn.style.backgroundColor = '#4285F4';
+                                }
 
-                // --- RESET SCENARIO BUTTONS STATE ON RESET ---
+                                // ENABLE app and device selection fields so the user can switch apps
+                                const appFields = ["appname", "devicename", "udid", "appiumurl", "platformversion", "automationName", "bundleID"];
+                                appFields.forEach(id => {
+                                    const field = document.getElementById(id);
+                                    if (field) field.disabled = false;
+                                });
+
+                                // Quit the active Appium session to free up the device for the new app selection
+                                if (driver) {
+                                    driver.quit().catch(err => console.log("Error quitting driver on reset:", err));
+                                    driver = null;
+                                }
+
+                                // --- RESET SCENARIO BUTTONS STATE ON RESET ---
                                 const recordScenarioBtn = document.getElementById('recordScenarioBtn');
                                 const addScenarioBtn = document.getElementById('addScenarioBtn');
                                 if (recordScenarioBtn && addScenarioBtn) {
@@ -5144,12 +5169,12 @@ function updateRowEyeButtonState() {
                     }
                 });
 
-                // ENABLE main "Scrape" button so the user can immediately resume capturing
-                const scrapeBtn = document.getElementById('Scrape');
-                if (scrapeBtn) {
-                    scrapeBtn.disabled = false;
-                    scrapeBtn.style.backgroundColor = '#4285F4';
-                }
+                // DISABLE main "Scrape" button until the user launches the application again
+                                const scrapeBtn = document.getElementById('Scrape');
+                                if (scrapeBtn) {
+                                    scrapeBtn.disabled = true;
+                                    scrapeBtn.style.backgroundColor = '#B6B6B4';
+                                }
 
                 // Make sure token session and Change button remain visually intact
                 const tokenInput = document.getElementById("tokenInput");
