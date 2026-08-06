@@ -1110,94 +1110,149 @@ document.getElementById("Scrape").addEventListener('click', async () => {
 
 
     function downloadTableAsJSON(tableId) {
-            document.getElementById('sttus_bar_div').style.display = 'none';
+        document.getElementById('sttus_bar_div').style.display = 'none';
 
-            const now = new Date();
-            const dateTime = now.toISOString().split('T')[0] + 'T' + now.toTimeString().split(' ')[0];
+        const now = new Date();
+        const dateTime = now.toISOString().split('T')[0] + 'T' + now.toTimeString().split(' ')[0];
 
-            var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
+        var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
 
-            // Map visible headers and their original indices to safely extract cells from hidden rows
-            var visibleHeaderIndices = [];
-            var visibleHeaders = allHeaders.filter((th, index) => {
-                if (window.getComputedStyle(th).display !== 'none') {
-                    visibleHeaderIndices.push(index);
-                    return true;
+        // Map visible headers and their original indices to safely extract cells from hidden rows
+        var visibleHeaderIndices = [];
+        var visibleHeaders = allHeaders.filter((th, index) => {
+            if (window.getComputedStyle(th).display !== 'none') {
+                visibleHeaderIndices.push(index);
+                return true;
+            }
+            return false;
+        });
+
+        var rows = document.querySelectorAll(`#${tableId} tr`);
+        var dashboardControls = [];
+        var globalAppUrl = "";
+
+        rows.forEach((row) => {
+            // Always skip empty placeholders and error rows
+            if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
+
+            // Only skip if the row is explicitly hidden by the user's Context Menu feature
+            if (typeof hiddenRows !== 'undefined' && hiddenRows.some(h => h.rowElement === row)) return;
+
+            var allCells = Array.from(row.querySelectorAll('td'));
+            if (allCells.length === 0) return;
+
+            var rowObj = {
+                "CONTROL NAME": "",
+                "CONTROL TYPE": "",
+                "XPATH": "",
+                "PAGE NAME": "",
+                "IDENTIFICATION TYPE": "",
+                "CONTROL VALUE": "",
+                "FEATURE NAME": "",
+                "NODE NAME": "",
+                "FINGERPRINT": "",
+                "APP URL": ""
+            };
+
+            // 1. Extract standard visible columns
+            visibleHeaders.forEach((th, idx) => {
+                var cellIndex = visibleHeaderIndices[idx];
+                var cell = allCells[cellIndex];
+                if (!cell) return;
+
+                var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                var selectEl = cell.querySelector('select');
+                var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
+
+                if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
+                else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
+                else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
+                else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
+                else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
+                else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
+                else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
+                else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
+                else if (th.classList.contains('custom-editable-header')) {
+                    var colName = th.querySelector('span')?.innerText.trim() || thText;
+                    rowObj[colName] = val;
                 }
-                return false;
             });
 
-            var rows = document.querySelectorAll(`#${tableId} tr`);
-            var dashboardControls = [];
+            // 2. EXPLICITLY extract hidden columns (Fingerprint & App URL)
+            var fingerprintCell = row.querySelector('.fingerprint');
+            if (fingerprintCell) {
+                rowObj["FINGERPRINT"] = " ";
+            }
 
-            rows.forEach((row) => {
-                // Always skip empty placeholders and error rows
-                if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
+            var appUrlCell = row.querySelector('.appUrl');
+            if (appUrlCell) {
+                rowObj["APP URL"] = appUrlCell.innerText.trim();
+            }
 
-                // Only skip if the row is explicitly hidden by the user's Context Menu feature
-                if (typeof hiddenRows !== 'undefined' && hiddenRows.some(h => h.rowElement === row)) return;
+            // Store App URL if present
+            if(rowObj["APP URL"]) {
+                globalAppUrl = rowObj["APP URL"];
+            }
 
-                var allCells = Array.from(row.querySelectorAll('td'));
-                if (allCells.length === 0) return;
+            dashboardControls.push(rowObj);
+        });
 
-                var rowObj = {
-                    "CONTROL NAME": "",
-                    "CONTROL TYPE": "",
-                    "XPATH": "",
-                    "PAGE NAME": "",
-                    "IDENTIFICATION TYPE": "",
-                    "CONTROL VALUE": "",
-                    "FEATURE NAME": "",
-                    "NODE NAME": "",
-                    "FINGERPRINT": "",
-                    "APP URL": ""
-                };
+        // Detect if we are in Record Scenario Mode based on whether scenario data was created
+        var isRecordMode = window.pageScenarioData && Object.keys(window.pageScenarioData).length > 0;
+        var jsonContent;
 
-                visibleHeaders.forEach((th, idx) => {
-                    var cellIndex = visibleHeaderIndices[idx];
-                    var cell = allCells[cellIndex];
-                    if (!cell) return;
+        if (isRecordMode) {
+            var scenariosList = [];
+            var stepsByPage = {};
 
-                    var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
-                    var selectEl = cell.querySelector('select');
-                    var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
-
-                    if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
-                    else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
-                    else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
-                    else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
-                    else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
-                    else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
-                    else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
-                    else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
-                    else if (th.classList.contains('custom-editable-header')) {
-                        var colName = th.querySelector('span')?.innerText.trim() || thText;
-                        rowObj[colName] = val;
-                    }
-                });
-
-                dashboardControls.push(rowObj);
+            // Group extracted rows (steps) by Page Name
+            dashboardControls.forEach(step => {
+                var page = step["PAGE NAME"];
+                if (!stepsByPage[page]) stepsByPage[page] = [];
+                stepsByPage[page].push(step);
             });
 
-            var jsonContent = {
+            // Build the Scenario payload mapping the steps to their corresponding Scenario
+            for (var pageName in window.pageScenarioData) {
+                var scenarioInfo = window.pageScenarioData[pageName];
+                if (scenarioInfo && scenarioInfo.scenarioName) {
+                    scenariosList.push({
+                        "SCENARIO_NAME": scenarioInfo.scenarioName,
+                        "SCENARIO_OUTLINE": scenarioInfo.scenarioOutline || "",
+                        "STEPS": stepsByPage[pageName] || []
+                    });
+                }
+            }
+
+            jsonContent = {
+                "isRecordscenario": true,
+                "dashboardControls": {
+                    "APP URL": globalAppUrl,
+                    "SCENARIOS": scenariosList
+                }
+            };
+        } else {
+            // Fallback to normal behavior
+            jsonContent = {
                 "isRecordscenario": false,
                 "dashboardControls": dashboardControls
             };
-
-            var blob = new Blob([JSON.stringify(jsonContent, null, 2)], { type: "application/json;charset=utf-8;" });
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
-
-            var appSelect = document.getElementById('appname');
-            var appName = appSelect ? appSelect.options[appSelect.selectedIndex].text.trim() : "App";
-
-            a.download = appName + "_" + dateTime + ".json";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
         }
+
+        var blob = new Blob([JSON.stringify(jsonContent, null, 2)], { type: "application/json;charset=utf-8;" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+
+        var appSelect = document.getElementById('appname');
+        var appName = appSelect ? appSelect.options[appSelect.selectedIndex].text.trim() : "App";
+
+        a.download = appName + "_" + dateTime + ".json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
 
 
 
@@ -3424,116 +3479,173 @@ function createAndAppendTable(dtControls) {
             });
 
     async function sendTableDataToAPI(tableId) {
-            const userData = JSON.parse(localStorage.getItem("algoQAUser"));
-            if (!userData) {
-                showCustomAlert("Authentication Error", "Token data not found.");
-                return;
+        const userData = JSON.parse(localStorage.getItem("algoQAUser"));
+        if (!userData) {
+            showCustomAlert("Authentication Error", "Token data not found.");
+            return;
+        }
+
+        var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
+
+        // Map visible headers and their original indices to safely extract cells from hidden rows
+        var visibleHeaderIndices = [];
+        var visibleHeaders = allHeaders.filter((th, index) => {
+            if (window.getComputedStyle(th).display !== 'none') {
+                visibleHeaderIndices.push(index);
+                return true;
             }
+            return false;
+        });
 
-            var allHeaders = Array.from(document.querySelectorAll('#mainTable thead tr th'));
+        var rows = document.querySelectorAll(`#${tableId} tr`);
+        var tableData = [];
+        var globalAppUrl = "";
 
-            // Map visible headers and their original indices to safely extract cells from hidden rows
-            var visibleHeaderIndices = [];
-            var visibleHeaders = allHeaders.filter((th, index) => {
-                if (window.getComputedStyle(th).display !== 'none') {
-                    visibleHeaderIndices.push(index);
-                    return true;
-                }
-                return false;
-            });
+        rows.forEach((row) => {
+            // Always skip empty placeholders and error rows
+            if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
 
-            var rows = document.querySelectorAll(`#${tableId} tr`);
-            var tableData = [];
+            // Only skip if the row is explicitly hidden by the user's Context Menu feature
+            if (typeof hiddenRows !== 'undefined' && hiddenRows.some(h => h.rowElement === row)) return;
 
-            rows.forEach((row) => {
-                // Always skip empty placeholders and error rows
-                if (row.classList.contains('empty-excel-row') || row.classList.contains('no-results-row')) return;
+            var allCells = Array.from(row.querySelectorAll('td'));
+            if (allCells.length === 0) return;
 
-                // Only skip if the row is explicitly hidden by the user's Context Menu feature
-                if (typeof hiddenRows !== 'undefined' && hiddenRows.some(h => h.rowElement === row)) return;
-
-                var allCells = Array.from(row.querySelectorAll('td'));
-                if (allCells.length === 0) return;
-
-                var rowObj = {
-                    "CONTROL NAME": "",
-                    "CONTROL TYPE": "",
-                    "XPATH": "",
-                    "PAGE NAME": "",
-                    "IDENTIFICATION TYPE": "",
-                    "CONTROL VALUE": "",
-                    "FEATURE NAME": "",
-                    "NODE NAME": "",
-                    "FINGERPRINT": "",
-                    "APP URL": ""
-                };
-
-                visibleHeaders.forEach((th, idx) => {
-                    var cellIndex = visibleHeaderIndices[idx];
-                    var cell = allCells[cellIndex];
-                    if (!cell) return;
-
-                    var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
-                    var selectEl = cell.querySelector('select');
-                    var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
-
-                    if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
-                    else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
-                    else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
-                    else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
-                    else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
-                    else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
-                    else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
-                    else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
-                    else if (th.classList.contains('custom-editable-header')) {
-                        var colName = th.querySelector('span')?.innerText.trim() || thText;
-                        rowObj[colName] = val;
-                    }
-                });
-
-                tableData.push(rowObj);
-            });
-
-            if (tableData.length === 0) {
-                showCustomAlert("Export Failed", "No scraped data found.");
-                return;
-            }
-
-            const payload = {
-                data: tableData,
-                userID: Number(userData.userID),
-                baseUrl: userData.baseUrl,
-                projectId: userData.project_id,
-                launchUrl: userData.launchUrl,
-                projectName: userData.project_name,
-                applicationTypeId: Number(userData.application_type_id),
-                applicationType: "Mobile"
+            var rowObj = {
+                "CONTROL NAME": "",
+                "CONTROL TYPE": "",
+                "XPATH": "",
+                "PAGE NAME": "",
+                "IDENTIFICATION TYPE": "",
+                "CONTROL VALUE": "",
+                "FEATURE NAME": "",
+                "NODE NAME": "",
+                "FINGERPRINT": "",
+                "APP URL": ""
             };
 
-            console.log("Payload:", payload);
+            // 1. Extract standard visible columns
+            visibleHeaders.forEach((th, idx) => {
+                var cellIndex = visibleHeaderIndices[idx];
+                var cell = allCells[cellIndex];
+                if (!cell) return;
 
-            try {
-                const endpoint = userData.project_id ? "saveReScraperData" : "MobileAutomationScraperData";
-                const response = await fetch(`${userData.baseUrl}/project/${endpoint}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
+                var thText = th.innerText.replace('Delete Column', '').replace('Add Column', '').trim().toUpperCase();
+                var selectEl = cell.querySelector('select');
+                var val = selectEl ? selectEl.value.trim() : cell.innerText.trim();
 
-                const result = await response.json();
-                if (!response.ok) throw new Error("API request failed");
+                if (thText.includes('CONTROL NAME')) rowObj["CONTROL NAME"] = val;
+                else if (thText.includes('CONTROL TYPE')) rowObj["CONTROL TYPE"] = val;
+                else if (thText.includes('CONTROL ID')) rowObj["XPATH"] = val;
+                else if (thText.includes('PAGE NAME')) rowObj["PAGE NAME"] = val;
+                else if (thText.includes('IDENTIFICATION TYPE')) rowObj["IDENTIFICATION TYPE"] = val;
+                else if (thText.includes('CONTROL VALUE')) rowObj["CONTROL VALUE"] = val;
+                else if (thText.includes('FEATURE NAME')) rowObj["FEATURE NAME"] = val;
+                else if (thText.includes('NODE NAME')) rowObj["NODE NAME"] = val;
+                else if (th.classList.contains('custom-editable-header')) {
+                    var colName = th.querySelector('span')?.innerText.trim() || thText;
+                    rowObj[colName] = val;
+                }
+            });
 
-                showCustomAlert("Success!", "Scraped data shared successfully to AlgoQA.", "info");
-
-                if (driver) { try { await driver.quit(); } catch (err) {} }
-                const { exec } = require("child_process");
-                exec("xcrun simctl shutdown all", () => { ipcRenderer.send("close-app"); });
-
-            } catch (error) {
-                console.error("Error sending table data:", error);
-                showErrorPopup("Failed to share data to AlgoQA", error);
+            // 2. EXPLICITLY extract hidden columns (Fingerprint & App URL)
+            var fingerprintCell = row.querySelector('.fingerprint');
+            if (fingerprintCell) {
+                rowObj["FINGERPRINT"] = " ";
             }
+
+            var appUrlCell = row.querySelector('.appUrl');
+            if (appUrlCell) {
+                rowObj["APP URL"] = appUrlCell.innerText.trim();
+            }
+
+            if(rowObj["APP URL"]) {
+                globalAppUrl = rowObj["APP URL"];
+            }
+
+            tableData.push(rowObj);
+        });
+
+        if (tableData.length === 0) {
+            showCustomAlert("Export Failed", "No scraped data found.");
+            return;
         }
+
+        // Detect if we are in Record Scenario Mode
+        var isRecordMode = window.pageScenarioData && Object.keys(window.pageScenarioData).length > 0;
+        var finalDataPayload;
+
+        if (isRecordMode) {
+            var scenariosList = [];
+            var stepsByPage = {};
+
+            // Group rows (steps) by their PAGE NAME
+            tableData.forEach(step => {
+                var page = step["PAGE NAME"];
+                if (!stepsByPage[page]) stepsByPage[page] = [];
+                stepsByPage[page].push(step);
+            });
+
+            // Assemble SCENARIOS list mapping steps to their relevant scenario details
+            for (var pageName in window.pageScenarioData) {
+                var scenarioInfo = window.pageScenarioData[pageName];
+                if (scenarioInfo && scenarioInfo.scenarioName) {
+                    scenariosList.push({
+                        "SCENARIO_NAME": scenarioInfo.scenarioName,
+                        "SCENARIO_OUTLINE": scenarioInfo.scenarioOutline || "",
+                        "STEPS": stepsByPage[pageName] || []
+                    });
+                }
+            }
+
+            finalDataPayload = {
+//                "isRecordscenario": true,
+                "dashboardControls": {
+                    "APP URL": globalAppUrl,
+                    "SCENARIOS": scenariosList
+                }
+            };
+        } else {
+            // Fallback to normal behavior
+            finalDataPayload = tableData;
+        }
+
+        const payload = {
+            data: finalDataPayload,
+            isRecordscenario: isRecordMode, // Include top-level flag for API handling
+            userID: Number(userData.userID),
+            baseUrl: userData.baseUrl,
+            projectId: userData.project_id,
+            launchUrl: userData.launchUrl,
+            projectName: userData.project_name,
+            applicationTypeId: Number(userData.application_type_id),
+            applicationType: "Mobile"
+        };
+
+        console.log("Payload:", payload);
+
+        try {
+            const endpoint = userData.project_id ? "saveReScraperData" : "MobileAutomationScraperData";
+            const response = await fetch(`${userData.baseUrl}/project/${endpoint}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw new Error("API request failed");
+
+            showCustomAlert("Success!", "Scraped data shared successfully to AlgoQA.", "info");
+
+            if (driver) { try { await driver.quit(); } catch (err) {} }
+            const { exec } = require("child_process");
+            exec("xcrun simctl shutdown all", () => { ipcRenderer.send("close-app"); });
+
+        } catch (error) {
+            console.error("Error sending table data:", error);
+            showErrorPopup("Failed to share data to AlgoQA", error);
+        }
+    }
 
 
 
